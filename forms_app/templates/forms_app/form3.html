@@ -1,0 +1,20 @@
+<!-- templates/forms_app/form3.html -->
+{% extends "forms_app/base_form.html" %}
+
+{% block title %}
+Форма 3: Генератор отчетов по регионам
+{% endblock %}
+
+{% block content %}
+<h2>📊 Форма 3: Генератор отчетов по регионам</h2>
+
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+
+    <label for="id_excel_file">Загрузите Excel-файл (.xlsx):</label>
+    {{ form.excel_file }}
+    <br><br>
+
+    <button type="submit">Обработать</button>
+</form>
+{% endblock %}

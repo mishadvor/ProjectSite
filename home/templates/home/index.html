@@ -1,0 +1,98 @@
+<!-- home/templates/home/index.html -->
+{% extends "base.html" %}
+
+{% block title %}
+Главная страница
+{% endblock %}
+
+{% block content %}
+<style>
+    .hero {
+        padding: 60px 20px;
+        text-align: center;
+        background: linear-gradient(135deg, #6c63ff, #7a6ad8);
+        color: white;
+        border-radius: 12px;
+        margin-bottom: 40px;
+    }
+
+    .card-container {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 30px;
+    }
+
+    .card {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+        padding: 30px;
+        width: 300px;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        text-align: center;
+    }
+
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
+    }
+
+    .card h3 {
+        margin-top: 0;
+        font-size: 24px;
+        color: #333;
+    }
+
+    .card p {
+        color: #666;
+        margin-bottom: 20px;
+    }
+
+    .btn {
+        display: inline-block;
+        padding: 12px 24px;
+        background: linear-gradient(to right, #6c63ff, #7a6ad8);
+        color: white;
+        text-decoration: none;
+        border-radius: 30px;
+        font-weight: bold;
+        transition: background 0.3s ease;
+    }
+
+    .btn:hover {
+        background: linear-gradient(to right, #574fd6, #6a59c1);
+    }
+
+    @media (max-width: 768px) {
+        .card {
+            width: 100%;
+        }
+    }
+</style>
+
+<div class="hero">
+    <h1>Добро пожаловать!</h1>
+    <p>Выберите нужную форму для обработки отчётов</p>
+</div>
+
+<div class="card-container">
+    <div class="card">
+        <h3>Форма 1</h3>
+        <p>Обработка общих финансовых отчётов Wildberries</p>
+        <a href="{% url 'forms_app:form1' %}" class="btn">Перейти к форме 1</a>
+    </div>
+
+    <div class="card">
+        <h3>Форма 2</h3>
+        <p>Обработка детализированных отчётов Wildberries</p>
+        <a href="{% url 'forms_app:form2' %}" class="btn">Перейти к форме 2</a>
+    </div>
+
+    <div class="card">
+        <h3>Форма 3</h3>
+        <p>Генерация отчётов по регионам</p>
+        <a href="{% url 'forms_app:form3' %}" class="btn">Перейти к форме 3</a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,64 @@
+<!-- forms_app/templates/forms_app/form1.html -->
+{% extends "forms_app/base_form.html" %}
+{% block title %}Форма 1: Обработка отчётов Wildberries{% endblock %}
+
+{% block content %}
+    <h2>📊 Обработка ОБЩИХ финансовых отчётов Wildberries. Еженедельные. Без артикулов.</h2>
+
+    {% if error %}
+        <p style="color: red;">{{ error }}</p>
+    {% endif %}
+
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <label>
+            <input type="radio" name="mode" value="single" checked> Один файл
+        </label>
+        <br>
+        <label>
+            <input type="radio" name="mode" value="multiple"> Три файла (три точки продаж)
+        </label>
+        <br><br>
+
+        <!-- Поле для даты -->
+        <label for="start_date">Дата начала обработки:</label>
+        <input type="date" id="start_date" name="start_date" required>
+        <br><br>
+
+        <!-- Загрузка файлов -->
+        <div id="fileInputs">
+            <label>Файл:</label>
+            <input type="file" name="file_single" accept=".xlsx,.xls"><br><br>
+
+            <div id="multiFiles" style="display: none;">
+                <label>Файл для точки 1:</label>
+                <input type="file" name="file1" accept=".xlsx,.xls"><br>
+
+                <label>Файл для точки 2:</label>
+                <input type="file" name="file2" accept=".xlsx,.xls"><br>
+
+                <label>Файл для точки 3:</label>
+                <input type="file" name="file3" accept=".xlsx,.xls"><br>
+            </div>
+        </div>
+
+        <button type="submit">Обработать</button>
+    </form>
+
+    <script>
+        // Отображение полей в зависимости от режима
+        const modeRadios = document.querySelectorAll('input[name="mode"]');
+        const multiFiles = document.getElementById('multiFiles');
+
+        modeRadios.forEach(radio => {
+            radio.addEventListener('change', () => {
+                if (radio.value === 'multiple') {
+                    multiFiles.style.display = 'block';
+                } else {
+                    multiFiles.style.display = 'none';
+                }
+            });
+        });
+    </script>
+{% endblock %}
