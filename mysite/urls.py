@@ -10,4 +10,5 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("", include("home.urls")),  # ← Эта строка важна!
     path("", include("forms_app.urls")),
+    path("theory/", include("theory.urls")),
 ]

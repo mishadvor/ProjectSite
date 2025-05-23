@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     # Мое приложение
     "home",
     "forms_app",
+    "theory",
 ]
 
 MIDDLEWARE = [

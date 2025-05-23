@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block title %}
+Глоссарий
+{% endblock %}
+
+{% block content %}
+<h2>Глоссарий</h2>
+<p>Словарь терминов, используемых в отчётах и формах.</p>
+
+<ul>
+    <li><strong>Маржинальность:</strong> разница между ценой и себестоимостью.</li>
+    <li><strong>Логистика:</strong> стоимость доставки и хранения товаров.</li>
+</ul>
+
+<a href="{% url 'theory_index' %}" class="btn">Назад к Теории</a>
+{% endblock %}
