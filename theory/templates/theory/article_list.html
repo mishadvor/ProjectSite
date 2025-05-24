@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Теория — Статьи{% endblock %}
+{% block content %}
+<h2>Раздел «Теория»</h2>
+
+<ul>
+    {% for article in articles %}
+        <li>
+            <a href="{% url 'theory:article_detail' slug=article.slug %}">{{ article.title }}</a>
+        </li>
+    {% empty %}
+        <p>Пока нет статей.</p>
+    {% endfor %}
+</ul>
+{% endblock %}
