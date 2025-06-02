@@ -79,6 +79,14 @@
     <a href="{% url 'forms_app:form2' %}">Форма 2</a>
     <a href="{% url 'forms_app:form3' %}">Форма 3</a>
     <a href="{% url 'theory:theory_index' %}" class="btn-theory">Теория</a>
+
+    {% if user.is_authenticated %}
+        <a href="{% url 'profile' %}" class="btn">Профиль</a>
+        <a href="{% url 'logout' %}" class="btn">Выход</a>
+    {% else %}
+        <a href="{% url 'login' %}" class="btn">Войти</a>
+        <a href="{% url 'register' %}" class="btn">Регистрация</a>
+    {% endif %}
 </nav>
 </header>
 

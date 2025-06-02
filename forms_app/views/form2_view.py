@@ -199,20 +199,36 @@ def form2(request):
                     "Услуги по доставке товара покупателю_y": "Логистика Одной Юбки Средняя",
                 }
             )
-
+            """
             # Обработка логистики
-            df_exploded = df.explode("Виды логистики, штрафов и доплат")
-            df_exploded["Виды логистики, штрафов и доплат"] = df_exploded[
-                "Виды логистики, штрафов и доплат"
+            df_exploded = df.explode("Виды логистики, штрафов и корректировок ВВ")
+            df_exploded["Виды логистики, штрафов и корректировок ВВ"] = df_exploded[
+                "Виды логистики, штрафов и корректировок ВВ"
             ].fillna("Не указано")
             status_log = (
                 df_exploded.groupby("Артикул поставщика")[
-                    "Виды логистики, штрафов и доплат"
+                    "Виды логистики, штрафов и корректировок ВВ"
                 ]
                 .value_counts()
                 .unstack(fill_value=0)
                 .reset_index()
             )
+            """
+
+            log_col = next((col for col in df.columns if "Виды логистики" in col), None)
+
+            if log_col:
+                # Обработка логистики
+                df_exploded = df.explode(log_col)
+                df_exploded[log_col] = df_exploded[log_col].fillna("Не указано")
+
+                status_log = (
+                    df_exploded.groupby("Артикул поставщика")[log_col]
+                    .value_counts()
+                    .unstack(fill_value=0)
+                    .reset_index()
+                )
+
             for col in [
                 "К клиенту при продаже",
                 "От клиента при возврате",

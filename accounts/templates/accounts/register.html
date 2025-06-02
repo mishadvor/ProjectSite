@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Регистрация | Генератор отчётов{% endblock %}
+{% block content %}
+<h2>Создайте аккаунт</h2>
+<form method="post">
+  {% csrf_token %}
+  {{ form.as_p }}
+  <button type="submit" class="btn">Зарегистрироваться</button>
+</form>
+<p>Уже есть аккаунт? <a href="{% url 'login' %}" class="btn">Войти</a></p>
+{% endblock %}

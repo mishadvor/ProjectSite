@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Профиль | Генератор отчётов{% endblock %}
+{% block content %}
+<h2>Добро пожаловать, {{ user.username }}!</h2>
+<ul>
+  <li>Email: {{ user.email }}</li>
+</ul>
+<a href="{% url 'logout' %}" class="btn">Выход</a>
+{% endblock %}
