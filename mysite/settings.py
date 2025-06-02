@@ -32,6 +32,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    # "jazzmin", # дпугая админка
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -150,3 +151,26 @@ CKEDITOR_CONFIGS = {
         "removePlugins": "exportpdf",
     },
 }
+
+
+# настройки админки JAZZMIN
+"""
+JAZZMIN_SETTINGS = {
+    "site_title": "Моя Админка",
+    "site_header": "Панель управления проектом",
+    "site_brand": "My Project",
+    "welcome_sign": "Добро пожаловать в админку!",
+    "copyright": "My Company © 2025",
+    "usermenu_links": [
+        {"name": "На сайт", "url": "home", "new_window": True},
+        {"model": "auth.user"},
+    ],
+    "topmenu_links": [
+        {"name": "Главная", "url": "admin:index"},
+        {"model": "auth.User"},
+        {"app": "myapp"},  # Замени на своё приложение
+    ],
+    "theme": "slate",  # Тема Bootstrap
+    "dark_mode_theme": "cyborg",  # Тема в темном режиме
+}
+"""

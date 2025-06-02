@@ -8,10 +8,11 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("", include("home.urls")),  # ← Эта строка важна!
-    path("", include("forms_app.urls")),
-    path("theory/", include("theory.urls", namespace="theory")),
-    # ⚙️ Добавь это!
+    path("", include("home.urls")),  # ← путь к приложению - Домашняя страница
+    path("", include("forms_app.urls")),  # путь к формам
+    path(
+        "theory/", include("theory.urls", namespace="theory")
+    ),  # путь к разделу-приложению - Теория
     path("ckeditor/", include("ckeditor_uploader.urls")),  # ← маршруты для CKEditor
 ]
 
