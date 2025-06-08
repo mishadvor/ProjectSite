@@ -1,0 +1,37 @@
+<!-- templates/forms_app/upload.html -->
+{% extends "forms_app/base_form.html" %}
+{% block title %}Форма 4: Загрузка накопительного отчета{% endblock %}
+
+{% block content %}
+    <h2>📁 Форма 4. Загрузите файл за неделю, чтобы обновить накопительный отчет</h2>
+
+    {% if error %}
+        <p style="color: red;">{{ error }}</p>
+    {% endif %}
+
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <!-- Поле загрузки файла -->
+        <label for="file">Выберите файл:</label>
+        <input type="file" id="file" name="file" accept=".xlsx,.xls" required>
+        <br><br>
+
+        <!-- Кнопка загрузки -->
+        <button type="submit">Загрузить и обработать</button>
+    </form>
+
+    <!-- Блок с действиями после загрузки -->
+    {% if user.is_authenticated %}
+        <div style="margin-top: 30px;">
+            <h3>📦 Ваши данные</h3>
+
+            <!-- Кнопка скачивания текущего файла -->
+            <a href="{% url 'forms_app:download_output_file' %}" class="btn">скачать накопительный файл</a>
+            <br><br>
+
+            <!-- Кнопка на главную -->
+            <a href="{% url 'home:home' %}" class="btn">← На главную</a>
+        </div>
+    {% endif %}
+{% endblock %}

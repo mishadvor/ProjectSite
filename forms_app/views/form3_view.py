@@ -9,6 +9,7 @@ from io import BytesIO
 from django.shortcuts import render, HttpResponse
 from django import forms
 from openpyxl.drawing.image import Image as XLImage
+from forms_app.forms import UploadFileForm  # ✅ Так тоже работает
 
 
 # --- Форма прямо здесь ---

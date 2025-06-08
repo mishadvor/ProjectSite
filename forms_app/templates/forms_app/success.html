@@ -1,0 +1,9 @@
+<!-- templates/success.html -->
+<h2>✅ Файл успешно обработан!</h2>
+<p><a href="{% url 'upload_file' %}">Загрузить ещё один файл</a></p>
+
+{% if report %}
+    <p><a href="{{ report.output_file.url }}" download>Скачать накопительный отчет</a></p>
+{% else %}
+    <p>Нет доступного файла.</p>
+{% endif %}
