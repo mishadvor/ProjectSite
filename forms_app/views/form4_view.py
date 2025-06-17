@@ -1,4 +1,4 @@
-# forms_app/views.py
+# forms_app/views/form4_view.py
 
 import os
 import re
@@ -10,6 +10,7 @@ from django.core.files.storage import default_storage
 from forms_app.forms import UploadFileForm
 from forms_app.models import UserReport
 from io import BytesIO
+from django.conf import settings
 
 
 @login_required
@@ -21,48 +22,53 @@ def upload_file(request):
 
             # Читаем файл в памяти без сохранения на диск
             file_data = BytesIO(uploaded_file.read())
-            df_input = pd.read_excel(file_data, sheet_name=0)  # ✅ Чтение из памяти
+            df_input = pd.read_excel(file_data, sheet_name=0)  # Чтение из памяти
 
-            # === Берём дату из имени файла ===
+            # === Получаем дату из имени файла или текущую ===
             def extract_date_from_filename(filename):
                 match = re.search(r"отчет_за_(\d{2}\.\d{2}\.\d{4})\.xlsx", filename)
                 if match:
                     return datetime.strptime(match.group(1), "%d.%m.%Y")
                 return None
 
-            # === Получаем дату из имени файла или текущую дату ===
             file_date = extract_date_from_filename(uploaded_file.name)
             if not file_date:
                 print("⚠️ Дата не найдена в имени файла. Используем сегодняшнюю дату.")
                 file_date = datetime.now()
 
-            # Напрямую вычисляем воскресенье
+            # Вычисляем воскресенье недели
             sunday_of_week = file_date + timedelta(days=(6 - file_date.weekday()))
             week_date = sunday_of_week.strftime("%d.%m.%Y")
 
-            # Обнуляем курсор, если нужно повторное чтение (необязательно здесь)
+            # Возвращаем курсор в начало (на случай повторного чтения)
             file_data.seek(0)
-
-            # === Нет нужды читать второй раз: df_input уже готов ===
-            df_input = df_input.head(150)  # Только первые N артикулов
+            df_input = pd.read_excel(file_data, sheet_name=0).head(150)
 
             if df_input.empty:
                 raise ValueError("❌ Входной файл пустой — нечего записывать.")
 
-            # === Путь к output_file ===
-            user_folder = f"user_reports/{request.user.id}"
+            # === Путь к файлу ===
+            user_id = request.user.id
+            user_folder = f"user_reports/{user_id}"
             output_file_name = "Separated_Art_Rep.xlsx"
             output_file_path = os.path.join(
-                default_storage.location, user_folder, output_file_name
+                settings.MEDIA_ROOT, user_folder, output_file_name
             )
+
+            # Создаём папку пользователя, если её нет
+            output_dir = os.path.join(settings.MEDIA_ROOT, user_folder)
+            os.makedirs(output_dir, exist_ok=True)
 
             # === Функция для очистки названия листа от запрещённых символов ===
             def sanitize_sheet_name(name):
                 invalid_chars = r"[\\/*?:\[\]]"
                 return re.sub(invalid_chars, "", str(name).strip())[:31]
 
-            # === Проверяем существующие листы в целевом файле (если он уже есть) ===
+            # === Проверяем, есть ли уже такой файл ===
             existing_sheets = []
+            mode = "w"
+            if_sheet_exists = None
+
             if os.path.exists(output_file_path):
                 try:
                     with pd.ExcelFile(output_file_path) as xls:
@@ -71,11 +77,6 @@ def upload_file(request):
                     if_sheet_exists = "overlay"
                 except Exception as e:
                     print(f"⚠️ Целевой файл повреждён или нечитаем: {e}. Создаём новый.")
-                    mode = "w"
-                    if_sheet_exists = None
-            else:
-                mode = "w"
-                if_sheet_exists = None
 
             print(f"Записываем в файл: {output_file_path} (режим: {mode})")
 
@@ -86,10 +87,12 @@ def upload_file(request):
                 mode=mode,
                 if_sheet_exists=if_sheet_exists,
             ) as writer:
+
                 for _, row in df_input.iterrows():
                     code = row["Код номенклатуры"]
                     sheet_name = sanitize_sheet_name(code)
 
+                    # Собираем данные
                     article = row["Артикул поставщика"]
                     clear_sales_our = row["Чистые продажи Наши"]
                     clear_sales_vb = row["Чистая реализацич ВБ"]
@@ -134,6 +137,7 @@ def upload_file(request):
                         ]
                     )
 
+                    # Если лист существует — читаем и дополняем
                     if sheet_name in existing_sheets:
                         try:
                             df_existing = pd.read_excel(writer, sheet_name=sheet_name)
@@ -154,13 +158,17 @@ def upload_file(request):
                 if len(writer.sheets) == 0:
                     pd.DataFrame().to_excel(writer, sheet_name="Шаблон", index=False)
 
-            # === Сохраняем или обновляем запись в базе ===
-            report, created = UserReport.objects.update_or_create(
+            # === Сохраняем информацию о файле в БД ===
+            UserReport.objects.update_or_create(
                 user=request.user,
-                defaults={"output_file": f"{user_folder}/{output_file_name}"},
+                file_name="Separated_Art_Rep.xlsx",
+                defaults={
+                    "file_path": f"{user_folder}/{output_file_name}",
+                    "report_type": "form4",
+                },
             )
 
-            return redirect("success_page")
+            return redirect("forms_app:success_page")  # Стало (правильно)
 
     else:
         form = UploadFileForm()

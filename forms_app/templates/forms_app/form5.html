@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Форма 5 — Обновление остатков{% endblock %}
+
+{% block content %}
+<h2>📊 Форма 5 — Обновление складских остатков</h2>
+
+{% if error %}
+<div style="color: red;">{{ error }}</div>
+{% endif %}
+
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    
+    <label for="input_stock">Начальные остатки (опционально):</label>
+    <input type="file" id="input_stock" name="input_stock" accept=".xlsx,.xls"><br><br>
+
+    <label for="input1">Поступления:</label>
+    <input type="file" id="input1" name="input1" accept=".xlsx,.xls" required><br><br>
+
+    <label for="input2">Списание FBS:</label>
+    <input type="file" id="input2" name="input2" accept=".xlsx,.xls" required><br><br>
+
+    <label for="input3">Списание FBO:</label>
+    <input type="file" id="input3" name="input3" accept=".xlsx,.xls" required><br><br>
+
+    <button type="submit" class="btn">Обработать</button>
+</form>
+
+<br>
+
+<!-- Кнопка выгрузки стокового файла -->
+<form action="{% url 'forms_app:download_current_file' %}" method="get">
+    <button type="submit" class="btn">⬇️ Выгрузить текущий остаток</button>
+</form>
+{% endblock %}

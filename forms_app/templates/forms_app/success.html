@@ -1,9 +1,27 @@
-<!-- templates/success.html -->
-<h2>✅ Файл успешно обработан!</h2>
-<p><a href="{% url 'upload_file' %}">Загрузить ещё один файл</a></p>
+{% extends "forms_app/base_form.html" %}
+{% block title %}Успех — Загрузка завершена{% endblock %}
 
-{% if report %}
-    <p><a href="{{ report.output_file.url }}" download>Скачать накопительный отчет</a></p>
-{% else %}
-    <p>Нет доступного файла.</p>
-{% endif %}
+{% block content %}
+    <h2>✅ Файл успешно обработан</h2>
+
+    <p>Данные за неделю добавлены в ваш Накопительный отчет.</p>
+
+    {% if report %}
+        <div style="margin-top: 20px;">
+            <!-- Кнопка скачать файл через маршрут -->
+            <a href="{% url 'forms_app:download_output_file' %}" class="btn">⬇️ Скачать Накопительный файл</a>
+        </div>
+    {% else %}
+        <p style="color: red;">Файл не найден. Попробуйте загрузить данные снова.</p>
+    {% endif %}
+
+    <!-- Кнопка Загрузить новый файл -->
+    <div style="margin-top: 30px;">
+        <a href="{% url 'forms_app:upload_file' %}" class="btn">➕ Загрузить новый файл</a>
+    </div>
+
+    <!-- Кнопка На главную -->
+    <div style="margin-top: 15px;">
+        <a href="{% url 'home:home' %}" class="btn">← Вернуться на главную</a>
+    </div>
+{% endblock %}

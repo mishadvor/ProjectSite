@@ -1,10 +1,14 @@
 <!-- templates/base.html -->
+{% load static %}
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <title>{% block title %}Главная страница{% endblock %}</title>
+     <!-- Favicon -->
+    <link rel="shortcut icon" href="{% static 'images/favicon.ico' %}" type="image/x-icon">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
 
     <!-- Подключаем Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap " rel="stylesheet">
@@ -68,25 +72,39 @@
     </style>
 
     {% block extra_head %}{% endblock %}
+    
 </head>
 <body>
 
 <header>
     <h1>📊 Генератор финансовых отчётов</h1>
-    <nav>
+ <nav>
     <a href="{% url 'home:home' %}">Главная</a>
     <a href="{% url 'forms_app:form1' %}">Форма 1</a>
     <a href="{% url 'forms_app:form2' %}">Форма 2</a>
     <a href="{% url 'forms_app:form3' %}">Форма 3</a>
     <a href="{% url 'forms_app:upload_file' %}">Форма 4</a>
+    <a href="{% url 'forms_app:form5' %}">Форма 5</a>
     <a href="{% url 'theory:theory_index' %}" class="btn-theory">Теория</a>
-
+    
+    
     {% if user.is_authenticated %}
-        <a href="{% url 'profile' %}" class="btn">Профиль</a>
-        <a href="{% url 'logout' %}" class="btn">Выход</a>
+        <a href="{% url 'accounts:profile' %}" class="btn">👤 Профиль 
+        
+        <div class="top-bar">
+    {% if request.user.is_authenticated %}
+        <span style="float:right;"> {{ request.user.username }}</span>
+    {% endif %}
+        </div>      
+    
+        </a>
+   
+        <a href="{% url 'accounts:logout' %}" class="btn">Выход</a>
+        
+        
     {% else %}
-        <a href="{% url 'login' %}" class="btn">Войти</a>
-        <a href="{% url 'register' %}" class="btn">Регистрация</a>
+        <a href="{% url 'accounts:login' %}" class="btn">Войти</a>
+        <a href="{% url 'accounts:register' %}" class="btn">Регистрация</a>
     {% endif %}
 </nav>
 </header>

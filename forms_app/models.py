@@ -1,16 +1,15 @@
 from django.db import models
-
-# Create your models here.
-# forms_app/models.py
-
 from django.contrib.auth.models import User
-from django.db import models
 
 
-class UserReport(models.Model):
+class UserReport(models.Model):  # ✅ Теперь models определён
+    REPORT_TYPES = (("form4", "Накопительный отчёт"), ("form5", "Остатки"))
+
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    output_file = models.FileField(upload_to="user_reports/")
+    file_name = models.CharField(max_length=255)
+    file_path = models.CharField(max_length=500)
+    report_type = models.CharField(max_length=10, choices=REPORT_TYPES)
     last_updated = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"Отчет {self.user.username} — {self.last_updated}"
+        return f"{self.file_name} — {self.user.username}"

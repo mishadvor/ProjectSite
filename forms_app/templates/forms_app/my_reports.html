@@ -1,0 +1,59 @@
+{% extends "forms_app/base_form.html" %} {% block title %}Мои отчёты — {{
+request.user.username }}{% endblock %} {% block content %}
+<h2>📂 Мои отчёты</h2>
+<p>Здесь вы можете скачать или просмотреть свои обработанные файлы.</p>
+
+<!-- === Накопительные отчёты (Форма 4) === -->
+<div class="form4-reports">
+  <h3>📁 Накопительные отчёты артикулов (Форма 4)</h3>
+  {% if form4_reports %}
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>Имя файла</th>
+        <th>Дата обработки</th>
+        <th>Действие</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for report in form4_reports %}
+      <tr>
+        <td>{{ report.file_name }}</td>
+        <td>{{ report.last_updated|date:"d.m.Y H:i" }}</td>
+        <td>
+          <a
+            href="{% url 'forms_app:download_output_file' %}"
+            class="btn btn-sm btn-primary"
+            >⬇️ Скачать</a
+          >
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>❌ Вы ещё не загружали накопительные отчёты.</p>
+  {% endif %}
+</div>
+
+<hr />
+
+<!-- === Остатки по форме 5 === -->
+<div class="form5-report">
+  <h3>📊 Остатки по приходам/списаниям (Форма 5)</h3>
+  {% if stock_exists %}
+  <p>✅ Последнее обновление: {{ stock_last_updated|date:"d.m.Y H:i" }}</p>
+  <a href="{% url 'forms_app:download_current_file' %}" class="btn"
+    >⬇️ Скачать output_stock.xlsx</a
+  >
+  {% else %}
+  <p>❌ Файл остатков не найден. Обработайте данные через форму 5.</p>
+  {% endif %}
+</div>
+
+<!-- === Кнопка назад === -->
+<div style="margin-top: 20px">
+  <a href="{% url 'accounts:profile' %}" class="btn">← Назад в профиль</a>
+</div>
+
+{% endblock %}

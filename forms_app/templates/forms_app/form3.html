@@ -11,10 +11,10 @@
 <form method="post" enctype="multipart/form-data">
     {% csrf_token %}
 
-    <label for="id_excel_file">Загрузите Excel-файл (.xlsx):</label>
+    <label for="id_excel_file">Загрузите Excel-файл (.xlsx):</label><br><br>
     {{ form.excel_file }}
     <br><br>
 
-    <button type="submit">Обработать</button>
+    <button type="submit" class="btn">Обработать</button>
 </form>
 {% endblock %}

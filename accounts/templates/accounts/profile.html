@@ -1,9 +1,18 @@
+<!-- templates/accounts/profile.html -->
+
 {% extends "base.html" %}
-{% block title %}Профиль | Генератор отчётов{% endblock %}
+{% block title %}Профиль пользователя — {{ request.user.username }}{% endblock %}
+
 {% block content %}
-<h2>Добро пожаловать, {{ user.username }}!</h2>
-<ul>
-  <li>Email: {{ user.email }}</li>
-</ul>
-<a href="{% url 'logout' %}" class="btn">Выход</a>
+    <h2>Профиль пользователя — {{ request.user.username }}</h2>
+    <p>Добро пожаловать в ваш профиль!</p>
+
+    <!-- Ссылка на отчёты -->
+    <div style="margin-top: 20px;">
+        <a href="{% url 'forms_app:my_reports' %}" class="btn">📂 Мои отчёты</a>
+    </div>
+
+    <div style="margin-top: 20px;">
+        <a href="{% url 'accounts:logout' %}" class="btn">Выход</a>
+    </div>
 {% endblock %}
