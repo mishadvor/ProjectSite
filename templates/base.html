@@ -2,121 +2,280 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="ru">
-<head>
-    <meta charset="UTF-8">
+  <head>
+    <meta charset="UTF-8" />
     <title>{% block title %}Главная страница{% endblock %}</title>
-     <!-- Favicon -->
-    <link rel="shortcut icon" href="{% static 'images/favicon.ico' %}" type="image/x-icon">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
+    <!-- Favicon -->
+    <link
+      rel="shortcut icon"
+      href="{% static 'images/favicon.ico' %}"
+      type="image/x-icon"
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <!-- Подключаем Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap " rel="stylesheet">
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Подключаем Font Awesome для иконок -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
 
     <style>
-        body {
-            font-family: 'Roboto', sans-serif;
-            margin: 0;
-            padding: 0;
-            background: #f4f4f4;
-            color: #333;
-        }
+      body {
+        font-family: "Roboto", sans-serif;
+        margin: 0;
+        padding: 0;
+        background: #f4f4f4;
+        color: #333;
+      }
 
-        header {
-            background-color: #007BFF;
-            color: white;
-            padding: 20px 0;
-            text-align: center;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
+      header {
+        background-color: #007bff;
+        color: white;
+        padding: 20px 0;
+        text-align: center;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      }
 
-        nav {
-            margin-top: 10px;
-        }
+      .header-title {
+        cursor: pointer;
+        display: inline-block;
+        transition: transform 0.3s;
+      }
 
-        nav a {
-            color: white;
-            text-decoration: none;
-            margin: 0 10px;
-            font-weight: bold;
-        }
+      .header-title:hover {
+        transform: scale(1.03);
+      }
 
-        main {
-            max-width: 960px;
-            margin: 30px auto;
-            padding: 0 20px;
-        }
+      nav {
+        margin-top: 10px;
+      }
 
-        footer {
-            text-align: center;
-            padding: 20px;
-            font-size: 0.9em;
-            color: #ccc;
-            background-color: #222;
-            margin-top: 50px;
-        }
+      main {
+        max-width: 960px;
+        margin: 30px auto;
+        padding: 0 20px;
+      }
 
-        .btn {
-            display: inline-block;
-            padding: 10px 20px;
-            background-color: #007BFF;
-            color: white;
-            text-decoration: none;
-            border-radius: 5px;
-            transition: background-color 0.3s;
-        }
+      footer {
+        text-align: center;
+        padding: 20px;
+        font-size: 0.9em;
+        color: #ccc;
+        background-color: #222;
+        margin-top: 50px;
+      }
 
-        .btn:hover {
-            background-color: #0056b3;
+      /* Общие стили для кнопок */
+      .btn {
+        display: inline-block;
+        padding: 10px 20px;
+        background-color: #007bff;
+        color: white;
+        text-decoration: none;
+        border-radius: 5px;
+        transition: all 0.3s;
+        margin: 0 5px;
+      }
+
+      .btn:hover {
+        background-color: #0056b3;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      }
+
+      /* Стили для кнопок форм */
+      .form-btn {
+        display: inline-block;
+        padding: 8px 15px;
+        color: white;
+        text-decoration: none;
+        border-radius: 6px;
+        transition: all 0.3s;
+        margin-bottom: 5px;
+        min-width: 90px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      .form-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      }
+
+      /* Цвета для разных форм */
+      .form-btn-1 {
+        background: #4caf50;
+      } /* Зеленый */
+      .form-btn-2 {
+        background: #2196f3;
+      } /* Синий */
+      .form-btn-3 {
+        background: #9c27b0;
+      } /* Фиолетовый */
+      .form-btn-4 {
+        background: #ff9800;
+      } /* Оранжевый */
+      .form-btn-5 {
+        background: #f44336;
+      } /* Красный */
+
+      .form-btn-1:hover {
+        background: #3e8e41;
+      }
+      .form-btn-2:hover {
+        background: #0b7dda;
+      }
+      .form-btn-3:hover {
+        background: #7b1fa2;
+      }
+      .form-btn-4:hover {
+        background: #e68a00;
+      }
+      .form-btn-5:hover {
+        background: #d32f2f;
+      }
+      .form-btn-6 {
+        background: #ff5722; /* ярко-оранжевый цвет */
+      }
+      .form-btn-6:hover {
+        background: #e64a19;
+      }
+
+      /* Контейнер форм */
+      .forms-container {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+        flex-wrap: wrap;
+        margin-bottom: 15px;
+      }
+
+      .form-item {
+        text-align: center;
+        min-width: 100px;
+      }
+
+      .form-label {
+        font-size: 0.9em;
+        color: #f0f0f0;
+      }
+
+      /* Адаптивность */
+      @media (max-width: 600px) {
+        .forms-container {
+          gap: 10px;
         }
+        .form-btn {
+          padding: 6px 10px;
+          font-size: 0.9em;
+          min-width: 80px;
+        }
+      }
     </style>
 
     {% block extra_head %}{% endblock %}
-    
-</head>
-<body>
+  </head>
+  <body>
+    <header>
+      <h1
+        class="header-title"
+        onclick="window.location.href='{% url 'home:home' %}'"
+      >
+        📊 Генератор финансовых отчётов
+      </h1>
+      <nav>
+        <!-- Блок с формами -->
+        <div class="forms-container">
+          <!-- Форма 1 -->
+          <div class="form-item">
+            <a href="{% url 'forms_app:form1' %}" class="form-btn form-btn-1">
+              <i class="fas fa-file-invoice"></i> Форма 1
+            </a>
+            <div class="form-label">Общая сумма</div>
+          </div>
 
-<header>
-    <h1>📊 Генератор финансовых отчётов</h1>
- <nav>
-    <a href="{% url 'home:home' %}">Главная</a>
-    <a href="{% url 'forms_app:form1' %}">Форма 1</a>
-    <a href="{% url 'forms_app:form2' %}">Форма 2</a>
-    <a href="{% url 'forms_app:form3' %}">Форма 3</a>
-    <a href="{% url 'forms_app:upload_file' %}">Форма 4</a>
-    <a href="{% url 'forms_app:form5' %}">Форма 5</a>
-    <a href="{% url 'theory:theory_index' %}" class="btn-theory">Теория</a>
-    
-    
-    {% if user.is_authenticated %}
-        <a href="{% url 'accounts:profile' %}" class="btn">👤 Профиль 
-        
-        <div class="top-bar">
-    {% if request.user.is_authenticated %}
-        <span style="float:right;"> {{ request.user.username }}</span>
-    {% endif %}
-        </div>      
-    
-        </a>
-   
-        <a href="{% url 'accounts:logout' %}" class="btn">Выход</a>
-        
-        
-    {% else %}
-        <a href="{% url 'accounts:login' %}" class="btn">Войти</a>
-        <a href="{% url 'accounts:register' %}" class="btn">Регистрация</a>
-    {% endif %}
-</nav>
-</header>
+          <!-- Форма 2 -->
+          <div class="form-item">
+            <a href="{% url 'forms_app:form2' %}" class="form-btn form-btn-2">
+              <i class="fas fa-barcode"></i> Форма 2
+            </a>
+            <div class="form-label">Артикулы общая</div>
+          </div>
 
-<main>
-    {% block content %}
-    {% endblock %}
-</main>
+          <!-- Форма 3 -->
+          <div class="form-item">
+            <a href="{% url 'forms_app:form3' %}" class="form-btn form-btn-3">
+              <i class="fas fa-map-marked-alt"></i> Форма 3
+            </a>
+            <div class="form-label">Регионы</div>
+          </div>
 
-<footer>
-    &copy; 2025 — Генератор отчетов
-</footer>
+          <!-- Форма 4 -->
+          <div class="form-item">
+            <a
+              href="{% url 'forms_app:upload_file' %}"
+              class="form-btn form-btn-4"
+            >
+              <i class="fas fa-file-upload"></i> Форма 4
+            </a>
+            <div class="form-label">Каждый Артикул</div>
+          </div>
 
-</body>
+          <!-- Форма 5 -->
+          <div class="form-item">
+            <a href="{% url 'forms_app:form5' %}" class="form-btn form-btn-5">
+              <i class="fas fa-warehouse"></i> Форма 5
+            </a>
+            <div class="form-label">Склад</div>
+          </div>
+          <!-- Форма 6 -->
+          <div class="form-item">
+            <a href="{% url 'forms_app:form6' %}" class="form-btn form-btn-6">
+              <i class="fas fa-boxes"></i> Форма 6
+            </a>
+            <div class="form-label">Пока НЕ работает</div>
+          </div>
+        </div>
+
+        <!-- Остальные кнопки (Теория, Профиль и т.д.) -->
+        <div style="text-align: center; margin-top: 15px">
+          <a href="{% url 'theory:theory_index' %}" class="btn">
+            <i class="fas fa-book"></i> Теория
+          </a>
+
+          {% if user.is_authenticated %}
+          <a href="{% url 'accounts:profile' %}" class="btn">
+            <i class="fas fa-user"></i> Профиль
+          </a>
+          <a href="{% url 'accounts:logout' %}" class="btn">
+            <i class="fas fa-sign-out-alt"></i> Выход
+          </a>
+          {% else %}
+          <a href="{% url 'accounts:login' %}" class="btn">
+            <i class="fas fa-sign-in-alt"></i> Войти
+          </a>
+          <a href="{% url 'accounts:register' %}" class="btn">
+            <i class="fas fa-user-plus"></i> Регистрация
+          </a>
+          {% endif %}
+        </div>
+
+        <!-- Блок с именем пользователя -->
+        {% if request.user.is_authenticated %}
+        <div style="text-align: center; margin-top: 10px; color: #f8f9fa">
+          <i class="fas fa-user-circle"></i> {{ request.user.username }}
+        </div>
+        {% endif %}
+      </nav>
+    </header>
+
+    <main>{% block content %} {% endblock %}</main>
+
+    <footer>&copy; 2025 — Генератор отчетов</footer>
+  </body>
 </html>

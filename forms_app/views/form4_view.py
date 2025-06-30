@@ -37,7 +37,10 @@ def upload_file(request):
                 file_date = datetime.now()
 
             # Вычисляем воскресенье недели
-            sunday_of_week = file_date + timedelta(days=(6 - file_date.weekday()))
+            # Для воскресенья прошлой недели:
+            sunday_of_previous_week = file_date - timedelta(
+                days=(file_date.weekday() + 1)
+            )
             week_date = sunday_of_week.strftime("%d.%m.%Y")
 
             # Возвращаем курсор в начало (на случай повторного чтения)

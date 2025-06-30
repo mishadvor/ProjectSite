@@ -1,0 +1,222 @@
+<!-- templates/forms_app/preview_sql_editable.html -->
+
+{% extends "base.html" %} {% block title %}✍️ Редактирование остатков
+(SQL){%endblock%} {% block content %}
+
+<h2>📝 Редактирование остатков</h2>
+
+<form method="get" style="display: inline-block; margin-right: 10px">
+  <input
+    type="text"
+    name="q"
+    placeholder="Поиск по артикулу, размеру или месту..."
+    value="{{ request.GET.q }}"
+    class="form-control"
+    style="width: 300px"
+  />
+  <button type="submit" class="btn btn-info">🔎 Найти</button>
+</form>
+
+<form
+  method="post"
+  action="{% url 'forms_app:save_stock_sql' %}"
+  style="display: inline-block"
+>
+  {% csrf_token %}
+  <button type="submit" class="btn btn-success">💾 Сохранить изменения</button>
+</form>
+
+<br /><br />
+
+<!-- Контейнер с прокруткой -->
+<div style="overflow-x: auto; border: 1px solid #ccc; padding: 10px">
+  <table class="table table-bordered table-striped">
+    <thead>
+      <tr>
+        <th
+          style="
+            position: sticky;
+            top: 0;
+            background-color: #f5f5f5;
+            z-index: 2;
+          "
+        >
+          Артикул поставщика
+        </th>
+        <th
+          style="
+            position: sticky;
+            top: 0;
+            background-color: #f5f5f5;
+            z-index: 2;
+          "
+        >
+          Размер
+        </th>
+        <th
+          style="
+            position: sticky;
+            top: 0;
+            background-color: #f5f5f5;
+            z-index: 2;
+          "
+        >
+          Количество
+        </th>
+        <th
+          style="
+            position: sticky;
+            top: 0;
+            background-color: #f5f5f5;
+            z-index: 2;
+          "
+        >
+          Место
+        </th>
+        <th
+          style="
+            position: sticky;
+            top: 0;
+            background-color: #f5f5f5;
+            z-index: 2;
+          "
+        >
+          Примечание
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      {% if data %} {% for row in data %}
+      <tr>
+        <td>{{ row.article_full_name }}</td>
+        <td>{{ row.size }}</td>
+        <td>
+          <input
+            type="number"
+            name="quantity_{{ row.id }}"
+            value="{{ row.quantity }}"
+            min="0"
+            style="width: 80px"
+          />
+        </td>
+        <td>
+          <input
+            type="text"
+            name="location_{{ row.id }}"
+            value="{{ row.location|default:'Не указано' }}"
+            style="width: 100px"
+          />
+        </td>
+        <td>
+          <input
+            type="text"
+            name="note_{{ row.id }}"
+            value="{{ row.note|default:'' }}"
+            style="width: 200px"
+          />
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="5" style="text-align: center">❌ Ничего не найдено</td>
+      </tr>
+      {% endfor %} {% endif %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Пагинация -->
+{% if is_paginated %}
+<div class="pagination-container" style="margin-top: 20px; text-align: center">
+  <span class="step-links">
+    {% if page_obj.has_previous %}
+    <a href="?q={{ query }}&page=1">&laquo; первая</a>
+    <a href="?q={{ query }}&page={{ page_obj.previous_page_number }}"
+      >&lsaquo; предыдущая</a
+    >
+    {% endif %}
+
+    <span class="current">
+      Страница {{ page_obj.number }} из {{ paginator.num_pages }}
+    </span>
+
+    {% if page_obj.has_next %}
+    <a href="?q={{ query }}&page={{ page_obj.next_page_number }}"
+      >следующая &rsaquo;</a
+    >
+    <a href="?q={{ query }}&page={{ paginator.num_pages }}"
+      >последняя &raquo;</a
+    >
+    {% endif %}
+  </span>
+</div>
+{% endif %}
+
+<br />
+<a href="{% url 'forms_app:form6' %}" class="btn btn-primary"
+  >⬅️ Вернуться к форме 6</a
+>
+
+<style>
+  .table {
+    width: 100%;
+    border-collapse: collapse;
+    white-space: nowrap;
+  }
+  .table th,
+  .table td {
+    padding: 8px;
+    border: 1px solid #ddd;
+  }
+  .table th {
+    position: sticky;
+    top: 0;
+    background-color: #f5f5f5;
+    z-index: 2;
+    box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.1);
+  }
+  .form-control {
+    display: inline-block;
+    width: 300px;
+    padding: 6px 12px;
+    font-size: 14px;
+    color: #555;
+    background-color: #fff;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
+  .btn {
+    display: inline-block;
+    padding: 6px 12px;
+    margin-bottom: 0;
+    font-size: 14px;
+    font-weight: 400;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: middle;
+    cursor: pointer;
+    background-color: #337ab7;
+    color: white;
+    border: none;
+    border-radius: 4px;
+  }
+  .btn:hover {
+    opacity: 0.9;
+  }
+  .btn-success {
+    background-color: #5cb85c;
+  }
+  .btn-info {
+    background-color: #5bc0de;
+  }
+  .pagination-container a {
+    margin: 0 10px;
+    text-decoration: none;
+    color: #007bff;
+  }
+  .pagination-container .current {
+    font-weight: bold;
+  }
+</style>
+
+{% endblock %}

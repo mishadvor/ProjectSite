@@ -1,35 +1,131 @@
-{% extends "base.html" %}
-{% block title %}Форма 5 — Обновление остатков{% endblock %}
+{% extends "base.html" %} {% block title %}Форма 5 — Обновление остатков
+{%endblock %} {% block content %}
 
-{% block content %}
-<h2>📊 Форма 5 — Обновление складских остатков</h2>
+<h2>📁 Форма 5 — Обновление складских остатков</h2>
+<h4>🚨 Обратите внимание!</h4>
+
+<ul style="list-style-type: none; padding-left: 0">
+  <li>
+    🔹 Если вы планируете загрузить не все файлы одновременно, то остальные поля
+    "Выберете файл" должны быть пустые.
+  </li>
+  <li>
+    🔹 Обновите страницу браузера, чтобы очистить форму от файлов, которые уже
+    обработаны, иначе файлы, которые были загружены, загрузятся повторно!
+  </li>
+  <li>🔹 Кнопка "Списание FBS" работает ТОЛЬКО с файлами отгрузки по FBS.</li>
+  <li>
+    🔹 Кнопка "Списание FBO" работает НЕ ТОЛЬКО с файлами отгрузки по FBO. Можно
+    другие файлы, организованные также как и файл FBO.
+  </li>
+</ul>
 
 {% if error %}
-<div style="color: red;">{{ error }}</div>
+<div style="color: red">{{ error }}</div>
 {% endif %}
 
+<br />
+
+<!-- Основная форма (поступления, списания, начальные остатки) -->
 <form method="post" enctype="multipart/form-data">
-    {% csrf_token %}
-    
-    <label for="input_stock">Начальные остатки (опционально):</label>
-    <input type="file" id="input_stock" name="input_stock" accept=".xlsx,.xls"><br><br>
+  {% csrf_token %}
 
-    <label for="input1">Поступления:</label>
-    <input type="file" id="input1" name="input1" accept=".xlsx,.xls" required><br><br>
+  <label for="input1">➕ Поступления:</label>
+  <input
+    type="file"
+    id="input1"
+    name="input1"
+    accept=".xlsx,.xls"
+  /><br /><br />
 
-    <label for="input2">Списание FBS:</label>
-    <input type="file" id="input2" name="input2" accept=".xlsx,.xls" required><br><br>
+  <label for="input2">➖ Списание FBS:</label>
+  <input
+    type="file"
+    id="input2"
+    name="input2"
+    accept=".xlsx,.xls"
+  /><br /><br />
 
-    <label for="input3">Списание FBO:</label>
-    <input type="file" id="input3" name="input3" accept=".xlsx,.xls" required><br><br>
+  <label for="input3">➖ Списание FBO:</label>
+  <input
+    type="file"
+    id="input3"
+    name="input3"
+    accept=".xlsx,.xls"
+  /><br /><br />
 
-    <button type="submit" class="btn">Обработать</button>
-</form>
+  <button type="submit" class="btn">Обработать</button>
 
-<br>
+  <br /><br />
 
-<!-- Кнопка выгрузки стокового файла -->
-<form action="{% url 'forms_app:download_current_file' %}" method="get">
+  <div class="divider"></div>
+
+  <style>
+    .divider {
+      height: 5px;
+      background-color: #ccc;
+      margin: 20px 0;
+    }
+  </style>
+
+  <p>Выгружаем файл с текущими складскими остатками:</p>
+
+  <!-- Кнопка выгрузки текущего файла -->
+  <form action="{% url 'forms_app:download_current_file' %}" method="get">
     <button type="submit" class="btn">⬇️ Выгрузить текущий остаток</button>
+  </form>
+
+  <br />
+
+  <!-- Кнопка предпросмотра -->
+  <form action="{% url 'forms_app:preview_output_stock' %}" method="get">
+    <button type="submit" class="btn btn-info">
+      👁‍🗨 Предпросмотр остатков
+    </button>
+  </form>
+
+  <div class="divider"></div>
+
+  <style>
+    .divider {
+      height: 5px;
+      background-color: #ccc;
+      margin: 20px 0;
+    }
+  </style>
 </form>
-{% endblock %}
+
+<!-- Кнопка полной замены output_stock.xlsx -->
+<h4>
+  📁 Полная перезапись остатков (Внимание! Использовать, когда вы понимаете эту
+  процедуру!)
+</h4>
+<form
+  method="post"
+  enctype="multipart/form-data"
+  action="{% url 'forms_app:replace_stock' %}"
+>
+  {% csrf_token %}
+  <label for="replace_stock">Выберите файл для замены:</label><br />
+  <input
+    type="file"
+    id="replace_stock"
+    name="replace_stock"
+    accept=".xlsx,.xls"
+  /><br /><br />
+
+  <button type="submit" class="btn btn-danger">
+    🔄 Перезаписать output_stock.xlsx
+  </button>
+  <style>
+    .btn-danger {
+      background-color: #dc3545;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      font-weight: bold;
+    }
+  </style>
+</form>
+
+{% endblock content %}

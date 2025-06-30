@@ -1,0 +1,26 @@
+<!-- templates/forms_app/replace_sql.html -->
+
+{% extends "base.html" %} {% block title %}🔄 Замена остатков (через
+SQL){%endblock%} {% block content %}
+
+<h2>🔄 Полная замена остатков через Excel</h2>
+
+<form method="post" enctype="multipart/form-data" class="form-group">
+  {% csrf_token %}
+  <input
+    type="file"
+    name="replace_sql_stock"
+    accept=".xlsx,.xls"
+    class="form-control"
+    style="margin-bottom: 10px"
+    required
+  />
+  <button type="submit" class="btn btn-warning">🔄 Заменить остатки</button>
+</form>
+
+<br />
+<a href="{% url 'forms_app:editable_preview_sql' %}" class="btn btn-primary"
+  >⬅️ Вернуться к редактированию</a
+>
+
+{% endblock %}

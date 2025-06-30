@@ -1,116 +1,135 @@
 <!-- home/templates/home/index.html -->
-{% extends "base.html" %}
-
-{% block title %}
-Главная страница
-{% endblock %}
-
-{% block content %}
+{% extends "base.html" %} {% block title %} Главная страница {% endblock %}
+{%block extra_head%}
 <style>
-    .hero {
-        padding: 60px 20px;
-        text-align: center;
-        background: linear-gradient(135deg, #6c63ff, #7a6ad8);
-        color: white;
-        border-radius: 12px;
-        margin-bottom: 40px;
-    }
+  .hero {
+    padding: 50px 20px;
+    text-align: center;
+    background: linear-gradient(135deg, #007bff, #0056b3);
+    color: white;
+    border-radius: 8px;
+    margin-bottom: 40px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
 
-    .card-container {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
-        gap: 30px;
-    }
+  .hero h1 {
+    font-size: 2.5rem;
+    margin-bottom: 15px;
+  }
 
+  .card-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 25px;
+    margin: 0 auto;
+    max-width: 1200px;
+  }
+
+  .card {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    padding: 25px;
+    width: 280px;
+    transition: all 0.3s ease;
+    text-align: center;
+    border: 1px solid #e9ecef;
+  }
+
+  .card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+  }
+
+  .card h3 {
+    margin-top: 0;
+    color: #343a40;
+    font-size: 1.3rem;
+    margin-bottom: 15px;
+  }
+
+  .card p {
+    color: #6c757d;
+    margin-bottom: 20px;
+    line-height: 1.5;
+  }
+
+  .card-btn {
+    display: inline-block;
+    padding: 10px 20px;
+    background-color: #007bff;
+    color: white;
+    text-decoration: none;
+    border-radius: 5px;
+    font-weight: 500;
+    transition: all 0.3s;
+  }
+
+  .card-btn:hover {
+    background-color: #0056b3;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  @media (max-width: 768px) {
     .card {
-        background: white;
-        border-radius: 16px;
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
-        padding: 30px;
-        width: 300px;
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-        text-align: center;
+      width: 100%;
+      max-width: 350px;
     }
 
-    .card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
+    .hero h1 {
+      font-size: 2rem;
     }
-
-    .card h3 {
-        margin-top: 0;
-        font-size: 24px;
-        color: #333;
-    }
-
-    .card p {
-        color: #666;
-        margin-bottom: 20px;
-    }
-
-    .btn {
-        display: inline-block;
-        padding: 12px 24px;
-        background: linear-gradient(to right, #6c63ff, #7a6ad8);
-        color: white;
-        text-decoration: none;
-        border-radius: 30px;
-        font-weight: bold;
-        transition: background 0.3s ease;
-    }
-
-    .btn:hover {
-        background: linear-gradient(to right, #574fd6, #6a59c1);
-    }
-
-    @media (max-width: 768px) {
-        .card {
-            width: 100%;
-        }
-    }
+  }
 </style>
-
+{% endblock %} {% block content %}
 <div class="hero">
-    <h1>Добро пожаловать!</h1>
-    <p>Выберите нужную форму для обработки отчётов</p>
+  <h1>Добро пожаловать в генератор отчётов</h1>
+  <p>Выберите нужную форму для работы с финансовыми данными</p>
 </div>
 
 <div class="card-container">
-    <div class="card">
-        <h3>Форма 1</h3>
-        <p>Обработка общих финансовых отчётов Wildberries</p>
-        <a href="{% url 'forms_app:form1' %}" class="btn">Перейти к форме 1</a>
-    </div>
+  <!-- Форма 1 -->
+  <div class="card">
+    <h3><i class="fas fa-file-invoice"></i> Форма 1</h3>
+    <p>Обработка общих финансовых отчётов Wildberries</p>
+    <a href="{% url 'forms_app:form1' %}" class="card-btn">Открыть форму</a>
+  </div>
 
-    <div class="card">
-        <h3>Форма 2</h3>
-        <p>Обработка детализированных отчётов Wildberries</p>
-        <a href="{% url 'forms_app:form2' %}" class="btn">Перейти к форме 2</a>
-    </div>
+  <!-- Форма 2 -->
+  <div class="card">
+    <h3><i class="fas fa-barcode"></i> Форма 2</h3>
+    <p>Обработка детализированных отчётов Wildberries</p>
+    <a href="{% url 'forms_app:form2' %}" class="card-btn">Открыть форму</a>
+  </div>
 
-    <div class="card">
-        <h3>Форма 3</h3>
-        <p>Генерация отчётов по регионам</p>
-        <a href="{% url 'forms_app:form3' %}" class="btn">Перейти к форме 3</a>
-    </div>
+  <!-- Форма 3 -->
+  <div class="card">
+    <h3><i class="fas fa-map-marked-alt"></i> Форма 3</h3>
+    <p>Генерация отчётов по регионам</p>
+    <a href="{% url 'forms_app:form3' %}" class="card-btn">Открыть форму</a>
+  </div>
 
-    <div class="card">
-    <h3>Форма 4</h3>
+  <!-- Форма 4 -->
+  <div class="card">
+    <h3><i class="fas fa-file-upload"></i> Форма 4</h3>
     <p>Загрузите файл за неделю и обновите накопительный отчет</p>
-    <a href="{% url 'forms_app:upload_file' %}" class="btn">Загрузить отчет</a>
-    </div>
+    <a href="{% url 'forms_app:upload_file' %}" class="card-btn">Загрузить</a>
+  </div>
 
-    <div class="card">
-    <h3>Форма 5</h3>
+  <!-- Форма 5 -->
+  <div class="card">
+    <h3><i class="fas fa-warehouse"></i> Форма 5</h3>
     <p>Обновление остатков по приходам и списаниям</p>
-    <a href="{% url 'forms_app:form5' %}" class="btn">Перейти к форме 5</a>
-    </div>
+    <a href="{% url 'forms_app:form5' %}" class="card-btn">Открыть форму</a>
+  </div>
 
-    <div class="card">
-    <h3>Теория</h3>
+  <!-- Теория -->
+  <div class="card">
+    <h3><i class="fas fa-book"></i> Теория</h3>
     <p>Объяснение метрик, графиков и терминов</p>
-    <a href="{% url 'theory:theory_index' %}" class="btn">Теория</a>
-    </div>
+    <a href="{% url 'theory:theory_index' %}" class="card-btn">Изучить</a>
+  </div>
 </div>
 {% endblock %}

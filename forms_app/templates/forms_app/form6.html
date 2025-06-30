@@ -1,0 +1,114 @@
+<!-- templates/forms_app/form6.html -->
+
+{% extends "base.html" %} {% block title %}Форма 6 — Обновление складских
+остатков (через SQL){% endblock %} {% block content %}
+
+<h2>✍️ Форма 6 — Обновление складских остатков</h2>
+
+<form method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+
+  <!--
+  <label for="input_stock">Начальные поступления </label>
+  <input
+    type="file"
+    id="input_stock"
+    name="input_stock"
+    accept=".xlsx,.xls"
+    /><br /><br />
+  -->
+
+  <label for="input1">Поступления:</label>
+  <input
+    type="file"
+    id="input1"
+    name="input1"
+    accept=".xlsx,.xls"
+  /><br /><br />
+
+  <label for="input2">Списание FBS:</label>
+  <input
+    type="file"
+    id="input2"
+    name="input2"
+    accept=".xlsx,.xls"
+  /><br /><br />
+
+  <label for="input3">Списание FBO:</label>
+  <input
+    type="file"
+    id="input3"
+    name="input3"
+    accept=".xlsx,.xls"
+  /><br /><br />
+
+  <button type="submit" class="btn btn-success">Обработать</button>
+</form>
+
+<br />
+
+<!-- Кнопка предпросмотра -->
+<form action="{% url 'forms_app:preview_sql' %}" method="get">
+  <button type="submit" class="btn btn-info">👁‍🗨 Предпросмотр через SQL</button>
+</form>
+
+<br />
+
+<!-- Кнопка выгрузки -->
+<form action="{% url 'forms_app:download_sql' %}" method="get">
+  <button type="submit" class="btn btn-primary">
+    ⬇️ Выгрузить текущие остатки (SQL)
+  </button>
+</form>
+
+<br />
+
+<form action="{% url 'forms_app:editable_preview_sql' %}" method="get">
+  <button
+    type="submit"
+    class="btn"
+    style="
+      background-color: rgb(216, 76, 90);
+      color: white;
+      border-color: #dc3545;
+    "
+  >
+    Редактировать остатки online
+  </button>
+</form>
+
+<br />
+
+<!-- Кнопка полной замены данных черех xl файл -->
+
+<form action="{% url 'forms_app:replace_sql_stock' %}" method="get">
+  <button
+    type="submit"
+    class="btn"
+    style="background-color: #dc3545; color: white"
+  >
+    🔄 Полная замена остатков через Excel
+  </button>
+</form>
+
+<br />
+
+<form action="{% url 'forms_app:reset_stock_sql' %}" method="post">
+  {% csrf_token %}
+  <button
+    type="submit"
+    class="btn-reset"
+    style="
+      background-color: #dc3545;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+    "
+  >
+    🧹 Сбросить данные
+  </button>
+</form>
+
+{% endblock %}

@@ -5,10 +5,16 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from forms_app.views.success_view import success_page
+from django.contrib.auth.views import LoginView
 
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    path(
+        "accounts/login/",
+        LoginView.as_view(template_name="accounts/login.html"),
+        name="login",
+    ),
     path("accounts/", include("accounts.urls", namespace="accounts")),
     path(
         "forms/", include("forms_app.urls")
