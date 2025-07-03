@@ -1,5 +1,8 @@
 {% extends "base.html" %} {% block content %}
-<h2>📥 Форма 7 — Загрузите ваши файлы Wildberries</h2>
+<h2>
+  📥 Форма 7 — Загрузите обработанный отчет после Формы 2 (сводная по артикулам)
+  для построения графика по колонке "Прибыль"
+</h2>
 <form method="post" enctype="multipart/form-data">
   {% csrf_token %}
   <input type="file" name="excel_file" accept=".xlsx" required />
@@ -13,11 +16,18 @@
   >
     <br />
     {% csrf_token %}
-    <button type="submit" class="btn btn-danger">
+    <button
+      type="submit"
+      class="btn btn-danger"
+      style="
+        background-color: #dc3545 !important;
+        border-color: #dc3545 !important;
+      "
+    >
       🗑️ Очистить все данные формы
     </button>
     <small class="text-muted d-block mt-1">
-      Удаляет все загруженные данные перед новой загрузкой
+      Внимание! Удаляет все загруженные данные перед новой загрузкой!
     </small>
   </form>
 </div>
