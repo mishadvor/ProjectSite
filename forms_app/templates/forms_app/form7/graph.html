@@ -1,0 +1,47 @@
+{% extends "base.html" %} {% block content %}
+<h2>📊 3D график динамики прибыли</h2>
+<p class="text-muted">{{ debug_info }}</p>
+
+<div id="chart" style="width: 100%; height: 800px"></div>
+
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    try {
+      const container = document.getElementById("chart");
+      const graphData = JSON.parse("{{ graph_json|escapejs }}");
+
+      console.log("Graph data:", graphData); // Отладка
+
+      if (!graphData || !graphData.data || graphData.data.length === 0) {
+        throw new Error("Нет данных для графика");
+      }
+
+      Plotly.newPlot("chart", graphData.data, graphData.layout)
+        .then(() => console.log("График успешно построен"))
+        .catch((err) => {
+          console.error("Ошибка Plotly:", err);
+          container.innerHTML = `
+            <div class="alert alert-danger">
+              Ошибка при построении графика: ${err.message}
+              <br><small>Проверьте консоль для подробностей</small>
+            </div>
+          `;
+        });
+    } catch (e) {
+      console.error("Ошибка:", e);
+      document.getElementById("chart").innerHTML = `
+        <div class="alert alert-danger">
+          ${e.message}
+          <br><small>Проверьте консоль для подробностей</small>
+        </div>
+      `;
+    }
+  });
+</script>
+
+<a href="{% url 'forms_app:form7_upload' %}" class="btn btn-secondary mt-3">
+  ⬅️ Назад к загрузке
+</a>
+{% endblock %}

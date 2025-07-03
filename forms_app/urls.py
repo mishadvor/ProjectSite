@@ -29,6 +29,7 @@ from .views.form6_sql_views import (
 )
 from forms_app.views.stock_replace_view import replace_sql_stock
 from forms_app.views.form6_sql_views import reset_stock_sql
+from .views.form7_view import form7_upload, form7_graph, clear_form7_data
 
 app_name = "forms_app"
 
@@ -59,4 +60,7 @@ urlpatterns = [
     path("form6/save/", save_stock_sql, name="save_stock_sql"),
     path("form6/replace_sql/", replace_sql_stock, name="replace_sql_stock"),
     path("form6/reset/", reset_stock_sql, name="reset_stock_sql"),
+    path("form7/upload/", form7_upload, name="form7_upload"),
+    path("form7/graph/", form7_graph, name="form7_graph"),
+    path("form7/clear/", clear_form7_data, name="clear_form7_data"),
 ]

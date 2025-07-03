@@ -1,0 +1,20 @@
+{% extends "base.html" %} {% block title %}Данные успешно обработаны{%endblock%}
+{% block content %}
+<div class="container">
+  <h2>✅ Данные успешно обработаны!</h2>
+
+  <p><strong>Неделя:</strong> {{ week }}</p>
+  <p><strong>Всего групп:</strong> {{ groups|length }}</p>
+  <p><strong>Общая прибыль:</strong> {{ total_profit }} руб.</p>
+
+  <div style="margin-top: 20px">
+    <a href="{% url 'forms_app:form7_graph' %}" target="_blank" class="btn">
+      <i class="fas fa-chart-line"></i> Посмотреть график
+    </a>
+    <br /><br />
+    <a href="{% url 'forms_app:form7_upload' %}" class="btn">
+      <i class="fas fa-arrow-left"></i> Загрузить ещё файл
+    </a>
+  </div>
+</div>
+{% endblock %}

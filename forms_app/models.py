@@ -34,3 +34,13 @@ class StockRecord(models.Model):
     class Meta:
         verbose_name = "Складская запись"
         verbose_name_plural = "Складские записи"
+
+
+class WeeklyReport(models.Model):
+    week_name = models.CharField("Неделя", max_length=50)
+    art_group = models.CharField("Группа артикулов", max_length=3)
+    profit = models.FloatField("Прибыль")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.week_name} - {self.art_group}: {self.profit}"

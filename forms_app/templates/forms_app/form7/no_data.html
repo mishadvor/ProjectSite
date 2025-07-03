@@ -1,0 +1,10 @@
+{% extends "base.html" %} {% block title %}Нет данных для графика{% endblock %}
+{% block content %}
+<div class="container">
+  <h2>❌ Нет данных для построения графика</h2>
+  <p>Пожалуйста, загрузите файлы через форму.</p>
+  <a href="{% url 'forms_app:form7_upload' %}" class="btn">
+    <i class="fas fa-arrow-left"></i> Назад
+  </a>
+</div>
+{% endblock %}

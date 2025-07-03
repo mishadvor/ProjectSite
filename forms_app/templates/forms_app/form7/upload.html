@@ -1,0 +1,24 @@
+{% extends "base.html" %} {% block content %}
+<h2>📥 Форма 7 — Загрузите ваши файлы Wildberries</h2>
+<form method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+  <input type="file" name="excel_file" accept=".xlsx" required />
+  <button type="submit">Загрузить</button>
+</form>
+<div class="mt-4 border-top pt-3">
+  <form
+    action="{% url 'forms_app:clear_form7_data' %}"
+    method="post"
+    onsubmit="return confirm('Вы уверены, что хотите удалить ВСЕ данные Формы 7?');"
+  >
+    <br />
+    {% csrf_token %}
+    <button type="submit" class="btn btn-danger">
+      🗑️ Очистить все данные формы
+    </button>
+    <small class="text-muted d-block mt-1">
+      Удаляет все загруженные данные перед новой загрузкой
+    </small>
+  </form>
+</div>
+{% endblock %}
