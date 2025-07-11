@@ -6,7 +6,6 @@ import pandas as pd
 from datetime import datetime, timedelta
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
-from django.core.files.storage import default_storage
 from forms_app.forms import UploadFileForm
 from forms_app.models import UserReport
 from io import BytesIO
@@ -22,11 +21,22 @@ def upload_file(request):
 
             # Читаем файл в памяти без сохранения на диск
             file_data = BytesIO(uploaded_file.read())
-            df_input = pd.read_excel(file_data, sheet_name=0)  # Чтение из памяти
+            df_input = pd.read_excel(file_data, sheet_name=0).head(150)
+
+            # Проверка наличия нужных колонок
+            required_columns = ["Код номенклатуры"]
+
+            missing_columns = [
+                col for col in required_columns if col not in df_input.columns
+            ]
+            if missing_columns:
+                raise ValueError(
+                    f"❌ Отсутствуют обязательные колонки: {', '.join(missing_columns)}"
+                )
 
             # === Получаем дату из имени файла или текущую ===
             def extract_date_from_filename(filename):
-                match = re.search(r"отчет_за_(\d{2}\.\d{2}\.\d{4})\.xlsx", filename)
+                match = re.search(r"(\d{2}\.\d{2}\.\d{4})\.xlsx", filename)
                 if match:
                     return datetime.strptime(match.group(1), "%d.%m.%Y")
                 return None
@@ -37,18 +47,8 @@ def upload_file(request):
                 file_date = datetime.now()
 
             # Вычисляем воскресенье недели
-            # Для воскресенья прошлой недели:
-            sunday_of_previous_week = file_date - timedelta(
-                days=(file_date.weekday() + 1)
-            )
-            week_date = sunday_of_week.strftime("%d.%m.%Y")
-
-            # Возвращаем курсор в начало (на случай повторного чтения)
-            file_data.seek(0)
-            df_input = pd.read_excel(file_data, sheet_name=0).head(150)
-
-            if df_input.empty:
-                raise ValueError("❌ Входной файл пустой — нечего записывать.")
+            # sunday_of_week = file_date - timedelta(days=(file_date.weekday() + 1))
+            # week_date = sunday_of_week.strftime("%d.%m.%Y")
 
             # === Путь к файлу ===
             user_id = request.user.id
@@ -97,33 +97,33 @@ def upload_file(request):
 
                     # Собираем данные
                     article = row["Артикул поставщика"]
-                    clear_sales_our = row["Чистые продажи Наши"]
-                    clear_sales_vb = row["Чистая реализацич ВБ"]
-                    clear_transfer = row["Чистое Перечисление"]
-                    clear_transfer_without_log = row[
-                        "Чистое Перечисление без Логистики"
-                    ]
-                    our_price_mid = row["Наша цена Средняя"]
-                    vb_selling_mid = row["Реализация ВБ Средняя"]
-                    transfer_mid = row["К перечислению Среднее"]
-                    transfer_without_log_mid = row[
-                        "К Перечислению без Логистики Средняя"
-                    ]
-                    qentity_sale = row["Чистые продажи, шт"]
-                    sebes_sale = row["Себес Продаж (600р)"]
-                    profit_1 = row["Прибыль на 1 Юбку"]
-                    percent_sell = row["%Выкупа"]
-                    profit = row["Прибыль"]
-                    orders = row["Заказы"]
+                    clear_sales_our = row.get("Чистые продажи Наши", "")
+                    clear_sales_vb = row.get("Чистая реализация ВБ", "")  # ← Исправлено
+                    clear_transfer = row.get("Чистое Перечисление", "")
+                    clear_transfer_without_log = row.get(
+                        "Чистое Перечисление без Логистики", ""
+                    )
+                    our_price_mid = row.get("Наша цена Средняя", "")
+                    vb_selling_mid = row.get("Реализация ВБ Средняя", "")
+                    transfer_mid = row.get("К перечислению Среднее", "")
+                    transfer_without_log_mid = row.get(
+                        "К Перечислению без Логистики Средняя", ""
+                    )
+                    qentity_sale = row.get("Чистые продажи, шт", "")
+                    sebes_sale = row.get("Себес Продаж (600р)", "")
+                    profit_1 = row.get("Прибыль на 1 Юбку", "")
+                    percent_sell = row.get("%Выкупа", "")
+                    profit = row.get("Прибыль", "")
+                    orders = row.get("Заказы", "")
 
                     new_row = pd.DataFrame(
                         [
                             {
-                                "Дата": week_date,
+                                "Дата": file_date.strftime("%d.%m.%Y"),
                                 "Код номенклатуры": code,
                                 "Артикул": article,
                                 "Чистые продажи Наши": clear_sales_our,
-                                "Чистая реализацич ВБ": clear_sales_vb,
+                                "Чистая реализация ВБ": clear_sales_vb,  # ← Исправлено
                                 "Чистое Перечисление": clear_transfer,
                                 "Чистое Перечисление без Логистики": clear_transfer_without_log,
                                 "Наша цена Средняя": our_price_mid,
@@ -155,6 +155,17 @@ def upload_file(request):
                     else:
                         df_updated = new_row
 
+                    # --- СОРТИРОВКА ПО ДАТЕ ---
+                    df_updated["Дата"] = pd.to_datetime(
+                        df_updated["Дата"], format="%d.%m.%Y", errors="coerce"
+                    )
+                    df_updated = df_updated.sort_values(
+                        by="Дата", ascending=True
+                    ).reset_index(drop=True)
+                    df_updated["Дата"] = df_updated["Дата"].dt.strftime(
+                        "%d.%m.%Y"
+                    )  # обратно в строку
+
                     df_updated.to_excel(writer, sheet_name=sheet_name, index=False)
 
                 # Защита от пустого файла
@@ -171,7 +182,7 @@ def upload_file(request):
                 },
             )
 
-            return redirect("forms_app:success_page")  # Стало (правильно)
+            return redirect("forms_app:success_page")
 
     else:
         form = UploadFileForm()

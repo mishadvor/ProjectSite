@@ -73,7 +73,7 @@ def form5(request):
         df_input1 = pd.DataFrame(columns=["Группа артикула", "Размер", "Количество"])
         if input1:
             try:
-                df_input1_raw = pd.read_excel(BytesIO(input1.read()))
+                df_input1_raw = pd.read_excel(BytesIO(input1.read()), sheet_name=0)
                 df_input1 = prepare_df(df_input1_raw)
             except Exception as e:
                 print(f"Ошибка при чтении input1: {e}")
@@ -83,7 +83,7 @@ def form5(request):
         df_input2 = pd.DataFrame(columns=["Группа артикула", "Размер", "Количество"])
         if input2:
             try:
-                df_input2_raw = pd.read_excel(BytesIO(input2.read()))
+                df_input2_raw = pd.read_excel(BytesIO(input2.read()), sheet_name=0)
                 df_input2_raw.rename(columns=COLUMN_MAPPING, inplace=True)
                 df_input2_raw["Размер"] = (
                     df_input2_raw["Размер"]
@@ -100,7 +100,7 @@ def form5(request):
         df_input3 = pd.DataFrame(columns=["Группа артикула", "Размер", "Количество"])
         if input3:
             try:
-                df_input3_raw = pd.read_excel(BytesIO(input3.read()))
+                df_input3_raw = pd.read_excel(BytesIO(input3.read()), sheet_name=0)
                 df_input3_raw.rename(columns=COLUMN_MAPPING, inplace=True)
                 if "Количество, шт." in df_input3_raw.columns:
                     df_input3_raw.rename(

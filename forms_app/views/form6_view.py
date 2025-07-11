@@ -81,7 +81,7 @@ def form6(request):
 
         if input_stock:
             try:
-                df_stock_raw = pd.read_excel(BytesIO(input_stock.read()))
+                df_stock_raw = pd.read_excel(BytesIO(input_stock.read()), sheet_name=0)
 
                 # Переименовываем при необходимости
                 if "Артикул" in df_stock_raw.columns:
@@ -132,7 +132,7 @@ def form6(request):
         df_input1 = pd.DataFrame()
         if input1:
             try:
-                df_raw = pd.read_excel(BytesIO(input1.read()))
+                df_raw = pd.read_excel(BytesIO(input1.read()), sheet_name=0)
                 df_raw.rename(
                     columns={"Артикул продавца": "Артикул поставщика"},
                     inplace=True,
@@ -152,7 +152,7 @@ def form6(request):
         df_input2 = pd.DataFrame()
         if input2:
             try:
-                df_raw = pd.read_excel(BytesIO(input2.read()))
+                df_raw = pd.read_excel(BytesIO(input2.read()), sheet_name=0)
                 df_raw.rename(
                     columns={"Артикул продавца": "Артикул поставщика"},
                     inplace=True,
@@ -167,7 +167,7 @@ def form6(request):
         df_input3 = pd.DataFrame()
         if input3:
             try:
-                df_raw = pd.read_excel(BytesIO(input3.read()))
+                df_raw = pd.read_excel(BytesIO(input3.read()), sheet_name=0)
                 df_raw.rename(
                     columns={"Артикул продавца": "Артикул поставщика"},
                     inplace=True,
