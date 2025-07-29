@@ -1,0 +1,134 @@
+<!-- templates/forms_app/form4_list.html -->
+{% extends "forms_app/base_form.html" %} {% block title %}Форма 4: Все
+артикулы{% endblock %} {% block content %}
+<h2>📋 Все коды номенклатуры</h2>
+<p>Выберите код, чтобы посмотреть историю продаж и прибыли.</p>
+
+<!-- Поле поиска -->
+<div style="margin-bottom: 20px">
+  <input
+    type="text"
+    id="searchInput"
+    placeholder="🔍 Поиск по артикулу или коду..."
+    style="
+      padding: 10px;
+      font-size: 16px;
+      width: 100%;
+      max-width: 500px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    "
+  />
+</div>
+
+{% if codes_with_articles %}
+<!-- Блок с прокруткой -->
+<div
+  style="
+    max-height: 500px;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 10px;
+    background-color: #fff;
+    margin: 20px 0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  "
+>
+  <ul id="codesList" style="list-style: none; padding: 0; margin: 0">
+    {% for item in codes_with_articles %}
+    <li
+      style="margin: 8px 0"
+      data-article="{{ item.article|lower }} {{ item.code }}"
+    >
+      <a
+        href="{% url 'forms_app:form4_detail' code=item.code %}"
+        class="btn"
+        style="width: 100%; text-align: center"
+      >
+        {{ item.code }} — {{ item.article|default:"—" }}
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+
+  <!-- Необязательно: сообщение, если ничего не найдено -->
+  <div
+    id="noResults"
+    style="color: #888; text-align: center; display: none; padding: 10px"
+  >
+    Ничего не найдено
+  </div>
+</div>
+{% else %}
+<p style="color: #888; font-style: italic">
+  📄 Нет данных.
+  <a href="{% url 'forms_app:form4_upload' %}">Загрузите файл</a>, чтобы начать.
+</p>
+{% endif %}
+<div
+  style="
+    margin-top: 40px;
+    padding: 15px;
+    border: 1px solid #ffc107;
+    border-radius: 8px;
+    background-color: #fff3cd;
+  "
+>
+  <h3 style="color: #856404">⚠️ Опасная операция</h3>
+  <p>
+    Полностью удалить все данные формы 4 для пользователя
+    <strong>{{ request.user.username }}</strong>?
+  </p>
+  <a
+    href="{% url 'forms_app:form4_clear' %}"
+    class="btn"
+    style="background-color: #dc3545"
+  >
+    🗑️ Обнулить все данные
+  </a>
+</div>
+
+<div style="margin-top: 30px">
+  <a href="{% url 'forms_app:form4_upload' %}" class="btn"
+    >➕ Загрузить новые данные</a
+  >
+  <a href="{% url 'forms_app:form4_export' %}" class="btn"
+    >⬇️ Выгрузить всё в Excel</a
+  >
+  <a href="{% url 'home:home' %}" class="btn" style="background-color: #6c757d"
+    >← На главную</a
+  >
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const searchInput = document.getElementById("searchInput");
+    const codesList = document.getElementById("codesList");
+    const items = codesList.getElementsByTagName("li");
+    const noResults = document.getElementById("noResults");
+
+    searchInput.addEventListener("input", function () {
+      const query = searchInput.value.toLowerCase().trim();
+      let visibleCount = 0;
+
+      Array.from(items).forEach((item) => {
+        const text = item.dataset.article;
+        if (text.includes(query)) {
+          item.style.display = "";
+          visibleCount++;
+        } else {
+          item.style.display = "none";
+        }
+      });
+
+      // Показываем "Ничего не найдено", если нет совпадений
+      if (query && visibleCount === 0) {
+        noResults.style.display = "block";
+      } else {
+        noResults.style.display = "none";
+      }
+    });
+  });
+</script>
+{% endblock %}

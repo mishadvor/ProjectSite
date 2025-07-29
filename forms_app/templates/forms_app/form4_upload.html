@@ -1,37 +1,27 @@
 <!-- templates/forms_app/form4_upload.html -->
 {% extends "forms_app/base_form.html" %} {% block title %}Форма 4: Загрузка
 данных{% endblock %} {% block content %}
-<h2>📊 Форма 4: Накопительный отчёт по артикулам</h2>
-<p>
-  Загрузите файл из Формы 2, чтобы добавить данные за день. Все данные
-  сохраняются в базе и доступны для просмотра, анализа и экспорта.
-</p>
+<h2>📤 Форма 4: Загрузите файл из Формы 2</h2>
+<p>Данные будут добавлены в накопительную базу по артикулам.</p>
 
-{% if messages %}
-<div class="messages">
-  {% for message in messages %}
-  <p
-    style="color:
-                    {% if message.tags == 'error' %}red
-                    {% elif message.tags == 'warning' %}orange
-                    {% else %}green{% endif %};
-                    font-weight: bold;"
-  >
-    {{ message }}
-  </p>
-  {% endfor %}
-</div>
-{% endif %}
+{% if messages %} {% for message in messages %}
+<p
+  style="color:
+                {% if message.tags == 'error' %}red
+                {% elif message.tags == 'warning' %}orange
+                {% else %}green{% endif %};
+                font-weight: bold;"
+>
+  {{ message }}
+</p>
+{% endfor %} {% endif %}
 
 <form method="post" enctype="multipart/form-data" id="uploadForm">
   {% csrf_token %}
-
   <label for="file">Выберите файл Excel (.xlsx):</label>
   <br /><br />
-  <input type="file" id="file" name="file" accept=".xlsx,.xls" required />
-  <br /><br />
-
-  <button type="submit">📤 Загрузить и сохранить</button>
+  {{ form.as_p }}
+  <button type="submit" class="btn">Загрузить и сохранить</button>
 </form>
 
 <!-- Индикатор загрузки -->
@@ -53,7 +43,7 @@
   });
 </script>
 
-<!-- Блок с действиями после загрузки -->
+<!-- Кнопки действий -->
 {% if user.is_authenticated %}
 <div
   style="
@@ -65,7 +55,6 @@
   "
 >
   <h3>🔍 Ваши данные в системе</h3>
-
   <ul style="list-style: none; padding: 0">
     <li>
       <a href="{% url 'forms_app:form4_list' %}" class="btn"
@@ -78,13 +67,6 @@
       >
     </li>
   </ul>
-
-  <p style="margin-top: 20px; font-size: 0.9em; color: #666">
-    Данные хранятся в базе. Каждый новый файл добавляет строки по датам —
-    дубликаты игнорируются.
-  </p>
-
-  <!-- Кнопка на главную -->
   <a href="{% url 'home:home' %}" class="btn" style="margin-top: 15px"
     >← На главную</a
   >

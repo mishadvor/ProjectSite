@@ -9,6 +9,7 @@ from ..models import WeeklyReport
 from django.shortcuts import redirect
 from django.contrib import messages
 from io import BytesIO
+from django.contrib.auth.decorators import login_required
 
 
 # Функция извлечения первых 3 цифр артикула
@@ -21,6 +22,7 @@ def get_art_prefix(art):
 
 
 # Форма загрузки файла
+@login_required
 def form7_upload(request):
     if request.method == "POST":
         excel_file = request.FILES.get("excel_file")
@@ -107,6 +109,7 @@ def form7_upload(request):
 # Функция отрисовки графика
 
 
+@login_required
 def form7_graph(request):
     try:
         # Получаем данные
@@ -179,6 +182,7 @@ def form7_graph(request):
         )
 
 
+@login_required
 def clear_form7_data(request):
     try:
         # Получаем количество записей перед удалением

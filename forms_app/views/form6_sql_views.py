@@ -9,6 +9,8 @@ from forms_app.models import StockRecord
 import os
 from django.shortcuts import render, redirect
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.urls import reverse
+from urllib.parse import urlencode
 
 
 @login_required
@@ -150,7 +152,20 @@ def save_stock_sql(request):
         updated_records.append(record)
 
     StockRecord.objects.bulk_update(updated_records, ["quantity", "location", "note"])
-    return redirect("forms_app:editable_preview_sql")
+
+    # --- ✅ Сначала получаем параметры ---
+    query = request.POST.get("q", "")  # из скрытого поля
+    page = request.POST.get("page", "1")  # из скрытого поля
+
+    # --- ✅ Теперь формируем URL ---
+    redirect_url = reverse("forms_app:editable_preview_sql")
+
+    # Добавляем параметры, только если они есть
+    if query or page != "1":
+        query_string = urlencode({"q": query, "page": page})
+        redirect_url += "?" + query_string
+
+    return redirect(redirect_url)
 
 
 @login_required

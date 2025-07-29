@@ -1,0 +1,125 @@
+<!-- templates/forms_app/form4_chart.html -->
+{% extends "forms_app/base_form.html" %} {% block title %}График:
+{{code}}{%endblock%} {% block content %}
+<h2>
+  📈 График — {{ code }} |
+  <span style="font-size: 0.9em; color: #555">{{ article|default:"—" }}</span> |
+  {{ label }}
+</h2>
+
+{% if dates %}
+<!-- Контейнер с фиксированной высотой -->
+<div style="height: 400px; position: relative; margin: 20px 0">
+  <canvas id="chartCanvas"></canvas>
+</div>
+
+<!-- Отладочная информация -->
+<div
+  style="
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+  "
+>
+  <p><strong>Количество записей:</strong> {{ dates|length }}</p>
+  <p><strong>Даты:</strong> {{ dates|safe }}</p>
+  <p><strong>Данные:</strong> {{ data|safe }}</p>
+</div>
+
+<!-- Кнопки выбора типа графика -->
+<div style="margin-bottom: 20px">
+  <a
+    href="{% url 'forms_app:form4_chart' code=code %}"
+    class="btn {% if chart_type == 'profit' %}active{% endif %}"
+    >Прибыль</a
+  >
+  <a
+    href="{% url 'forms_app:form4_chart_type' code=code chart_type='sales' %}"
+    class="btn {% if chart_type == 'sales' %}active{% endif %}"
+    >Продажи</a
+  >
+  <a
+    href="{% url 'forms_app:form4_chart_type' code=code chart_type='orders' %}"
+    class="btn {% if chart_type == 'orders' %}active{% endif %}"
+    >Заказы</a
+  >
+  <a
+    href="{% url 'forms_app:form4_chart_type' code=code chart_type='percent' %}"
+    class="btn {% if chart_type == 'percent' %}active{% endif %}"
+    >% Выкупа</a
+  >
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  // Ждём полной загрузки страницы
+  document.addEventListener('DOMContentLoaded', function() {
+      const ctx = document.getElementById('chartCanvas').getContext('2d');
+
+      // Проверяем данные
+      const labels = {{ dates|safe }};
+      const chartData = {{ data|safe }};
+
+      // Создаём график
+      new Chart(ctx, {
+          type: 'line',
+          data: {
+              labels: labels,
+              datasets: [{
+                  label: '{{ label }}',
+                  data: chartData,
+                  borderColor: '{{ color }}',
+                  backgroundColor: '{{ color }}'.replace(')', ', 0.1)'),
+                  borderWidth: 2,
+                  tension: 0,  // Прямые линии
+                  fill: true
+              }]
+          },
+          options: {
+              responsive: true,
+              maintainAspectRatio: false,  // КРИТИЧЕСКИ ВАЖНО!
+              plugins: {
+                  legend: {
+                      position: 'top',
+                  },
+                  tooltip: {
+                      mode: 'index',
+                      intersect: false
+                  }
+              },
+              scales: {
+                  y: {
+                      beginAtZero: false,
+                      ticks: {
+                          callback: function(value) {
+                              // Форматируем числа в зависимости от типа
+                              if ('{{ label }}' === '% Выкупа') {
+                                  return value + '%';
+                              } else if ('{{ label }}' === 'Заказы') {
+                                  return value;
+                              } else {
+                                  return value.toLocaleString() + ' ₽';
+                              }
+                          }
+                      }
+                  }
+              }
+          }
+      });
+  });
+</script>
+
+<div style="margin-top: 30px">
+  <a href="{% url 'forms_app:form4_detail' code=code %}" class="btn"
+    >← Назад к данным</a
+  >
+  <a href="{% url 'forms_app:form4_list' %}" class="btn">📋 Все артикулы</a>
+</div>
+{% else %}
+<p style="color: #888; font-style: italic">
+  📊 Нет данных для построения графика.
+</p>
+<a href="{% url 'forms_app:form4_detail' code=code %}" class="btn">← Назад</a>
+{% endif %} {% endblock %}

@@ -4,7 +4,19 @@ import numpy as np
 from django.http import HttpResponse
 from django.shortcuts import render
 from io import BytesIO
-from openpyxl import Workbook
+from openpyxl import load_workbook  # Добавьте этот импорт
+from openpyxl.styles import (
+    Alignment,
+    Font,
+    Border,
+    Side,
+    PatternFill,
+)  # Расширенные стили
+from openpyxl.utils import get_column_letter  # Для работы с колонками
+from openpyxl.worksheet.dimensions import (
+    ColumnDimension,
+)  # Для управления шириной колонок
+from openpyxl.styles import NamedStyle, Alignment, Font, Border, Side
 
 
 def safe_convert_to_int(value):
@@ -97,6 +109,8 @@ def form2(request):
                     }
                 )
                 .reset_index()
+                # Удаляем строки где код номенклатуры равен 0
+                .query("`Код номенклатуры` != 0")
             )
 
             # Безопасное преобразование числовых колонок
@@ -379,6 +393,8 @@ def form2(request):
             # Добавляем пустые колонки перед определением порядка
             third_merged["План на неделю"] = ""  # Пустая строка
             third_merged["План по доходу"] = ""  # Пустая строка
+            third_merged["Доп удержание на кол-во заказов 1 Артикула"] = ""
+            third_merged["% СПП"] = ""
 
             third_merged = third_merged.rename(
                 columns={
@@ -413,6 +429,7 @@ def form2(request):
                 "Чистые продажи, шт",
                 "%Выкупа",
                 "СПП Средняя",
+                "% СПП",
                 "План на неделю",
                 "План по доходу",
                 "Сумма Продаж Наша Цена",
@@ -434,6 +451,7 @@ def form2(request):
                 "Отмена",
                 "Маржа",
                 "Налоги",
+                "Доп удержание на кол-во заказов 1 Артикула",
             ]
 
             # Фильтруем только существующие колонки
@@ -442,7 +460,9 @@ def form2(request):
             ]
             third_merged = third_merged[existing_columns]
 
+            # Сортировка по Прибыли
             third_merged.sort_values(by="Прибыль", ascending=False, inplace=True)
+
             # === Начало: Группировка по "Чистое Перечисление без Логистики" ===
             conditions = [
                 third_merged["Прибыль"] > 10000,
@@ -539,7 +559,7 @@ def form2(request):
                     "Колонка": [
                         "Логистика",
                         "Сумма СПП",
-                        "Сумма Чистых продаж без Возвратов и Логистики",
+                        "Сумма Чистых перечислений без Возвратов и Логистики",
                         "Чистые продажи, шт",
                         "Заказы",
                         "Себестоимость продаж",
@@ -572,6 +592,38 @@ def form2(request):
                     ],
                 }
             )
+
+            sum_dop_uderzhany = (
+                all_add_log["Общая сумма штрафов"].sum()
+                + all_add_log["Хранение"].sum()
+                + all_add_log["Удержания"].sum()
+                + all_add_log["Платная приемка"].sum()
+            )
+
+            sum_zakaz = third_merged["Заказы"].sum()
+
+            third_merged["Доп удержание на кол-во заказов 1 Артикула"] = (
+                (sum_dop_uderzhany / sum_zakaz) * third_merged["Заказы"]
+            ).round(1)
+
+            third_merged["Прибыль"] = (
+                third_merged["Маржа"]
+                - third_merged["Налоги"]
+                - third_merged["Доп удержание на кол-во заказов 1 Артикула"]
+            ).round(1)
+
+            third_merged["Прибыль на 1 Юбку"] = (
+                (third_merged["Прибыль"] / third_merged["Чистые продажи, шт"])
+                .replace(np.inf, 0)
+                .round(1)
+            )
+
+            third_merged["% СПП"] = (
+                (third_merged["СПП Средняя"] / third_merged["Наша цена Средняя"]) * 100
+            ).round(1)
+
+            # Сортировка по Прибыли
+            third_merged.sort_values(by="Прибыль", ascending=False, inplace=True)
 
             # Генерация Excel файла
             output = BytesIO()
@@ -617,6 +669,37 @@ def form2(request):
                         :31
                     ]  # Ограничение Excel на длину имени листа
                     filtered.to_excel(writer, sheet_name=safe_sheet_name, index=False)
+
+                # ===== ДОБАВЛЕНО: Форматирование заголовков =====
+                workbook = writer.book  # Получаем workbook из write
+                # Стиль для заголовков
+                header_style = NamedStyle(
+                    name="header_style",
+                    alignment=Alignment(
+                        wrap_text=True, horizontal="center", vertical="center"
+                    ),
+                    font=Font(bold=True),
+                )
+                # Применяем ко всем листам
+                for sheetname in writer.sheets:
+                    sheet = writer.sheets[sheetname]
+
+                    # Применяем стиль к первой строке (заголовкам)
+                    for cell in sheet[1]:  # [1] - первая строка
+                        cell.style = header_style
+
+                    # Автоподбор ширины столбцов (опционально)
+                    for column in sheet.columns:
+                        max_length = max(
+                            (
+                                len(str(cell.value)) if cell.value else 0
+                                for cell in column[1:]  # Пропускаем заголовок
+                            ),
+                            default=0,
+                        )
+                        sheet.column_dimensions[column[0].column_letter].width = min(
+                            max_length + 10, 65
+                        )  # Ограничение на ширину
 
             output.seek(0)
 

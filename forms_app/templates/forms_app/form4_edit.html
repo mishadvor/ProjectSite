@@ -1,0 +1,24 @@
+<!-- templates/forms_app/form4_edit.html -->
+{% extends "forms_app/base_form.html" %} {% block title %}Редактировать запись —
+Форма 4{% endblock %} {% block content %}
+<h2>✏️ Редактировать данные</h2>
+
+<p><strong>Код номенклатуры:</strong> {{ record.code }}</p>
+<p><strong>Дата:</strong> {{ record.date|date:"d.m.Y" }}</p>
+<p><strong>Артикул:</strong> {{ record.article|default:"—" }}</p>
+
+<form method="post" style="margin-top: 20px">
+  {% csrf_token %} {{ form.as_p }}
+  <button type="submit" class="btn">💾 Сохранить изменения</button>
+  <a
+    href="{% url 'forms_app:form4_detail' code=record.code %}"
+    class="btn"
+    style="background-color: #6c757d"
+    >Отмена</a
+  >
+</form>
+
+<div style="margin-top: 30px">
+  <a href="{% url 'forms_app:form4_list' %}" class="btn">← Все артикулы</a>
+</div>
+{% endblock %}

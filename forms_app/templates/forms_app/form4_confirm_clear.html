@@ -1,0 +1,39 @@
+<!-- templates/forms_app/form4_confirm_clear.html -->
+<!-- prettier-ignore-start -->
+{% extends "forms_app/base_form.html" %} {% block title %} Подтверждение
+обнуления{% endblock %} {% block content %}
+<h2>⚠️ Вы уверены, что хотите обнулить все данные формы 4?</h2>
+
+<p style="color: #888">
+  У вас <strong>{{ count }}</strong> записей. Это действие
+  <strong>нельзя отменить</strong>.
+</p>
+
+<form method="post">
+  {% csrf_token %}
+  <button
+    type="submit"
+    style="
+      background-color: #dc3545;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+    "
+  >
+    🗑️ Да, удалить все данные
+  </button>
+</form>
+
+<div style="margin-top: 20px">
+  <a
+    href="{% url 'forms_app:form4_list' %}"
+    class="btn"
+    style="background-color: #6c757d"
+  >
+    Отмена
+  </a>
+</div>
+{% endblock %}
+<!-- prettier-ignore-end -->

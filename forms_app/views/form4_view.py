@@ -1,15 +1,16 @@
 # forms_app/views/form4_view.py
 
-import os
 import re
 import pandas as pd
-from datetime import datetime, timedelta
-from django.shortcuts import render, redirect
-from django.contrib.auth.decorators import login_required
-from forms_app.forms import UploadFileForm
-from forms_app.models import UserReport
+from datetime import datetime
 from io import BytesIO
-from django.conf import settings
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.http import HttpResponse
+from django.contrib import messages
+from forms_app.forms import UploadFileForm, Form4DataForm
+from forms_app.models import Form4Data  # Убедись, что модель добавлена
+from django.db.models import Q
 
 
 @login_required
@@ -19,172 +20,306 @@ def upload_file(request):
         if form.is_valid():
             uploaded_file = request.FILES["file"]
 
-            # Читаем файл в памяти без сохранения на диск
-            file_data = BytesIO(uploaded_file.read())
-            df_input = pd.read_excel(file_data, sheet_name=0).head(150)
+            # Читаем файл в памяти
+            try:
+                file_data = BytesIO(uploaded_file.read())
+                df_input = pd.read_excel(file_data, sheet_name=0).head(150)
+            except Exception as e:
+                messages.error(request, f"Ошибка при чтении Excel: {e}")
+                return render(request, "forms_app/form4_upload.html", {"form": form})
 
-            # Проверка наличия нужных колонок
+            # Проверка колонок
             required_columns = ["Код номенклатуры"]
-
             missing_columns = [
                 col for col in required_columns if col not in df_input.columns
             ]
             if missing_columns:
-                raise ValueError(
-                    f"❌ Отсутствуют обязательные колонки: {', '.join(missing_columns)}"
+                messages.error(
+                    request,
+                    f"Отсутствуют обязательные колонки: {', '.join(missing_columns)}",
                 )
+                return render(request, "forms_app/form4_upload.html", {"form": form})
 
-            # === Получаем дату из имени файла или текущую ===
+            # Извлечение даты из имени файла
             def extract_date_from_filename(filename):
                 match = re.search(r"(\d{2}\.\d{2}\.\d{4})\.xlsx", filename)
                 if match:
-                    return datetime.strptime(match.group(1), "%d.%m.%Y")
-                return None
+                    return datetime.strptime(match.group(1), "%d.%m.%Y").date()
+                return datetime.now().date()
 
             file_date = extract_date_from_filename(uploaded_file.name)
-            if not file_date:
-                print("⚠️ Дата не найдена в имени файла. Используем сегодняшнюю дату.")
-                file_date = datetime.now()
 
-            # Вычисляем воскресенье недели
-            # sunday_of_week = file_date - timedelta(days=(file_date.weekday() + 1))
-            # week_date = sunday_of_week.strftime("%d.%m.%Y")
+            # Подготовка данных для массовой записи
+            new_records = []
+            for _, row in df_input.iterrows():
+                code = str(row["Код номенклатуры"]).strip()
+                # 🔽 Пропускаем, если код пустой или равен 0
+                if not code or code == "0" or code == "000" or code == "000000000":
+                    continue  # ← пропускаем эту строку
 
-            # === Путь к файлу ===
-            user_id = request.user.id
-            user_folder = f"user_reports/{user_id}"
-            output_file_name = "Separated_Art_Rep.xlsx"
-            output_file_path = os.path.join(
-                settings.MEDIA_ROOT, user_folder, output_file_name
-            )
+                article = str(row.get("Артикул поставщика", "")).strip() or None
 
-            # Создаём папку пользователя, если её нет
-            output_dir = os.path.join(settings.MEDIA_ROOT, user_folder)
-            os.makedirs(output_dir, exist_ok=True)
+                def safe_float(val):
+                    try:
+                        return float(val) if pd.notna(val) else None
+                    except:
+                        return None
 
-            # === Функция для очистки названия листа от запрещённых символов ===
-            def sanitize_sheet_name(name):
-                invalid_chars = r"[\\/*?:\[\]]"
-                return re.sub(invalid_chars, "", str(name).strip())[:31]
+                def safe_int(val):
+                    try:
+                        return int(val) if pd.notna(val) else None
+                    except:
+                        return None
 
-            # === Проверяем, есть ли уже такой файл ===
-            existing_sheets = []
-            mode = "w"
-            if_sheet_exists = None
-
-            if os.path.exists(output_file_path):
-                try:
-                    with pd.ExcelFile(output_file_path) as xls:
-                        existing_sheets = xls.sheet_names
-                    mode = "a"
-                    if_sheet_exists = "overlay"
-                except Exception as e:
-                    print(f"⚠️ Целевой файл повреждён или нечитаем: {e}. Создаём новый.")
-
-            print(f"Записываем в файл: {output_file_path} (режим: {mode})")
-
-            # === Обработка и запись данных ===
-            with pd.ExcelWriter(
-                output_file_path,
-                engine="openpyxl",
-                mode=mode,
-                if_sheet_exists=if_sheet_exists,
-            ) as writer:
-
-                for _, row in df_input.iterrows():
-                    code = row["Код номенклатуры"]
-                    sheet_name = sanitize_sheet_name(code)
-
-                    # Собираем данные
-                    article = row["Артикул поставщика"]
-                    clear_sales_our = row.get("Чистые продажи Наши", "")
-                    clear_sales_vb = row.get("Чистая реализация ВБ", "")  # ← Исправлено
-                    clear_transfer = row.get("Чистое Перечисление", "")
-                    clear_transfer_without_log = row.get(
-                        "Чистое Перечисление без Логистики", ""
+                new_records.append(
+                    Form4Data(
+                        user=request.user,
+                        code=code,
+                        article=article,
+                        date=file_date,
+                        clear_sales_our=safe_float(row.get("Чистые продажи Наши")),
+                        clear_sales_vb=safe_float(row.get("Чистая реализация ВБ")),
+                        clear_transfer=safe_float(row.get("Чистое Перечисление")),
+                        clear_transfer_without_log=safe_float(
+                            row.get("Чистое Перечисление без Логистики")
+                        ),
+                        our_price_mid=safe_float(row.get("Наша цена Средняя")),
+                        vb_selling_mid=safe_float(row.get("Реализация ВБ Средняя")),
+                        transfer_mid=safe_float(row.get("К перечислению Среднее")),
+                        transfer_without_log_mid=safe_float(
+                            row.get("К Перечислению без Логистики Средняя")
+                        ),
+                        qentity_sale=safe_int(row.get("Чистые продажи, шт")),
+                        sebes_sale=safe_float(row.get("Себес Продаж (600р)")),
+                        profit_1=safe_float(row.get("Прибыль на 1 Юбку")),
+                        percent_sell=safe_float(row.get("%Выкупа")),
+                        profit=safe_float(row.get("Прибыль")),
+                        orders=safe_int(row.get("Заказы")),
                     )
-                    our_price_mid = row.get("Наша цена Средняя", "")
-                    vb_selling_mid = row.get("Реализация ВБ Средняя", "")
-                    transfer_mid = row.get("К перечислению Среднее", "")
-                    transfer_without_log_mid = row.get(
-                        "К Перечислению без Логистики Средняя", ""
-                    )
-                    qentity_sale = row.get("Чистые продажи, шт", "")
-                    sebes_sale = row.get("Себес Продаж (600р)", "")
-                    profit_1 = row.get("Прибыль на 1 Юбку", "")
-                    percent_sell = row.get("%Выкупа", "")
-                    profit = row.get("Прибыль", "")
-                    orders = row.get("Заказы", "")
+                )
 
-                    new_row = pd.DataFrame(
-                        [
-                            {
-                                "Дата": file_date.strftime("%d.%m.%Y"),
-                                "Код номенклатуры": code,
-                                "Артикул": article,
-                                "Чистые продажи Наши": clear_sales_our,
-                                "Чистая реализация ВБ": clear_sales_vb,  # ← Исправлено
-                                "Чистое Перечисление": clear_transfer,
-                                "Чистое Перечисление без Логистики": clear_transfer_without_log,
-                                "Наша цена Средняя": our_price_mid,
-                                "Реализация ВБ Средняя": vb_selling_mid,
-                                "К перечислению Среднее": transfer_mid,
-                                "К Перечислению без Логистики Средняя": transfer_without_log_mid,
-                                "Чистые продажи, шт": qentity_sale,
-                                "Себес Продаж (600р)": sebes_sale,
-                                "Прибыль на 1 Юбку": profit_1,
-                                "%Выкупа": percent_sell,
-                                "Прибыль": profit,
-                                "Заказы": orders,
-                            }
-                        ]
-                    )
+            # Сохраняем в БД (игнорируем дубли по unique_together)
+            Form4Data.objects.bulk_create(new_records, ignore_conflicts=True)
 
-                    # Если лист существует — читаем и дополняем
-                    if sheet_name in existing_sheets:
-                        try:
-                            df_existing = pd.read_excel(writer, sheet_name=sheet_name)
-                            df_updated = pd.concat(
-                                [df_existing, new_row], ignore_index=True
-                            )
-                        except Exception as e:
-                            print(
-                                f"⚠️ Ошибка при чтении листа '{sheet_name}': {e}. Создаём новый."
-                            )
-                            df_updated = new_row
-                    else:
-                        df_updated = new_row
-
-                    # --- СОРТИРОВКА ПО ДАТЕ ---
-                    df_updated["Дата"] = pd.to_datetime(
-                        df_updated["Дата"], format="%d.%m.%Y", errors="coerce"
-                    )
-                    df_updated = df_updated.sort_values(
-                        by="Дата", ascending=True
-                    ).reset_index(drop=True)
-                    df_updated["Дата"] = df_updated["Дата"].dt.strftime(
-                        "%d.%m.%Y"
-                    )  # обратно в строку
-
-                    df_updated.to_excel(writer, sheet_name=sheet_name, index=False)
-
-                # Защита от пустого файла
-                if len(writer.sheets) == 0:
-                    pd.DataFrame().to_excel(writer, sheet_name="Шаблон", index=False)
-
-            # === Сохраняем информацию о файле в БД ===
-            UserReport.objects.update_or_create(
-                user=request.user,
-                file_name="Separated_Art_Rep.xlsx",
-                defaults={
-                    "file_path": f"{user_folder}/{output_file_name}",
-                    "report_type": "form4",
-                },
-            )
-
-            return redirect("forms_app:success_page")
+            messages.success(request, "Данные успешно загружены!")
+            return redirect("forms_app:form4_list")
 
     else:
         form = UploadFileForm()
 
-    return render(request, "forms_app/upload.html", {"form": form})
+    return render(request, "forms_app/form4_upload.html", {"form": form})
+
+
+# === СПИСОК ВСЕХ КОДОВ (как "листы") ===
+@login_required
+def form4_list(request):
+    # print("✅ Пользователь:", request.user)
+    # ✅ Получаем объекты, сортируем: сначала по коду, потом свежие данные сверху
+    queryset = Form4Data.objects.filter(user=request.user).order_by("code", "-date")
+    # print("🔍 Найдено записей:", queryset.count())
+
+    # if queryset.count() == 0:
+    # Проверим, есть ли вообще данные у других пользователей
+    # print("👀 Всего в БД Form4Data:", Form4Data.objects.count())
+    # print(
+    # "👀 Все пользователи в Form4Data:",
+    # Form4Data.objects.values_list("user__username", flat=True).distinct(),
+    # )
+
+    seen_codes = {}
+    for item in queryset:  # ← item — это Form4Data
+        if item.code not in seen_codes:
+            seen_codes[item.code] = (
+                item.article
+            )  # сохраняем первый (самый свежий) артикул
+
+    # Формируем список для шаблона
+    codes_with_articles = [
+        {
+            "code": code,
+            "article": article or "—",  # если None → показываем "—"
+        }
+        for code, article in seen_codes.items()
+    ]
+    # print(
+    #    "📌 codes_with_articles:", codes_with_articles
+    # )  # Проверим, что попало в шаблон
+
+    # Сортируем по коду (как строка или число — зависит от формата)
+    try:
+        codes_with_articles.sort(key=lambda x: int(x["code"]))
+    except ValueError:
+        codes_with_articles.sort(key=lambda x: x["code"])  # если код не числовой
+
+    return render(
+        request,
+        "forms_app/form4_list.html",
+        {"codes_with_articles": codes_with_articles},
+    )
+
+
+# === ПРОСМОТР ДАННЫХ ПО КОНКРЕТНОМУ КОДУ ===
+@login_required
+def form4_detail(request, code):
+    records = (
+        Form4Data.objects.filter(user=request.user, code=code)
+        .select_related("user")
+        .order_by("date")
+    )
+
+    if not records.exists():
+        messages.warning(request, f"Нет данных для кода: {code}")
+        return redirect("forms_app:form4_list")
+
+    # Получаем первый артикул (можно взять любой, они обычно одинаковые)
+    first_record = records.first()
+    article = first_record.article if first_record else "—"
+
+    return render(
+        request,
+        "forms_app/form4_detail.html",
+        {"records": records, "code": code, "article": article},
+    )
+
+
+# === РЕДАКТИРОВАНИЕ ЗАПИСИ ===
+@login_required
+def form4_edit(request, pk):
+    record = get_object_or_404(Form4Data, pk=pk, user=request.user)
+    if request.method == "POST":
+        form = Form4DataForm(request.POST, instance=record)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Запись обновлена!")
+            return redirect("forms_app:form4_detail", code=record.code)
+    else:
+        form = Form4DataForm(instance=record)
+    return render(
+        request, "forms_app/form4_edit.html", {"form": form, "record": record}
+    )
+
+
+# === ЭКСПОРТ В EXCEL (с листами по коду) ===
+@login_required
+def export_form4_excel(request):
+    # Все данные пользователя
+    data = Form4Data.objects.filter(user=request.user).order_by("code", "date")
+    if not data.exists():
+        messages.warning(request, "Нет данных для экспорта.")
+        return redirect("forms_app:form4_list")
+
+    # Группируем по коду
+    df_dict = {}
+    for item in data:
+        code = item.code
+        if code not in df_dict:
+            df_dict[code] = []
+        df_dict[code].append(
+            {
+                "Дата": item.date.strftime("%d.%m.%Y"),
+                "Код номенклатуры": item.code,
+                "Артикул": item.article or "",
+                "Чистые продажи Наши": item.clear_sales_our,
+                "Чистая реализация ВБ": item.clear_sales_vb,
+                "Чистое Перечисление": item.clear_transfer,
+                "Чистое Перечисление без Логистики": item.clear_transfer_without_log,
+                "Наша цена Средняя": item.our_price_mid,
+                "Реализация ВБ Средняя": item.vb_selling_mid,
+                "К перечислению Среднее": item.transfer_mid,
+                "К Перечислению без Логистики Средняя": item.transfer_without_log_mid,
+                "Чистые продажи, шт": item.qentity_sale,
+                "Себес Продаж (600р)": item.sebes_sale,
+                "Прибыль на 1 Юбку": item.profit_1,
+                "%Выкупа": item.percent_sell,
+                "Прибыль": item.profit,
+                "Заказы": item.orders,
+            }
+        )
+
+    # Создаём Excel в памяти
+    buffer = BytesIO()
+    with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
+        for code, rows in df_dict.items():
+            df = pd.DataFrame(rows)
+            # Ограничиваем имя листа до 31 символа
+            sheet_name = str(code)[:31]
+            df.to_excel(writer, sheet_name=sheet_name, index=False)
+
+    buffer.seek(0)
+    filename = (
+        f"form4_data_{request.user.username}_{datetime.now().strftime('%d%m%Y')}.xlsx"
+    )
+    response = HttpResponse(
+        buffer.getvalue(),
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    response["Content-Disposition"] = f"attachment; filename={filename}"
+    return response
+
+
+# === ГРАФИК ПО ПРИБЫЛИ ===
+@login_required
+def form4_chart(request, code, chart_type=None):
+    if chart_type is None:
+        chart_type = "profit"  # значение по умолчанию
+
+    records = Form4Data.objects.filter(user=request.user, code=code).order_by("date")
+    if not records.exists():
+        messages.warning(request, f"Нет данных для построения графика по коду: {code}")
+        return redirect("forms_app:form4_list")
+
+    # Получаем последний известный артикул для этого кода
+    first_record = records.first()
+    article = first_record.article if first_record else "—"
+
+    # ✅ Правильно: даты как строки, прибыль как числа
+    dates = [r.date.strftime("%d.%m.%Y") for r in records]  # строка
+
+    # Выбираем данные по типу
+    if chart_type == "sales":
+        data = [float(r.clear_sales_our or 0) for r in records]
+        label = "Чистые продажи Наши"
+        color = "rgb(54, 162, 235)"
+    elif chart_type == "orders":
+        data = [r.orders or 0 for r in records]
+        label = "Заказы"
+        color = "rgb(153, 102, 255)"
+    elif chart_type == "percent":
+        data = [float(r.percent_sell or 0) for r in records]
+        label = "% Выкупа"
+        color = "rgb(255, 159, 64)"
+    else:  # profit
+        data = [float(r.profit or 0) for r in records]
+        label = "Прибыль"
+        color = "rgb(75, 192, 192)"
+
+    return render(
+        request,
+        "forms_app/form4_chart.html",
+        {
+            "code": code,
+            "article": article,
+            "dates": dates,
+            "data": data,
+            "label": label,
+            "color": color,
+        },
+    )
+
+
+# === ОБНУЛЕНИЕ ВСЕХ ДАННЫХ ФОРМЫ 4 ===
+@login_required
+def clear_form4_data(request):
+    if request.method == "POST":
+        deleted, _ = Form4Data.objects.filter(user=request.user).delete()
+        messages.success(
+            request, f"✅ Удалено {deleted} записей. Данные формы 4 обнулены."
+        )
+        return redirect("forms_app:form4_list")
+
+    # Если GET — показываем страницу подтверждения
+    return render(
+        request,
+        "forms_app/form4_confirm_clear.html",
+        {"count": Form4Data.objects.filter(user=request.user).count()},
+    )

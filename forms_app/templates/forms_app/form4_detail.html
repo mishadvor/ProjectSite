@@ -1,0 +1,116 @@
+<!-- templates/forms_app/form4_detail.html -->
+{% extends "forms_app/base_form.html" %} {% block title %}Форма 4:
+{{code}}{%endblock%} {% block content %}
+<h2>
+  📊 Данные по коду: <strong>{{ code }}</strong> {% if article != "—" %} —
+  <span style="font-size: 0.9em; color: #555">{{ article }}</span>
+  {% endif %}
+</h2>
+
+{% if records %}
+<p>Найдено записей: <strong>{{ records.count }}</strong></p>
+
+<div style="overflow-x: auto; margin-bottom: 20px">
+  <div style="overflow-x: auto">
+    <table
+      border="1"
+      cellpadding="8"
+      cellspacing="0"
+      style="
+        border-collapse: collapse;
+        width: 100%;
+        max-width: 2000px;
+        font-size: 14px;
+      "
+    >
+      <thead style="background-color: #f0f0f0">
+        <tr>
+          <th>Дата</th>
+          <th>Артикул</th>
+          <th>Чистые продажи Наши</th>
+          <th>Чистая реализация ВБ</th>
+          <th>Чистое Перечисление</th>
+          <th>К перечислению без Логистики</th>
+          <th>Наша цена Средняя</th>
+          <th>Реализация ВБ Средняя</th>
+          <th>К перечислению Среднее</th>
+          <th>Чистые продажи, шт</th>
+          <th>Себес Продаж (600р)</th>
+          <th>Прибыль на 1 Юбку</th>
+          <th>%Выкупа</th>
+          <th>Прибыль</th>
+          <th>Заказы</th>
+          <th>Действия</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in records %}
+        <tr>
+          <td>{{ r.date|date:"d.m.Y" }}</td>
+          <td>{{ r.article|default:"—" }}</td>
+          <td>{{ r.clear_sales_our|floatformat:2|default:"—" }}</td>
+          <td>{{ r.clear_sales_vb|floatformat:2|default:"—" }}</td>
+          <td>{{ r.clear_transfer|floatformat:2|default:"—" }}</td>
+          <td>{{ r.clear_transfer_without_log|floatformat:2|default:"—" }}</td>
+          <td>{{ r.our_price_mid|floatformat:2|default:"—" }}</td>
+          <td>{{ r.vb_selling_mid|floatformat:2|default:"—" }}</td>
+          <td>{{ r.transfer_mid|floatformat:2|default:"—" }}</td>
+          <td>{{ r.qentity_sale|default:"—" }}</td>
+          <td>{{ r.sebes_sale|floatformat:2|default:"—" }}</td>
+          <td>{{ r.profit_1|floatformat:2|default:"—" }}</td>
+          <td>{{ r.percent_sell|floatformat:1|default:"—" }}</td>
+          <td>{{ r.profit|floatformat:2|default:"—" }}</td>
+          <td>{{ r.orders|default:"—" }}</td>
+          <td>
+            <a
+              href="{% url 'forms_app:form4_edit' pk=r.pk %}"
+              class="btn"
+              style="padding: 5px 10px; font-size: 0.9em"
+              >✏️ Ред.</a
+            >
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- График -->
+  <div style="margin: 20px 0">
+    <a href="{% url 'forms_app:form4_chart' code=code %}" class="btn"
+      >📈 Прибыль</a
+    >
+    <a
+      href="{% url 'forms_app:form4_chart_type' code=code chart_type='sales' %}"
+      class="btn"
+      >💰 Продажи</a
+    >
+    <a
+      href="{% url 'forms_app:form4_chart_type' code=code chart_type='orders' %}"
+      class="btn"
+      >📦 Заказы</a
+    >
+    <a
+      href="{% url 'forms_app:form4_chart_type' code=code chart_type='percent' %}"
+      class="btn"
+      >% Выкуп</a
+    >
+  </div>
+  <br /><br />
+
+  {% else %}
+  <p style="color: #888; font-style: italic">📄 Нет данных для этого кода.</p>
+  {% endif %}
+
+  <!-- Навигация -->
+  <div style="margin-top: 30px">
+    <a href="{% url 'forms_app:form4_list' %}" class="btn">← Все артикулы</a>
+    <a href="{% url 'forms_app:form4_upload' %}" class="btn"
+      >➕ Загрузить данные</a
+    >
+    <a href="{% url 'forms_app:form4_export' %}" class="btn"
+      >⬇️ Выгрузить всё в Excel</a
+    >
+  </div>
+  {% endblock %}
+</div>
