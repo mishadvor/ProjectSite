@@ -11,6 +11,8 @@ from django.contrib import messages
 from forms_app.forms import UploadFileForm, Form4DataForm
 from forms_app.models import Form4Data  # Убедись, что модель добавлена
 from django.db.models import Q
+from openpyxl.styles import Alignment, Font, NamedStyle
+from openpyxl.utils import get_column_letter
 
 
 @login_required
@@ -171,9 +173,9 @@ def form4_detail(request, code):
         messages.warning(request, f"Нет данных для кода: {code}")
         return redirect("forms_app:form4_list")
 
-    # Получаем первый артикул (можно взять любой, они обычно одинаковые)
-    first_record = records.first()
-    article = first_record.article if first_record else "—"
+    # Берём артикул из самой свежей записи
+    latest_record = records.first()
+    article = latest_record.article if latest_record and latest_record.article else "—"
 
     return render(
         request,
@@ -199,10 +201,8 @@ def form4_edit(request, pk):
     )
 
 
-# === ЭКСПОРТ В EXCEL (с листами по коду) ===
 @login_required
 def export_form4_excel(request):
-    # Все данные пользователя
     data = Form4Data.objects.filter(user=request.user).order_by("code", "date")
     if not data.exists():
         messages.warning(request, "Нет данных для экспорта.")
@@ -239,21 +239,51 @@ def export_form4_excel(request):
     # Создаём Excel в памяти
     buffer = BytesIO()
     with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
+        workbook = writer.book
+
+        # === Стиль для заголовков ===
+        if "header_style" not in workbook.named_styles:
+            header_style = NamedStyle(
+                name="header_style",
+                font=Font(bold=True),
+                alignment=Alignment(
+                    wrap_text=True, horizontal="center", vertical="center"
+                ),
+            )
+            workbook.add_named_style(header_style)
+
         for code, rows in df_dict.items():
             df = pd.DataFrame(rows)
-            # Ограничиваем имя листа до 31 символа
             sheet_name = str(code)[:31]
             df.to_excel(writer, sheet_name=sheet_name, index=False)
 
+            # Получаем лист
+            worksheet = writer.sheets[sheet_name]
+
+            # Применяем стиль к первой строке (заголовкам)
+            for cell in worksheet[1]:
+                cell.style = "header_style"
+
+            # Автоподбор ширины столбцов
+            for column in worksheet.columns:
+                max_length = max(
+                    (len(str(cell.value)) if cell.value else 0 for cell in column),
+                    default=0,
+                )
+                # Ограничиваем ширину (макс. 65 символов)
+                adjusted_width = min(max_length + 2, 65)
+                worksheet.column_dimensions[
+                    get_column_letter(column[0].column)
+                ].width = adjusted_width
+
     buffer.seek(0)
-    filename = (
-        f"form4_data_{request.user.username}_{datetime.now().strftime('%d%m%Y')}.xlsx"
-    )
+    filename = f"form4_data_{request.user.username}_{datetime.now().strftime('%d%m%Y_%H%M')}.xlsx"
+
     response = HttpResponse(
         buffer.getvalue(),
         content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )
-    response["Content-Disposition"] = f"attachment; filename={filename}"
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
     return response
 
 
@@ -268,9 +298,9 @@ def form4_chart(request, code, chart_type=None):
         messages.warning(request, f"Нет данных для построения графика по коду: {code}")
         return redirect("forms_app:form4_list")
 
-    # Получаем последний известный артикул для этого кода
-    first_record = records.first()
-    article = first_record.article if first_record else "—"
+    # Берём артикул из самой свежей записи
+    latest_record = records.first()
+    article = latest_record.article if latest_record and latest_record.article else "—"
 
     # ✅ Правильно: даты как строки, прибыль как числа
     dates = [r.date.strftime("%d.%m.%Y") for r in records]  # строка

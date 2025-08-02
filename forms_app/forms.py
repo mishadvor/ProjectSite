@@ -49,3 +49,17 @@ class Form4DataForm(forms.ModelForm):
         widgets = {
             "date": forms.DateInput(attrs={"type": "date"}),
         }
+
+
+# Кастомный виджет, который поддерживает множественную загрузку
+class MultipleFileInput(forms.FileInput):
+    allow_multiple_selected = True
+
+
+class Form8UploadForm(forms.Form):
+    files = forms.FileField(
+        widget=MultipleFileInput(attrs={"multiple": True}),
+        required=False,  # 🔑 Отключаем валидацию на "обязательность"
+        label="Загрузите Excel-файлы",
+        help_text="Поддерживаются .xlsx. Можно загружать несколько файлов.",
+    )

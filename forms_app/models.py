@@ -82,3 +82,44 @@ class Form4Data(models.Model):
 
     def __str__(self):
         return f"{self.user.username} — {self.code} — {self.date}"
+
+
+# ------ Форма 8 -------
+
+
+class Form8Report(models.Model):
+    week_name = models.CharField("Неделя", max_length=100)
+    date_extracted = models.DateField("Дата из файла", null=True, blank=True)
+
+    # Суммы
+    profit = models.DecimalField(
+        "Прибыль", max_digits=12, decimal_places=2, null=True, blank=True
+    )
+    clean_sales_ours = models.DecimalField(
+        "Чистые продажи Наши", max_digits=12, decimal_places=2, null=True, blank=True
+    )
+    orders = models.IntegerField("Заказы", null=True, blank=True)
+
+    # Средние (>0)
+    spp_percent = models.DecimalField(
+        "% СПП", max_digits=5, decimal_places=2, null=True, blank=True
+    )
+    avg_price = models.DecimalField(
+        "Наша цена Средняя", max_digits=10, decimal_places=2, null=True, blank=True
+    )
+    profit_per_skirt = models.DecimalField(
+        "Прибыль на 1 Юбку", max_digits=10, decimal_places=2, null=True, blank=True
+    )
+    pickup_rate = models.DecimalField(
+        "% Выкупа", max_digits=5, decimal_places=2, null=True, blank=True
+    )
+
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.week_name
+
+    class Meta:
+        verbose_name = "Отчёт Формы 8"
+        verbose_name_plural = "Форма 8 — Недельные метрики"
+        ordering = ["-uploaded_at"]

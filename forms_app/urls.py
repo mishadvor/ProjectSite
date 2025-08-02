@@ -40,6 +40,9 @@ from forms_app.views.form6_sql_views import reset_stock_sql
 # Форма 7
 from .views.form7_view import form7_upload, form7_graph, clear_form7_data
 
+# Форма 8
+from .views.form8_view import form8_upload, form8_clear, form8_export
+
 app_name = "forms_app"
 
 urlpatterns = [
@@ -84,4 +87,8 @@ urlpatterns = [
     path("form4/edit/<int:pk>/", form4_edit, name="form4_edit"),
     # Детали (в самом конце!)
     path("form4/<str:code>/", form4_detail, name="form4_detail"),
+    # --- Форма 8 ---
+    path("form8/", form8_upload, name="form8_upload"),
+    path("form8/clear/", form8_clear, name="form8_clear"),
+    path("form8/export/", form8_export, name="form8_export"),
 ]

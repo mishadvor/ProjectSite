@@ -1,0 +1,406 @@
+<!-- templates/forms_app/form8_upload.html -->
+{% extends "base.html" %} {% load static %} {% block title %}Форма 8 — Прибыль
+по неделям{% endblock %} {% block extra_head %}
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  .chart-container {
+    position: relative;
+    height: 400px;
+    width: 100%;
+    margin-bottom: 30px;
+  }
+</style>
+{% endblock %} {% block content %}
+<h2>📊 Форма 8. Генератор статистики по ключевым показателям</h2>
+<div class="card mb-4">
+  <div class="card-header bg-primary text-white">
+    <h3>Загрузите Excel-файлы:</h3>
+  </div>
+
+  <div class="card-body">
+    <form
+      method="post"
+      enctype="multipart/form-data"
+      class="needs-validation"
+      novalidate
+    >
+      {% csrf_token %}
+
+      <!-- Поле загрузки файла -->
+      <div class="mb-4">
+        <!-- Увеличил margin-bottom с 3 до 4 -->
+        <label
+          for="{{ form.files.id_for_label }}"
+          class="form-label d-block mb-2"
+        >
+          <!-- Добавил d-block и mb-2 -->
+          {{ form.files.label }}
+        </label>
+        <div class="input-group">
+          <!-- Добавил input-group для лучшего выравнивания -->
+          {{ form.files }}
+        </div>
+      </div>
+
+      <!-- Подсказка -->
+      <div class="mb-4">
+        <!-- Увеличил margin-bottom -->
+        <small class="text-muted">
+          Поддерживаются .xlsx. В именах файлов желательно указывать дату:
+          <code>25.04.2025.xlsx</code>
+        </small>
+      </div>
+      <br />
+      <!-- Кнопка отправки -->
+      <div class="d-grid gap-2">
+        <!-- Добавил контейнер для кнопки -->
+        <button type="submit" class="btn btn-primary py-2">
+          <!-- Добавил padding по вертикали -->
+          <i class="fas fa-upload me-2"></i>
+          <!-- Добавил отступ справа от иконки -->
+          Загрузить
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Уведомления -->
+{% if messages %}
+<div class="alert alert-info">
+  {% for message in messages %}
+  <div>{{ message }}</div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- Ошибки формы -->
+{% if form.errors %}
+<div class="alert alert-danger">
+  <strong>Ошибки формы:</strong>
+  <ul>
+    {% for field, errors in form.errors.items %} {% for error in errors %}
+    <li><strong>{{ field }}</strong>: {{ error }}</li>
+    {% endfor %} {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+<!-- Таблица данных -->
+{% if reports %}
+<div class="card mb-5">
+  <div class="card-header bg-success text-white">
+    <h2>📋 Данные по неделям</h2>
+  </div>
+  <div class="card-body">
+    <!-- Контейнер с прокруткой и фиксированной шапкой -->
+    <div style="max-height: 400px; overflow-y: auto; overflow-x: auto">
+      <table class="table table-striped table-hover table-sm mb-0">
+        <thead
+          class="table-light"
+          style="
+            position: sticky;
+            top: 0;
+            background-color: #f8f9fa;
+            z-index: 10;
+          "
+        >
+          <tr>
+            <th>Неделя</th>
+            <th>Прибыль</th>
+            <th>Чистые продажи</th>
+            <th>Заказы</th>
+            <th>% СПП</th>
+            <th>Ср. цена</th>
+            <th>Прибыль на юбку</th>
+            <th>% Выкупа</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in reports %}
+          <tr>
+            <td>{{ r.week_name }}</td>
+            <td>{{ r.profit|floatformat:0 }} ₽</td>
+            <td>{{ r.clean_sales_ours|floatformat:0 }} ₽</td>
+            <td>{{ r.orders }} шт</td>
+            <td>{{ r.spp_percent|floatformat:1 }}%</td>
+            <td>{{ r.avg_price|floatformat:0 }} ₽</td>
+            <td>{{ r.profit_per_skirt|floatformat:0 }} ₽</td>
+            <td>{{ r.pickup_rate|floatformat:1 }}%</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Графики -->
+{% if chart_data.labels %}
+<h2 class="mb-4 text-center text-primary">📈 Динамика показателей</h2>
+
+<div class="chart-container">
+  <canvas id="profitChart"></canvas>
+</div>
+
+<div class="chart-container">
+  <canvas id="salesChart"></canvas>
+</div>
+
+<div class="chart-container">
+  <canvas id="sppChart"></canvas>
+</div>
+
+<div class="chart-container">
+  <canvas id="priceChart"></canvas>
+</div>
+
+<div class="chart-container">
+  <canvas id="profitPerSkirtChart"></canvas>
+</div>
+
+<div class="chart-container">
+  <canvas id="ordersChart"></canvas>
+</div>
+
+<div class="chart-container">
+  <canvas id="pickupChart"></canvas>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Проверка существования canvas-элементов
+    const chartIds = [
+      'profitChart', 'salesChart', 'sppChart', 'priceChart',
+      'profitPerSkirtChart', 'ordersChart', 'pickupChart'
+    ];
+
+    chartIds.forEach(id => {
+      if (!document.getElementById(id)) {
+        console.error(`Элемент ${id} не найден в DOM`);
+        return;
+      }
+    });
+
+    // Получаем данные из контекста
+    const labels = {{ chart_data.labels|safe }};
+    const profitData = {{ chart_data.profit|safe }};
+    const salesData = {{ chart_data.sales|safe }};
+    const sppData = {{ chart_data.spp|safe }};
+    const priceData = {{ chart_data.price|safe }};
+    const profitPerSkirtData = {{ chart_data.profit_per_skirt|safe }};
+    const ordersData = {{ chart_data.orders|safe }};
+    const pickupData = {{ chart_data.pickup|safe }};
+
+    console.log("Данные для графиков:", {
+      labels, profitData, salesData, sppData,
+      priceData, profitPerSkirtData, ordersData, pickupData
+    });
+
+    // Общие настройки графиков
+    const chartOptions = {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'top' },
+        tooltip: {
+          callbacks: {
+            label: ctx => ctx.parsed.y.toLocaleString()
+          }
+        }
+      },
+      scales: {
+        y: { beginAtZero: true }
+      }
+    };
+
+    // Создаем графики
+    try {
+      // График 1: Прибыль
+      new Chart(document.getElementById('profitChart'), {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Прибыль (руб.)',
+            data: profitData,
+            borderColor: 'rgb(54, 162, 235)',
+            backgroundColor: 'rgba(54, 162, 235, 0.1)',
+            fill: true,
+            tension: 0
+          }]
+        },
+        options: {
+          ...chartOptions,
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: { display: true, text: 'Рубли' }
+            }
+          }
+        }
+      });
+
+      // График 2: Чистые продажи
+      new Chart(document.getElementById('salesChart'), {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Чистые продажи (руб.)',
+            data: salesData,
+            borderColor: 'rgb(75, 192, 192)',
+            backgroundColor: 'rgba(75, 192, 192, 0.1)',
+            fill: true,
+            tension: 0
+          }]
+        },
+        options: chartOptions
+      });
+
+      // График 3: % СПП
+      new Chart(document.getElementById('sppChart'), {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: '% СПП',
+            data: sppData,
+            borderColor: 'rgb(255, 159, 64)',
+            backgroundColor: 'rgba(255, 159, 64, 0.1)',
+            fill: true,
+            tension: 0
+          }]
+        },
+        options: {
+          ...chartOptions,
+          scales: {
+            y: {
+              min: 0,
+              max: 50,
+              title: { display: true, text: '%' }
+            }
+          }
+        }
+      });
+
+      // График 4: Наша цена
+      new Chart(document.getElementById('priceChart'), {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Средняя цена (руб.)',
+            data: priceData,
+            borderColor: 'rgb(153, 102, 255)',
+            backgroundColor: 'rgba(153, 102, 255, 0.1)',
+            fill: true,
+            tension: 0
+          }]
+        },
+        options: chartOptions
+      });
+
+      // График 5: Прибыль на юбку
+      new Chart(document.getElementById('profitPerSkirtChart'), {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Прибыль на 1 юбку (руб.)',
+            data: profitPerSkirtData,
+            borderColor: 'rgb(255, 99, 132)',
+            backgroundColor: 'rgba(255, 99, 132, 0.1)',
+            fill: true,
+            tension: 0
+          }]
+        },
+        options: chartOptions
+      });
+
+      // График 6: Заказы
+      new Chart(document.getElementById('ordersChart'), {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Заказы (шт.)',
+            data: ordersData,
+            backgroundColor: 'rgba(54, 162, 235, 0.6)'
+          }]
+        },
+        options: {
+          ...chartOptions,
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: { display: true, text: 'Штуки' }
+            }
+          }
+        }
+      });
+
+      // График 7: % Выкупа
+      new Chart(document.getElementById('pickupChart'), {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: '% Выкупа',
+            data: pickupData,
+            borderColor: 'rgb(75, 192, 192)',
+            backgroundColor: 'rgba(75, 192, 192, 0.1)',
+            fill: true,
+            tension: 0
+          }]
+        },
+        options: {
+          ...chartOptions,
+          scales: {
+            y: {
+              min: 0,
+              max: 60,
+              title: { display: true, text: '%' }
+            }
+          }
+        }
+      });
+
+      console.log("Все графики успешно созданы");
+    } catch (error) {
+      console.error("Ошибка при создании графиков:", error);
+    }
+  });
+</script>
+
+{% else %}
+<div class="alert alert-info">
+  <i class="fas fa-info-circle"></i> Нет данных для отображения графиков.
+  Загрузите Excel-файлы.
+</div>
+{% endif %}
+
+<!-- Кнопки управления -->
+<div class="mt-4 text-center">
+  <form
+    method="post"
+    action="{% url 'forms_app:form8_clear' %}"
+    style="display: inline"
+  >
+    {% csrf_token %}
+    <button
+      type="submit"
+      class="btn btn-danger btn-sm"
+      onclick="return confirm('Вы уверены, что хотите удалить все данные формы 8?')"
+    >
+      <i class="fas fa-trash"></i> Очистить данные
+    </button>
+  </form>
+  <a href="{% url 'forms_app:form8_export' %}" class="btn btn-success btn-sm">
+    <i class="fas fa-download"></i> Экспорт в Excel
+  </a>
+</div>
+
+{% endblock %}

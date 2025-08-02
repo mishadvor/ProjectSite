@@ -32,17 +32,17 @@
   <a
     href="{% url 'forms_app:form4_chart' code=code %}"
     class="btn {% if chart_type == 'profit' %}active{% endif %}"
-    >Прибыль</a
+    >📈 Прибыль</a
   >
   <a
     href="{% url 'forms_app:form4_chart_type' code=code chart_type='sales' %}"
     class="btn {% if chart_type == 'sales' %}active{% endif %}"
-    >Продажи</a
+    >💰 Продажи</a
   >
   <a
     href="{% url 'forms_app:form4_chart_type' code=code chart_type='orders' %}"
     class="btn {% if chart_type == 'orders' %}active{% endif %}"
-    >Заказы</a
+    >📦 Заказы</a
   >
   <a
     href="{% url 'forms_app:form4_chart_type' code=code chart_type='percent' %}"

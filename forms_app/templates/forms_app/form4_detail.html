@@ -10,70 +10,77 @@
 {% if records %}
 <p>Найдено записей: <strong>{{ records.count }}</strong></p>
 
-<div style="overflow-x: auto; margin-bottom: 20px">
-  <div style="overflow-x: auto">
-    <table
-      border="1"
-      cellpadding="8"
-      cellspacing="0"
-      style="
-        border-collapse: collapse;
-        width: 100%;
-        max-width: 2000px;
-        font-size: 14px;
-      "
-    >
-      <thead style="background-color: #f0f0f0">
-        <tr>
-          <th>Дата</th>
-          <th>Артикул</th>
-          <th>Чистые продажи Наши</th>
-          <th>Чистая реализация ВБ</th>
-          <th>Чистое Перечисление</th>
-          <th>К перечислению без Логистики</th>
-          <th>Наша цена Средняя</th>
-          <th>Реализация ВБ Средняя</th>
-          <th>К перечислению Среднее</th>
-          <th>Чистые продажи, шт</th>
-          <th>Себес Продаж (600р)</th>
-          <th>Прибыль на 1 Юбку</th>
-          <th>%Выкупа</th>
-          <th>Прибыль</th>
-          <th>Заказы</th>
-          <th>Действия</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for r in records %}
-        <tr>
-          <td>{{ r.date|date:"d.m.Y" }}</td>
-          <td>{{ r.article|default:"—" }}</td>
-          <td>{{ r.clear_sales_our|floatformat:2|default:"—" }}</td>
-          <td>{{ r.clear_sales_vb|floatformat:2|default:"—" }}</td>
-          <td>{{ r.clear_transfer|floatformat:2|default:"—" }}</td>
-          <td>{{ r.clear_transfer_without_log|floatformat:2|default:"—" }}</td>
-          <td>{{ r.our_price_mid|floatformat:2|default:"—" }}</td>
-          <td>{{ r.vb_selling_mid|floatformat:2|default:"—" }}</td>
-          <td>{{ r.transfer_mid|floatformat:2|default:"—" }}</td>
-          <td>{{ r.qentity_sale|default:"—" }}</td>
-          <td>{{ r.sebes_sale|floatformat:2|default:"—" }}</td>
-          <td>{{ r.profit_1|floatformat:2|default:"—" }}</td>
-          <td>{{ r.percent_sell|floatformat:1|default:"—" }}</td>
-          <td>{{ r.profit|floatformat:2|default:"—" }}</td>
-          <td>{{ r.orders|default:"—" }}</td>
-          <td>
-            <a
-              href="{% url 'forms_app:form4_edit' pk=r.pk %}"
-              class="btn"
-              style="padding: 5px 10px; font-size: 0.9em"
-              >✏️ Ред.</a
-            >
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
+<!-- Контейнер с прокруткой -->
+
+
+<div style="
+  max-height: 60vh;
+  overflow-y: auto;
+  overflow-x: auto;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  margin-bottom: 20px;
+  background-color: #fff;
+">
+  <table
+    border="1"
+    cellpadding="8"
+    cellspacing="0"
+    style="
+      border-collapse: collapse;
+      width: 100%;
+      min-width: 1200px; /* Минимальная ширина, чтобы избежать сжатия */
+      font-size: 14px;
+      table-layout: auto; /* Позволяет колонкам адаптироваться */
+    "
+  >
+    <thead style="background-color: #f0f0f0; position: sticky; top: 0; z-index: 10;">
+      <tr>
+        <th>Дата</th>
+        <th>Артикул</th>
+        <th>Чистые продажи Наши</th>
+        <th>Чистая реализация ВБ</th>
+        <th>Чистое Перечисление</th>
+        <th>К перечислению без Логистики</th>
+        <th>Наша цена Средняя</th>
+        <th>Реализация ВБ Средняя</th>
+        <th>К перечислению Среднее</th>
+        <th>Чистые продажи, шт</th>
+        <th>Себес Продаж (600р)</th>
+        <th>Прибыль на 1 Юбку</th>
+        <th>%Выкупа</th>
+        <th>Прибыль</th>
+        <th>Заказы</th>
+        <th>Действия</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in records %}
+      <tr>
+        <td>{{ r.date|date:"d.m.Y" }}</td>
+        <td>{{ r.article|default:"—" }}</td>
+        <td>{{ r.clear_sales_our|floatformat:2|default:"—" }}</td>
+        <td>{{ r.clear_sales_vb|floatformat:2|default:"—" }}</td>
+        <td>{{ r.clear_transfer|floatformat:2|default:"—" }}</td>
+        <td>{{ r.clear_transfer_without_log|floatformat:2|default:"—" }}</td>
+        <td>{{ r.our_price_mid|floatformat:2|default:"—" }}</td>
+        <td>{{ r.vb_selling_mid|floatformat:2|default:"—" }}</td>
+        <td>{{ r.transfer_mid|floatformat:2|default:"—" }}</td>
+        <td>{{ r.qentity_sale|default:"—" }}</td>
+        <td>{{ r.sebes_sale|floatformat:2|default:"—" }}</td>
+        <td>{{ r.profit_1|floatformat:2|default:"—" }}</td>
+        <td>{{ r.percent_sell|floatformat:1|default:"—" }}</td>
+        <td>{{ r.profit|floatformat:2|default:"—" }}</td>
+        <td>{{ r.orders|default:"—" }}</td>
+        <td>
+          <a href="{% url 'forms_app:form4_edit' pk=r.pk %}" class="btn" style="padding: 5px 10px; font-size: 0.9em">✏️ Ред.</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
 
   <!-- График -->
   <div style="margin: 20px 0">
