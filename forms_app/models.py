@@ -37,6 +37,9 @@ class StockRecord(models.Model):
 
 
 class WeeklyReport(models.Model):
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, verbose_name="Пользователь"
+    )
     week_name = models.CharField("Неделя", max_length=50)
     art_group = models.CharField("Группа артикулов", max_length=3)
     profit = models.FloatField("Прибыль")
@@ -88,10 +91,13 @@ class Form4Data(models.Model):
 
 
 class Form8Report(models.Model):
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, verbose_name="Пользователь"
+    )
     week_name = models.CharField("Неделя", max_length=100)
     date_extracted = models.DateField("Дата из файла", null=True, blank=True)
 
-    # Суммы
+    # Суммыpython manage.py runserver
     profit = models.DecimalField(
         "Прибыль", max_digits=12, decimal_places=2, null=True, blank=True
     )
@@ -122,4 +128,6 @@ class Form8Report(models.Model):
     class Meta:
         verbose_name = "Отчёт Формы 8"
         verbose_name_plural = "Форма 8 — Недельные метрики"
+        # Опционально: запретить дубли у одного пользователя
+        unique_together = ("user", "week_name")
         ordering = ["-uploaded_at"]

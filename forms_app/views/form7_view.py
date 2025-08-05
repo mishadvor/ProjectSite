@@ -81,6 +81,7 @@ def form7_upload(request):
             # Сохранение в БД
             for _, row in grouped.iterrows():
                 WeeklyReport.objects.update_or_create(
+                    user=request.user,
                     week_name=week_name,
                     art_group=row["группа"],
                     defaults={"profit": row[profit_col]},
@@ -113,7 +114,9 @@ def form7_upload(request):
 def form7_graph(request):
     try:
         # Получаем данные
-        reports = WeeklyReport.objects.all().values("week_name", "art_group", "profit")
+        reports = WeeklyReport.objects.filter(user=request.user).values(
+            "week_name", "art_group", "profit"
+        )  # ✅ Только свои
         if not reports:
             return render(request, "forms_app/form7/no_data.html")
 
@@ -189,7 +192,7 @@ def clear_form7_data(request):
         count = WeeklyReport.objects.count()
 
         # Удаляем все данные
-        WeeklyReport.objects.all().delete()
+        WeeklyReport.objects.filter(user=request.user).delete()  # ✅ Только свои
 
         # Сообщение об успехе
         messages.success(

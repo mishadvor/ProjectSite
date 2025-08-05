@@ -109,6 +109,7 @@ def form8_upload(request):
 
                     # Сохраняем в БД
                     Form8Report.objects.update_or_create(
+                        user=request.user,  # ✅ Привязка к пользователю
                         week_name=week_name,
                         defaults={
                             "date_extracted": date_extracted,
@@ -140,10 +141,12 @@ def form8_upload(request):
     else:
         form = Form8UploadForm()
 
-    # Получаем все отчёты для отображения
-    reports = Form8Report.objects.all().order_by(
-        "date_extracted"
-    ) or Form8Report.objects.all().order_by("-uploaded_at")
+    # Получаем отчёты ТОЛЬКО текущего пользователя
+    reports = Form8Report.objects.filter(user=request.user).order_by("date_extracted")
+
+    # Если нет по date_extracted, сортируем по uploaded_at
+    if not reports.exists():
+        reports = Form8Report.objects.filter(user=request.user).order_by("-uploaded_at")
 
     # Подготовка данных для графиков
     chart_data = {

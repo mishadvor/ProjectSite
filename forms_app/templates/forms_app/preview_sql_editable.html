@@ -13,7 +13,7 @@
     placeholder="Поиск по артикулу, размеру или месту..."
     value="{{ request.GET.q }}"
     class="form-control"
-    style="width: 300px"
+    style="width: 200px; height: 25px; font-size: 20px; margin-bottom: 25px"
   />
   <button type="submit" class="btn btn-info">🔎 Найти</button>
 </form>
@@ -102,8 +102,9 @@
               type="number"
               name="quantity_{{ row.id }}"
               value="{{ row.quantity }}"
-              min="0"
-              style="width: 80px"
+              step="1"
+              style="width: 80px{% if row.quantity < 0 %}; color: red; border-color: red{% endif %}"
+              class="{% if row.quantity < 0 %}negative-value{% endif %}"
             />
           </td>
           <td>
