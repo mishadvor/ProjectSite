@@ -15,31 +15,18 @@ from ..models import Form8Report
 @login_required
 def form8_upload(request):
     if request.method == "POST":
-        # Логирование для отладки
-        # print("🔹 POST получен")
-        # print("🔹 FILES:", request.FILES)
-        # print("🔹 POST:", request.POST)
-
-        # ❌ Не передаём request.FILES в форму — FileField не поддерживает multiple
         form = Form8UploadForm(request.POST)
         files = request.FILES.getlist("files")
 
-        # print("🔹 Files list:", files)
-        # print("🔹 Form errors (до проверки):", form.errors)
-
-        # Если файлы не выбраны
         if not files:
             messages.error(request, "❌ Не выбрано ни одного файла.")
-            # Передаём пустую форму
             form = Form8UploadForm()
         else:
             success_count = 0
             for f in files:
                 try:
-                    # Читаем Excel
                     df = pd.read_excel(f)
 
-                    # Проверяем обязательные колонки
                     required_cols = [
                         "Прибыль",
                         "Чистые продажи Наши",
@@ -57,12 +44,10 @@ def form8_upload(request):
                         )
                         continue
 
-                    # Суммируем
                     profit = Decimal(str(df["Прибыль"].sum()))
                     clean_sales = Decimal(str(df["Чистые продажи Наши"].sum()))
-                    orders = int(df["Заказы"].sum()) if "Заказы" in df.columns else 0
+                    orders = int(df["Заказы"].sum())
 
-                    # Средние (>0)
                     spp_series = df["% СПП"][(df["% СПП"] > 0) & (df["% СПП"].notna())]
                     spp = (
                         Decimal(str(spp_series.mean())) if len(spp_series) > 0 else None
@@ -93,7 +78,6 @@ def form8_upload(request):
                         else None
                     )
 
-                    # Извлечение даты из имени файла
                     filename = f.name
                     match = re.search(r"(\d{2}\.\d{2}\.\d{4})", filename)
                     date_extracted = None
@@ -103,13 +87,12 @@ def form8_upload(request):
                                 match.group(1), "%d.%m.%Y"
                             ).date()
                         except ValueError:
-                            pass  # Игнорируем некорректные даты
+                            pass
 
                     week_name = filename.replace(".xlsx", "")
 
-                    # Сохраняем в БД
                     Form8Report.objects.update_or_create(
-                        user=request.user,  # ✅ Привязка к пользователю
+                        user=request.user,
                         week_name=week_name,
                         defaults={
                             "date_extracted": date_extracted,
@@ -125,7 +108,6 @@ def form8_upload(request):
                         },
                     )
                     success_count += 1
-
                 except Exception as e:
                     messages.error(request, f"Ошибка при обработке {f.name}: {e}")
 
@@ -135,18 +117,33 @@ def form8_upload(request):
                 )
             else:
                 messages.warning(request, "❌ Ни один файл не был успешно обработан.")
-
             return redirect("forms_app:form8_upload")
 
     else:
         form = Form8UploadForm()
 
-    # Получаем отчёты ТОЛЬКО текущего пользователя
-    reports = Form8Report.objects.filter(user=request.user).order_by("date_extracted")
+    # === ФИЛЬТРАЦИЯ ПО ДАТАМ ===
+    start_date = request.GET.get("start_date")
+    end_date = request.GET.get("end_date")
 
-    # Если нет по date_extracted, сортируем по uploaded_at
-    if not reports.exists():
-        reports = Form8Report.objects.filter(user=request.user).order_by("-uploaded_at")
+    reports = Form8Report.objects.filter(user=request.user)
+
+    if start_date:
+        try:
+            start_date_parsed = datetime.strptime(start_date, "%Y-%m-%d").date()
+            reports = reports.filter(date_extracted__gte=start_date_parsed)
+        except ValueError:
+            start_date = None
+
+    if end_date:
+        try:
+            end_date_parsed = datetime.strptime(end_date, "%Y-%m-%d").date()
+            reports = reports.filter(date_extracted__lte=end_date_parsed)
+        except ValueError:
+            end_date = None
+
+    # Сортировка
+    reports = reports.order_by("date_extracted") or reports.order_by("-uploaded_at")
 
     # Подготовка данных для графиков
     chart_data = {
@@ -176,18 +173,18 @@ def form8_upload(request):
         "form": form,
         "reports": reports,
         "chart_data": chart_data,
+        "start_date": start_date,
+        "end_date": end_date,
     }
-    # print("📊 chart_data:", chart_data)  # Проверь в терминале
-    # print("🔹 chart_data.labels:", chart_data["labels"])
-    # print("🔹 chart_data.profit:", chart_data["profit"])
+
     return render(request, "forms_app/form8_upload.html", context)
 
 
 @login_required
 def form8_clear(request):
     if request.method == "POST":
-        deleted_count = Form8Report.objects.count()
-        Form8Report.objects.all().delete()
+        deleted_count = Form8Report.objects.filter(user=request.user).count()
+        Form8Report.objects.filter(user=request.user).delete()
         messages.success(request, f"✅ Удалено {deleted_count} записей формы 8.")
     return redirect("forms_app:form8_upload")
 
@@ -200,7 +197,7 @@ def form8_export(request):
     from datetime import timezone as datetime_timezone
 
     # Данные для экспорта
-    reports = Form8Report.objects.all().values(
+    reports = Form8Report.objects.filter(user=request.user).values(
         "week_name",
         "date_extracted",
         "profit",

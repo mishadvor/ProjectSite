@@ -6,6 +6,59 @@
   <span style="font-size: 0.9em; color: #555">{{ article|default:"—" }}</span> |
   {{ label }}
 </h2>
+<!-- Форма выбора диапазона дат -->
+<form
+  method="GET"
+  style="
+    margin-bottom: 20px;
+    padding: 15px;
+    background: #f1f3f5;
+    border-radius: 8px;
+  "
+>
+  <label for="start_date" style="margin-right: 10px">
+    <strong>Начало:</strong>
+    <input
+      type="date"
+      id="start_date"
+      name="start_date"
+      value="{{ start_date }}"
+      style="padding: 5px; border: 1px solid #ccc; border-radius: 4px"
+    />
+  </label>
+
+  <label for="end_date" style="margin-right: 10px">
+    <strong>Конец:</strong>
+    <input
+      type="date"
+      id="end_date"
+      name="end_date"
+      value="{{ end_date }}"
+      style="padding: 5px; border: 1px solid #ccc; border-radius: 4px"
+    />
+  </label>
+
+  <button
+    type="submit"
+    style="
+      padding: 6px 12px;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    "
+  >
+    📅 Применить
+  </button>
+
+  <a
+    href="{% if chart_type == 'profit' %}{% url 'forms_app:form4_chart' code=code %}{% else %}{% url 'forms_app:form4_chart_type' code=code chart_type=chart_type %}{% endif %}"
+    style="margin-left: 10px; color: #666; font-size: 0.9em"
+  >
+    Сбросить
+  </a>
+</form>
 
 {% if dates %}
 <!-- Контейнер с фиксированной высотой -->
@@ -108,6 +161,22 @@
               }
           }
       });
+  });
+</script>
+
+<!-- ✅ Автозаполнение дат -->
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const today = new Date().toISOString().split("T")[0];
+    const prev30 = new Date();
+    prev30.setDate(prev30.getDate() - 30);
+    const prev30Str = prev30.toISOString().split("T")[0];
+
+    const start = document.getElementById("start_date");
+    const end = document.getElementById("end_date");
+
+    if (!start.value) start.value = prev30Str;
+    if (!end.value) end.value = today;
   });
 </script>
 

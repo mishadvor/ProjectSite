@@ -287,12 +287,13 @@ def export_form4_excel(request):
     return response
 
 
-# === ГРАФИК ПО ПРИБЫЛИ ===
+# === ГРАФИК ПО ПРИБЫЛИ С ФИЛЬТРОМ ПО ДАТАМ ===
 @login_required
 def form4_chart(request, code, chart_type=None):
     if chart_type is None:
-        chart_type = "profit"  # значение по умолчанию
+        chart_type = "profit"
 
+    # Получаем записи, упорядоченные по дате
     records = Form4Data.objects.filter(user=request.user, code=code).order_by("date")
     if not records.exists():
         messages.warning(request, f"Нет данных для построения графика по коду: {code}")
@@ -302,10 +303,26 @@ def form4_chart(request, code, chart_type=None):
     latest_record = records.first()
     article = latest_record.article if latest_record and latest_record.article else "—"
 
-    # ✅ Правильно: даты как строки, прибыль как числа
-    dates = [r.date.strftime("%d.%m.%Y") for r in records]  # строка
+    # === Фильтрация по датам ===
+    start_date = request.GET.get("start_date")
+    end_date = request.GET.get("end_date")
 
-    # Выбираем данные по типу
+    if start_date:
+        try:
+            start_date_parsed = datetime.strptime(start_date, "%Y-%m-%d").date()
+            records = records.filter(date__gte=start_date_parsed)
+        except ValueError:
+            start_date = None  # Игнорируем, если дата неверна
+
+    if end_date:
+        try:
+            end_date_parsed = datetime.strptime(end_date, "%Y-%m-%d").date()
+            records = records.filter(date__lte=end_date_parsed)
+        except ValueError:
+            end_date = None
+
+    # Форматируем даты и данные
+    dates = [r.date.strftime("%d.%m.%Y") for r in records]
     if chart_type == "sales":
         data = [float(r.clear_sales_our or 0) for r in records]
         label = "Чистые продажи Наши"
@@ -333,6 +350,9 @@ def form4_chart(request, code, chart_type=None):
             "data": data,
             "label": label,
             "color": color,
+            "chart_type": chart_type,
+            "start_date": start_date,
+            "end_date": end_date,
         },
     )
 

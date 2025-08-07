@@ -12,10 +12,12 @@
   }
 </style>
 {% endblock %} {% block content %}
-<h2>📊 Форма 8. Генератор статистики по ключевым показателям</h2>
+<h2>
+  📊 Форма 8. Генератор статистики по ключевым показателям. На основе Формы 2.
+</h2>
 <div class="card mb-4">
   <div class="card-header bg-primary text-white">
-    <h3>Загрузите Excel-файлы:</h3>
+    <h3>Загрузите Excel-файлы Формы 2:</h3>
   </div>
 
   <div class="card-body">
@@ -92,6 +94,60 @@
 <div class="card mb-5">
   <div class="card-header bg-success text-white">
     <h2>📋 Данные по неделям</h2>
+    <!-- Форма выбора диапазона дат -->
+    <form
+      method="GET"
+      style="
+        margin: 20px 0;
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 8px;
+      "
+    >
+      <label for="start_date" style="margin-right: 15px">
+        <strong>Начало:</strong>
+        <input
+          type="date"
+          id="start_date"
+          name="start_date"
+          value="{{ start_date }}"
+          style="padding: 6px; border: 1px solid #ccc; border-radius: 4px"
+        />
+      </label>
+
+      <label for="end_date" style="margin-right: 15px">
+        <strong>Конец:</strong>
+        <input
+          type="date"
+          id="end_date"
+          name="end_date"
+          value="{{ end_date }}"
+          style="padding: 6px; border: 1px solid #ccc; border-radius: 4px"
+        />
+      </label>
+
+      <button
+        type="submit"
+        style="
+          padding: 6px 12px;
+          background: #007bff;
+          color: white;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+          margin-right: 10px;
+        "
+      >
+        📅 Применить
+      </button>
+
+      <a
+        href="{% url 'forms_app:form8_upload' %}"
+        style="color: #666; font-size: 0.9em"
+      >
+        Сбросить
+      </a>
+    </form>
   </div>
   <div class="card-body">
     <!-- Контейнер с прокруткой и фиксированной шапкой -->
@@ -215,6 +271,8 @@
         y: { beginAtZero: true }
       }
     };
+
+
 
     // Создаем графики
     try {
@@ -361,7 +419,7 @@
           scales: {
             y: {
               min: 0,
-              max: 60,
+              max: 100,
               title: { display: true, text: '%' }
             }
           }
@@ -381,6 +439,21 @@
   Загрузите Excel-файлы.
 </div>
 {% endif %}
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const today = new Date().toISOString().split("T")[0];
+    const prev90 = new Date();
+    prev90.setDate(prev90.getDate() - 90);
+    const prev90Str = prev90.toISOString().split("T")[0];
+
+    const start = document.getElementById("start_date");
+    const end = document.getElementById("end_date");
+
+    if (!start.value) start.value = prev90Str;
+    if (!end.value) end.value = today;
+  });
+</script>
 
 <!-- Кнопки управления -->
 <div class="mt-4 text-center">

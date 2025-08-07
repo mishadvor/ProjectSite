@@ -78,11 +78,11 @@ urlpatterns = [
     # Экспорт и очистка
     path("form4/export/", export_form4_excel, name="form4_export"),
     path("form4/clear/", clear_form4_data, name="form4_clear"),
-    # Графики
+    # Графики — только один раз!
+    path("form4/<str:code>/chart/", form4_chart, name="form4_chart"),
     path(
         "form4/<str:code>/chart/<str:chart_type>/", form4_chart, name="form4_chart_type"
     ),
-    path("form4/<str:code>/chart/", form4_chart, name="form4_chart"),
     # Редактирование
     path("form4/edit/<int:pk>/", form4_edit, name="form4_edit"),
     # Детали (в самом конце!)
