@@ -39,12 +39,12 @@ def safe_convert_to_float(value):
         return 0.0
 
 
-def safe_mean_calculation(x):
+def safe_mean_calculation(x, decimals=1):
     """Безопасный расчет среднего значения"""
     try:
         filtered = x[x != 0]
         if len(filtered) > 0:
-            return float(filtered.mean())
+            return round(float(filtered.mean()), decimals)
         return 0.0
     except Exception:
         return 0.0
@@ -219,15 +219,11 @@ def form2(request):
                 .agg(
                     {
                         "Артикул поставщика": "first",
-                        "Цена розничная": lambda x: safe_mean_calculation(x),
-                        "Вайлдберриз реализовал Товар (Пр)": lambda x: safe_mean_calculation(
-                            x
-                        ),
-                        "К перечислению Продавцу за реализованный Товар": lambda x: safe_mean_calculation(
-                            x
-                        ),
-                        "Услуги по доставке товара покупателю": lambda x: safe_convert_to_float(
-                            x.mean() * 2
+                        "Цена розничная": safe_mean_calculation,
+                        "Вайлдберриз реализовал Товар (Пр)": safe_mean_calculation,
+                        "К перечислению Продавцу за реализованный Товар": safe_mean_calculation,
+                        "Услуги по доставке товара покупателю": lambda x: round(
+                            safe_convert_to_float(x.mean() * 2), 1
                         ),
                     }
                 )
@@ -326,7 +322,7 @@ def form2(request):
                     0,
                     np.where(
                         (numerator == 0) & (denominator > 0),
-                        -100,
+                        0,
                         np.where(
                             denominator == 0, 0, (numerator / denominator) * 100
                         ).astype(int),
@@ -386,7 +382,8 @@ def form2(request):
 
             third_merged["Прибыль на 1 Юбку"] = (
                 (third_merged["Прибыль"] / third_merged["Чистые продажи, шт"])
-                .replace(np.inf, 0)
+                .replace([np.inf, -np.inf], 0)  # замена ±бесконечностей
+                .fillna(0)  # если прибыль и продажи = 0 → NaN → заменяем на 0
                 .round(1)
             )
 
@@ -465,7 +462,7 @@ def form2(request):
 
             # === Начало: Группировка по "Чистое Перечисление без Логистики" ===
             conditions = [
-                third_merged["Прибыль"] > 10000,
+                third_merged["Прибыль"] == "SOS!SOS!SOS!SOS!",
                 (third_merged["Прибыль"] >= 5000) & (third_merged["Прибыль"] <= 10000),
                 (third_merged["Прибыль"] > 0) & (third_merged["Прибыль"] < 5000),
                 third_merged["Прибыль"] < 0,
@@ -612,9 +609,22 @@ def form2(request):
                 - third_merged["Доп удержание на кол-во заказов 1 Артикула"]
             ).round(1)
 
+            # Если есть продажи (Чистые продажи, шт > 0) → делим Прибыль на Продажи
+            # Если продаж нет, но есть заказы (Заказы > 0) → делим Прибыль на Заказы
+            # Если нет ни продаж, ни заказов → возвращаем 0
             third_merged["Прибыль на 1 Юбку"] = (
-                (third_merged["Прибыль"] / third_merged["Чистые продажи, шт"])
-                .replace(np.inf, 0)
+                third_merged.apply(
+                    lambda row: (
+                        (row["Прибыль"] / row["Чистые продажи, шт"])
+                        if row["Чистые продажи, шт"] > 0
+                        else (
+                            (row["Прибыль"] / row["Заказы"]) if row["Заказы"] > 0 else 0
+                        )
+                    ),
+                    axis=1,
+                )
+                .replace([np.inf, -np.inf], 0)  # замена ±бесконечностей
+                .fillna(0)  # дополнительная защита от NaN
                 .round(1)
             )
 
@@ -656,6 +666,62 @@ def form2(request):
 
                     # Записываем на отдельный лист
                     filtered.to_excel(writer, sheet_name=safe_sheet_name, index=False)
+                    # === КОРРЕКТИРОВКА ДЛЯ КОНКРЕТНОГО ЛИСТА ===
+                    target_category = "Джерси Короткая Черная (40,50)"
+                    if category == target_category:
+                        ws = writer.sheets[safe_sheet_name]
+
+                        # Определяем номера колонок
+                        col_names = {
+                            col: idx for idx, col in enumerate(filtered.columns, 1)
+                        }  # 1-based
+
+                        try:
+                            qty_col = col_names["Чистые продажи, шт"]
+                            cost_col = col_names["Себес Продаж (600р)"]
+                            margin_col = col_names["Маржа"]
+                            tax_col = col_names["Налоги"]
+                            extra_deduction_col = col_names[
+                                "Доп удержание на кол-во заказов 1 Артикула"
+                            ]
+                            profit_col = col_names["Прибыль"]
+                            # === 🔥 ПЕРЕИМЕНОВЫВАЕМ ЗАГОЛОВОК КОЛОНКИ ===
+                            cost_col_letter = get_column_letter(cost_col)
+                            ws[f"{cost_col_letter}1"] = "Себес Продаж (400р)"
+
+                            # Перебираем строки (начиная со 2-й, т.к. 1-я — заголовок)
+                            for row_idx in range(2, len(filtered) + 2):
+                                # 1. Новая себестоимость = кол-во * 500
+                                qty_cell = f"{get_column_letter(qty_col)}{row_idx}"
+                                cost_cell = f"{get_column_letter(cost_col)}{row_idx}"
+                                ws[cost_cell] = f"={qty_cell}*400"
+
+                                # 2. Маржа = Чистое Перечисление без Логистики - Себес Продаж
+                                clean_payment_col = col_names[
+                                    "Чистое Перечисление без Логистики"
+                                ]
+                                clean_payment_cell = (
+                                    f"{get_column_letter(clean_payment_col)}{row_idx}"
+                                )
+                                margin_cell = (
+                                    f"{get_column_letter(margin_col)}{row_idx}"
+                                )
+                                ws[margin_cell] = f"={clean_payment_cell}-{cost_cell}"
+
+                                # 3. Прибыль = Маржа - Налоги - Доп удержание
+                                tax_cell = f"{get_column_letter(tax_col)}{row_idx}"
+                                extra_cell = (
+                                    f"{get_column_letter(extra_deduction_col)}{row_idx}"
+                                )
+                                profit_cell = (
+                                    f"{get_column_letter(profit_col)}{row_idx}"
+                                )
+                                ws[profit_cell] = (
+                                    f"={margin_cell}-{tax_cell}-{extra_cell}"
+                                )
+
+                        except KeyError as e:
+                            print(f"Не хватает колонки для пересчёта: {e}")
 
                 # Если нужно — можно добавить и другие листы (например, summary_soft)
 

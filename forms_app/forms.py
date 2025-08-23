@@ -1,31 +1,46 @@
 # forms_app/forms.py
-
 from django import forms
 from .models import Form4Data
 
 
-class UploadFileForm(forms.Form):
+# Кастомный виджет для множественной загрузки
+class MultipleFileInput(forms.FileInput):
+    allow_multiple_selected = True
+
+
+# Форма для загрузки одного файла (если нужна)
+class UploadSingleFileForm(forms.Form):
     file = forms.FileField(label="Загрузите отчет за неделю")
 
 
-class UploadExcelForm(forms.Form):
-    excel_file = forms.FileField(label="Выберите Excel-файл")
-
-
-# forms_app/forms.py
-
-
-class UploadFileForm(forms.Form):
+# Форма для загрузки нескольких файлов
+class UploadMultipleFileForm(forms.Form):
     file = forms.FileField(
-        label="Выберите файл", widget=forms.FileInput(attrs={"accept": ".xlsx,.xls"})
+        widget=MultipleFileInput(attrs={"multiple": True}),
+        label="Загрузите Excel-файлы",
+        help_text="Поддерживаются .xlsx. Можно загружать несколько файлов.",
+        required=True,  # или False, в зависимости от логики
     )
 
 
-class Form4DataForm(forms.ModelForm):
-    """
-    Форма для редактирования одной записи Form4Data
-    """
+# Универсальная форма (можно использовать вместо UploadMultipleFileForm)
 
+
+class MultipleFileInput(forms.FileInput):
+    allow_multiple_selected = True
+
+
+class Form8UploadForm(forms.Form):
+    files = forms.FileField(
+        widget=MultipleFileInput(attrs={"multiple": True}),
+        label="Загрузите Excel-файлы",
+        help_text="Поддерживается .xlsx. Можно загружать несколько файлов.",
+        required=False,
+    )
+
+
+# Форма для редактирования данных
+class Form4DataForm(forms.ModelForm):
     class Meta:
         model = Form4Data
         fields = [
@@ -51,15 +66,5 @@ class Form4DataForm(forms.ModelForm):
         }
 
 
-# Кастомный виджет, который поддерживает множественную загрузку
-class MultipleFileInput(forms.FileInput):
-    allow_multiple_selected = True
-
-
-class Form8UploadForm(forms.Form):
-    files = forms.FileField(
-        widget=MultipleFileInput(attrs={"multiple": True}),
-        required=False,  # 🔑 Отключаем валидацию на "обязательность"
-        label="Загрузите Excel-файлы",
-        help_text="Поддерживаются .xlsx. Можно загружать несколько файлов.",
-    )
+# Добавьте в конец forms.py
+UploadFileForm = UploadMultipleFileForm  # ← делаем алиас

@@ -17,10 +17,10 @@
 {% endfor %} {% endif %}
 
 <form method="post" enctype="multipart/form-data" id="uploadForm">
-  {% csrf_token %}
-  <label for="file">Выберите файл Excel (.xlsx):</label>
-  <br /><br />
-  {{ form.as_p }}
+  {% csrf_token %} {{ form.file.label_tag }}<br />
+  {{ form.file }}
+  <small>{{ form.file.help_text }}</small>
+
   <button type="submit" class="btn">Загрузить и сохранить</button>
 </form>
 

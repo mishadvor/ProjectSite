@@ -18,46 +18,84 @@ from openpyxl.utils import get_column_letter
 @login_required
 def upload_file(request):
     if request.method == "POST":
-        form = UploadFileForm(request.POST, request.FILES)
-        if form.is_valid():
-            uploaded_file = request.FILES["file"]
+        print("🔹 POST-данные:", request.POST)
+        print("🔹 FILES:", request.FILES)
+        print("🔹 FILES keys:", request.FILES.keys())
 
-            # Читаем файл в памяти
+        # 📌 Создаём форму ТОЛЬКО с POST-данными (без FILES!)
+        form = UploadFileForm(request.POST)
+
+        # 📌 Получаем файлы вручную
+        uploaded_files = request.FILES.getlist("file")
+        print(f"🔹 Загружено файлов: {len(uploaded_files)}")
+
+        # ❌ Проверяем, есть ли файлы
+        if not uploaded_files:
+            messages.error(request, "❌ Ни одного файла не было загружено.")
+            return render(request, "forms_app/form4_upload.html", {"form": form})
+
+        total_uploaded = 0
+        total_skipped = 0
+
+        # ✅ Обрабатываем каждый файл
+        for uploaded_file in uploaded_files:
+            print(f"📄 Обработка файла: {uploaded_file.name}")
+
+            # Проверка расширения
+            if not uploaded_file.name.lower().endswith(".xlsx"):
+                messages.error(request, f"❌ {uploaded_file.name} — не .xlsx")
+                total_skipped += 1
+                continue
+
             try:
                 file_data = BytesIO(uploaded_file.read())
                 df_input = pd.read_excel(file_data, sheet_name=0).head(150)
+                print(f"   ✅ Прочитано строк: {len(df_input)}")
             except Exception as e:
-                messages.error(request, f"Ошибка при чтении Excel: {e}")
-                return render(request, "forms_app/form4_upload.html", {"form": form})
+                print(f"   ❌ Ошибка чтения: {e}")
+                messages.error(
+                    request, f"❌ Ошибка при чтении {uploaded_file.name}: {e}"
+                )
+                total_skipped += 1
+                continue
 
-            # Проверка колонок
+            # Проверка обязательных колонок
             required_columns = ["Код номенклатуры"]
             missing_columns = [
                 col for col in required_columns if col not in df_input.columns
             ]
             if missing_columns:
+                print(f"   ❌ Нет колонок: {missing_columns}")
                 messages.error(
                     request,
-                    f"Отсутствуют обязательные колонки: {', '.join(missing_columns)}",
+                    f"❌ В файле {uploaded_file.name} отсутствуют колонки: {', '.join(missing_columns)}",
                 )
-                return render(request, "forms_app/form4_upload.html", {"form": form})
+                total_skipped += 1
+                continue
 
             # Извлечение даты из имени файла
-            def extract_date_from_filename(filename):
-                match = re.search(r"(\d{2}\.\d{2}\.\d{4})\.xlsx", filename)
-                if match:
-                    return datetime.strptime(match.group(1), "%d.%m.%Y").date()
-                return datetime.now().date()
+            match = re.search(r"(\d{2}\.\d{2}\.\d{4})\.xlsx", uploaded_file.name)
+            file_date = (
+                datetime.strptime(match.group(1), "%d.%m.%Y").date()
+                if match
+                else datetime.now().date()
+            )
+            print(f"   📅 Извлечена дата: {file_date}")
 
-            file_date = extract_date_from_filename(uploaded_file.name)
-
-            # Подготовка данных для массовой записи
+            # Подготовка записей
             new_records = []
-            for _, row in df_input.iterrows():
+            for idx, row in df_input.iterrows():
                 code = str(row["Код номенклатуры"]).strip()
-                # 🔽 Пропускаем, если код пустой или равен 0
-                if not code or code == "0" or code == "000" or code == "000000000":
-                    continue  # ← пропускаем эту строку
+                if not code or code in {"0", "000", "000000000"}:
+                    print(f"   ⚠️ Пропущен код: '{code}' (строка {idx})")
+                    continue
+
+                # Логируем первую валидную строку
+                if len(new_records) == 0:
+                    article_sample = row.get("Артикул поставщика", "")
+                    print(
+                        f"   ✅ Первый валидный код: {code}, Артикул: {article_sample}"
+                    )
 
                 article = str(row.get("Артикул поставщика", "")).strip() or None
 
@@ -100,11 +138,26 @@ def upload_file(request):
                     )
                 )
 
-            # Сохраняем в БД (игнорируем дубли по unique_together)
-            Form4Data.objects.bulk_create(new_records, ignore_conflicts=True)
+            # Сохраняем в БД
+            created = Form4Data.objects.bulk_create(new_records, ignore_conflicts=True)
+            print(f"   ✅ Сохранено записей: {len(created)}")
+            total_uploaded += len(created)
 
-            messages.success(request, "Данные успешно загружены!")
-            return redirect("forms_app:form4_list")
+        # 📢 Итоговые сообщения
+        if total_uploaded:
+            messages.success(
+                request,
+                f"✅ Успешно загружено {total_uploaded} записей из {len(uploaded_files)} файлов.",
+            )
+        if total_skipped:
+            messages.warning(request, f"⚠️ Пропущено {total_skipped} файлов.")
+        if not total_uploaded and not total_skipped:
+            messages.info(
+                request, "ℹ️ Файлы были, но ни одной валидной строки не найдено."
+            )
+
+        # ✅ Редирект на список
+        return redirect("forms_app:form4_list")
 
     else:
         form = UploadFileForm()

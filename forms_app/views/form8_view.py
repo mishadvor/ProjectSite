@@ -35,6 +35,7 @@ def form8_upload(request):
                         "Прибыль на 1 Юбку",
                         "Заказы",
                         "%Выкупа",
+                        "Чистые продажи, шт",
                     ]
                     missing = [col for col in required_cols if col not in df.columns]
                     if missing:
@@ -62,16 +63,25 @@ def form8_upload(request):
                         else None
                     )
 
-                    profit_per_skirt_series = df["Прибыль на 1 Юбку"][
-                        (df["Прибыль на 1 Юбку"] > 0)
-                    ]
-                    profit_per_skirt = (
-                        Decimal(str(profit_per_skirt_series.mean()))
-                        if len(profit_per_skirt_series) > 0
-                        else None
-                    )
+                    # Общая прибыль и общее количество проданных юбок по всему кабинету
+                    total_profit = df["Прибыль"].sum()
+                    total_skirts = df["Чистые продажи, шт"].sum()
 
-                    pickup_rate_series = df["%Выкупа"][(df["%Выкупа"] > 0)]
+                    # Проверяем, что деление возможно
+                    if (
+                        pd.notna(total_profit)
+                        and pd.notna(total_skirts)
+                        and total_skirts > 0
+                    ):
+                        profit_per_skirt = Decimal(str(total_profit)) / Decimal(
+                            str(total_skirts)
+                        )
+                    else:
+                        profit_per_skirt = None
+
+                    pickup_rate_series = df["%Выкупа"][
+                        (df["%Выкупа"] >= 0) & (df["%Выкупа"].notna())
+                    ]
                     pickup_rate = (
                         Decimal(str(pickup_rate_series.mean()))
                         if len(pickup_rate_series) > 0

@@ -143,12 +143,14 @@ def form7_graph(request):
                     "mode": "markers",
                     "type": "scatter3d",
                     "marker": {
-                        "size": (df["size"] / 10).tolist(),  # Масштабирование
-                        "sizeref": 0.3,
+                        "size": (
+                            df["size"] / 8
+                        ).tolist(),  # <-- ОСНОВНОЙ размер каждой точки
+                        "sizeref": 0.3,  # <-- Регулирует масштаб размера
                         "color": df["type"]
                         .map({"Прибыль": "green", "Убыток": "red"})
                         .tolist(),
-                        "sizemode": "area",
+                        "sizemode": "area",  # <-- Как интерпретируется размер: площадь или диаметр
                         "opacity": 0.8,
                     },
                     "name": "Прибыль/Убыток",
@@ -162,7 +164,8 @@ def form7_graph(request):
                     "yaxis": {"title": "Период"},
                     "zaxis": {"title": "Прибыль (руб)"},
                 },
-                "height": 800,
+                "height": 900,
+                "width": 1700,
                 "showlegend": True,
             },
         }

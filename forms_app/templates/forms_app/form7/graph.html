@@ -1,4 +1,14 @@
-{% extends "base.html" %} {% block content %}
+{% extends "base.html" %} {% block extra_head %}
+<style>
+  /* Только на этой странице — переопределяем main */
+  main {
+    max-width: none !important;
+    margin: 20px 0 !important;
+    padding: 0 10px !important;
+    width: 100%;
+  }
+</style>
+{% endblock %} {% block content %}
 <h2>📊 3D график динамики прибыли</h2>
 <p class="text-muted">{{ debug_info }}</p>
 
