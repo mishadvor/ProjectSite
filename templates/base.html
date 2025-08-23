@@ -198,6 +198,37 @@
           min-width: 80px;
         }
       }
+
+      /* === СЕТКА: ДВА РЯДА ПО 5 КНОПОК === */
+      .forms-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .forms-row {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+        flex-wrap: wrap;
+      }
+
+      /* Чтобы кнопки не переносились случайно */
+      .forms-row .form-item {
+        flex: 0 0 auto; /* Запрещаем сжиматься/растягиваться */
+      }
+
+      /* Адаптивность: на узких экранах — уменьшаем отступы */
+      @media (max-width: 768px) {
+        .forms-row {
+          gap: 10px;
+        }
+        .form-btn {
+          padding: 6px 10px;
+          font-size: 0.9em;
+        }
+      }
     </style>
 
     {% block extra_head %}{% endblock %}
@@ -212,90 +243,107 @@
       </h1>
       <nav>
         <!-- Блок с формами -->
-        <div class="forms-container">
-          <!-- Форма 1 -->
-          <div class="form-item">
-            <a href="{% url 'forms_app:form1' %}" class="form-btn form-btn-1">
-              <i class="fas fa-file-invoice"></i> Форма 1
-            </a>
-            <div class="form-label">Общая сумма</div>
+        <div class="forms-grid">
+          <!-- Верхний ряд -->
+          <div class="forms-row">
+            <!-- Форма 1 -->
+            <div class="form-item">
+              <a href="{% url 'forms_app:form1' %}" class="form-btn form-btn-1">
+                <i class="fas fa-file-invoice"></i> Форма 1
+              </a>
+              <div class="form-label">Общая сумма</div>
+            </div>
+
+            <!-- Форма 2 -->
+            <div class="form-item">
+              <a href="{% url 'forms_app:form2' %}" class="form-btn form-btn-2">
+                <i class="fas fa-barcode"></i> Форма 2
+              </a>
+              <div class="form-label">Артикулы общая</div>
+            </div>
+
+            <!-- Форма 3 -->
+            <div class="form-item">
+              <a href="{% url 'forms_app:form3' %}" class="form-btn form-btn-3">
+                <i class="fas fa-map-marked-alt"></i> Форма 3
+              </a>
+              <div class="form-label">Регионы</div>
+            </div>
+
+            <!-- Форма 4 -->
+            <div class="form-item">
+              <a
+                href="{% url 'forms_app:form4_upload' %}"
+                class="form-btn form-btn-4"
+              >
+                <i class="fas fa-file-upload"></i> Форма 4
+              </a>
+              <div class="form-label">Каждый Артикул</div>
+            </div>
+
+            <!-- Форма 5 -->
+            <div class="form-item">
+              <a href="{% url 'forms_app:form5' %}" class="form-btn form-btn-5">
+                <i class="fas fa-warehouse"></i> Форма 5
+              </a>
+              <div class="form-label">Склад старый</div>
+            </div>
           </div>
 
-          <!-- Форма 2 -->
-          <div class="form-item">
-            <a href="{% url 'forms_app:form2' %}" class="form-btn form-btn-2">
-              <i class="fas fa-barcode"></i> Форма 2
-            </a>
-            <div class="form-label">Артикулы общая</div>
-          </div>
+          <!-- Нижний ряд -->
+          <div class="forms-row">
+            <!-- Форма 6 -->
+            <div class="form-item">
+              <a href="{% url 'forms_app:form6' %}" class="form-btn form-btn-6">
+                <i class="fas fa-exclamation-triangle"></i> Форма 6
+              </a>
+              <div class="form-label">Склад Новый</div>
+            </div>
 
-          <!-- Форма 3 -->
-          <div class="form-item">
-            <a href="{% url 'forms_app:form3' %}" class="form-btn form-btn-3">
-              <i class="fas fa-map-marked-alt"></i> Форма 3
-            </a>
-            <div class="form-label">Регионы</div>
-          </div>
+            <!-- Форма 7 -->
+            <div class="form-item">
+              <a
+                href="{% url 'forms_app:form7_upload' %}"
+                class="form-btn form-btn-7"
+              >
+                <i class="fas fa-calendar-alt"></i> Форма 7
+              </a>
+              <div class="form-label">Формы 2 по датам</div>
+            </div>
 
-          <!-- Форма 4 -->
-          <div class="form-item">
-            <a
-              href="{% url 'forms_app:form4_upload' %}"
-              class="form-btn form-btn-4"
-            >
-              <i class="fas fa-file-upload"></i> Форма 4
-            </a>
-            <div class="form-label">Каждый Артикул</div>
-          </div>
+            <!-- График прибыли -->
+            <div class="form-item">
+              <a
+                href="{% url 'forms_app:form7_graph' %}"
+                class="form-btn form-btn-8"
+              >
+                <i class="fas fa-chart-line"></i> График Прибыли
+              </a>
+              <div class="form-label">Прибыль по датам</div>
+            </div>
 
-          <!-- Форма 5 -->
-          <div class="form-item">
-            <a href="{% url 'forms_app:form5' %}" class="form-btn form-btn-5">
-              <i class="fas fa-warehouse"></i> Форма 5
-            </a>
-            <div class="form-label">Склад старый</div>
-          </div>
+            <!-- Форма 8 -->
+            <div class="form-item">
+              <a
+                href="{% url 'forms_app:form8_upload' %}"
+                class="form-btn form-btn-8"
+              >
+                <i class="fas fa-chart-pie"></i> Форма 8
+              </a>
+              <div class="form-label">Недельные графики</div>
+            </div>
 
-          <!-- Форма 6 -->
-          <div class="form-item">
-            <a href="{% url 'forms_app:form6' %}" class="form-btn form-btn-6">
-              <i class="fas fa-exclamation-triangle"></i> Форма 6
-            </a>
-            <div class="form-label">Склад Новый</div>
+            <!-- Форма 9 -->
+            <div class="form-item">
+              <a
+                href="{% url 'forms_app:form9_view' %}"
+                class="form-btn form-btn-6"
+              >
+                <i class="fas fa-sync-alt"></i> Форма 9
+              </a>
+              <div class="form-label">Оборачиваемость</div>
+            </div>
           </div>
-
-          <!-- Форма 7 -->
-          <div class="form-item">
-            <a
-              href="{% url 'forms_app:form7_upload' %}"
-              class="form-btn form-btn-7"
-            >
-              <i class="fas fa-calendar-alt"></i> Форма 7
-            </a>
-            <div class="form-label">Формы 2 по датам</div>
-          </div>
-
-          <!-- График прибыли -->
-          <div class="form-item">
-            <a
-              href="{% url 'forms_app:form7_graph' %}"
-              class="form-btn form-btn-8"
-            >
-              <i class="fas fa-chart-line"></i> График Прибыли
-            </a>
-            <div class="form-label">Прибыль по датам</div>
-          </div>
-        </div>
-
-        <!-- Форма 8 -->
-        <div class="form-item">
-          <a
-            href="{% url 'forms_app:form8_upload' %}"
-            class="form-btn form-btn-8"
-          >
-            <i class="fas fa-chart-pie"></i> Форма 8
-          </a>
-          <div class="form-label">Недельные графики</div>
         </div>
 
         <!-- Остальные кнопки (Теория, Профиль и т.д.) -->

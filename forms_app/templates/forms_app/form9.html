@@ -1,0 +1,73 @@
+<!-- templates/forms/form9.html -->
+{% extends "base.html" %} {% load static %} {% block title %}Форма 9:
+Оборачиваемость{% endblock %} {% block content %}
+<div
+  style="
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  "
+>
+  <h2 style="color: #007bff; text-align: center">
+    <i class="fas fa-sync-alt"></i> Форма 9: Анализ оборачиваемости
+  </h2>
+  <p style="text-align: center; color: #555">
+    Загрузите Excel-файл с данными о продажах и остатках. Система рассчитает:
+  </p>
+  <ul style="color: #555; margin: 20px 0">
+    <li>Оборачиваемость по заказам</li>
+    <li>Оборачиваемость по продажам</li>
+    <li>Градацию: дефицит, неликвид и др.</li>
+    <li>Цветовую заливку по критичности</li>
+  </ul>
+
+  <form
+    method="post"
+    enctype="multipart/form-data"
+    style="text-align: center; margin: 20px 0"
+  >
+    {% csrf_token %}
+    <p>
+      <label
+        for="{{ form.file.id_for_label }}"
+        style="font-weight: bold; display: block; margin-bottom: 5px"
+      >
+        {{ form.file.label }}
+      </label>
+      {{ form.file }}
+    </p>
+    {% if form.file.help_text %}
+    <p style="font-size: 0.9em; color: #666; margin: 5px 0">
+      {{ form.file.help_text }}
+    </p>
+    {% endif %}
+
+    <button type="submit" class="btn" style="margin-top: 10px">
+      <i class="fas fa-upload"></i> Обработать файл
+    </button>
+  </form>
+
+  <!-- Отображение ошибок -->
+  {% if messages %}
+  <div style="margin-top: 20px">
+    {% for message in messages %}
+    <div
+      style="
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            background: {% if message.tags == 'error' %}#f8d7da{% else %}#d4edda{% endif %};
+            color: {% if message.tags == 'error' %}#721c24{% else %}#155724{% endif %};
+            border: 1px solid {% if message.tags == 'error' %}#f5c6cb{% else %}#c3e6cb{% endif %};
+        "
+    >
+      {{ message }}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -68,3 +68,16 @@ class Form4DataForm(forms.ModelForm):
 
 # Добавьте в конец forms.py
 UploadFileForm = UploadMultipleFileForm  # ← делаем алиас
+
+# Оборачиваемость
+
+
+class ExcelProcessingForm(forms.Form):
+    """Форма для обработки одного Excel-файла оборачиваемости"""
+
+    file = forms.FileField(
+        label="Загрузите отчёт по продажам/остаткам",
+        help_text="Поддерживается .xlsx. Ожидается файл с данными за неделю.",
+        widget=forms.FileInput(attrs={"accept": ".xlsx"}),
+        required=True,
+    )
