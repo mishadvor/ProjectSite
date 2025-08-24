@@ -46,6 +46,9 @@ from .views.form8_view import form8_upload, form8_clear, form8_export
 # Форма 9
 from .views.form9_view import form9_view
 
+# Форма 10
+from .views.form10_view import form10_view
+
 app_name = "forms_app"
 
 urlpatterns = [
@@ -95,4 +98,5 @@ urlpatterns = [
     path("form8/clear/", form8_clear, name="form8_clear"),
     path("form8/export/", form8_export, name="form8_export"),
     path("form9/", form9_view, name="form9_view"),
+    path("form10/", form10_view, name="form10_view"),
 ]
