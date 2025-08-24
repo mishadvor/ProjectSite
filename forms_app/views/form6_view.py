@@ -207,8 +207,6 @@ def form6(request):
                 {
                     "Артикул поставщика": "first",
                     "change": "sum",
-                    "Место": "first",
-                    "Примечание": "first",
                 }
             )
         else:
@@ -241,11 +239,15 @@ def form6(request):
             merged["Количество"].fillna(0) + merged["change"]
         ).astype(int)
 
-        # Выбор актуальных значений
-        cols_to_update = ["Артикул поставщика", "Место", "Примечание"]
-        for col in cols_to_update:
-            if f"{col}_change" in merged.columns:
-                merged[col] = merged[f"{col}_change"].fillna(merged[col])
+        # Обновляем ТОЛЬКО "Артикул поставщика", если он указан в изменениях
+        if "Артикул поставщика_change" in merged.columns:
+            # Берём новое значение, только если оно непустое
+            mask = merged["Артикул поставщика_change"].notna() & (
+                merged["Артикул поставщика_change"] != ""
+            )
+            merged.loc[mask, "Артикул поставщика"] = merged.loc[
+                mask, "Артикул поставщика_change"
+            ]
 
         # Фильтрация нужных колонок
         result = merged[
@@ -259,21 +261,37 @@ def form6(request):
             ]
         ]
 
-        # --- Обновление данных в базе ---
+        # 1. Очищаем NaN
+        result = result.fillna(
+            {
+                "Артикул поставщика": "",
+                "Размер": "",
+                "Количество": 0,
+                "Место": "",
+                "Примечание": "",
+            }
+        )
+
+        # 2. Приводим к правильным типам
+        result["Количество"] = result["Количество"].astype(int)
+
+        # 3. Удаляем старые записи
         StockRecord.objects.filter(user=user).delete()
 
+        # 4. Создаём новые записи из ОЧИЩЕННОГО result
         updated_records = [
             StockRecord(
                 user=user,
                 article_full_name=row["Артикул поставщика"],
                 size=row["Размер"],
                 quantity=row["Количество"],
-                location=row.get("Место", ""),
-                note=row.get("Примечание", ""),
+                location=row["Место"],
+                note=row["Примечание"],
             )
             for _, row in result.iterrows()
         ]
 
+        # 5. Сохраняем
         StockRecord.objects.bulk_create(updated_records)
 
         # --- Генерация выходного файла ---
