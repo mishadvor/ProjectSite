@@ -10,7 +10,7 @@ from openpyxl.utils import get_column_letter
 
 
 def form10_view(request):
-    result_df = None
+    result_df = None  # Для отображения в HTML (по умолчанию — по размерам)
     error_message = None
 
     if request.method == "POST" and request.FILES.get("excel_file"):
@@ -25,7 +25,7 @@ def form10_view(request):
                 df_raw = pd.read_excel(uploaded_file, header=1)
                 df_raw = df_raw.reset_index(drop=True)
 
-                # Обработка данных — аналогично твоему коду
+                # === Лист 1: Статистика по размерам (уже есть) ===
                 df1 = (
                     df_raw.groupby(
                         ["Артикул WB", "Баркод", "Артикул продавца", "Размер"],
@@ -42,46 +42,78 @@ def form10_view(request):
                     )
                     .round(0)
                 )
-
                 df1 = df1.rename(columns={"шт.": "Заказы, шт."})
-
-                # Сортировка по доходу
-                result_df = df1.sort_values(
+                df1 = df1.sort_values(
                     by=["Сумма заказов минус комиссия WB, руб."], ascending=False
                 ).reset_index(drop=True)
 
-                # Экспорт в Excel "на лету"
+                # === Лист 2: Статистика по артикулам (без размеров) ===
+                df2 = (
+                    df_raw.groupby(
+                        ["Артикул WB", "Артикул продавца"],
+                        as_index=False,
+                    )
+                    .agg(
+                        {
+                            "шт.": "sum",
+                            "Сумма заказов минус комиссия WB, руб.": "sum",
+                            "Выкупили, шт.": "sum",
+                            "К перечислению за товар, руб.": "sum",
+                            "Текущий остаток, шт.": "sum",
+                        }
+                    )
+                    .round(0)
+                )
+                df2 = df2.rename(columns={"шт.": "Заказы, шт."})
+                df2 = df2.sort_values(
+                    by=["Сумма заказов минус комиссия WB, руб."], ascending=False
+                ).reset_index(drop=True)
+
+                # === Экспорт в Excel: оба листа ===
                 output = BytesIO()
                 with pd.ExcelWriter(output, engine="openpyxl", mode="w") as writer:
-                    result_df.to_excel(writer, index=False, sheet_name="Стат_продаж")
+                    # Лист 1: по размерам
+                    df1.to_excel(writer, index=False, sheet_name="Стат_продаж")
+                    # Лист 2: по артикулам
+                    df2.to_excel(
+                        writer, index=False, sheet_name="Стат_продаж_по_артикулам"
+                    )
+
                     workbook = writer.book
-                    worksheet = writer.sheets["Стат_продаж"]
 
-                    # Стиль заголовков
-                    style_name = "header_style"
-                    if style_name not in workbook.named_styles:
-                        header_style = NamedStyle(name=style_name)
-                        header_style.font = Font(bold=True)
-                        header_style.alignment = Alignment(
-                            wrap_text=True, horizontal="center", vertical="center"
-                        )
-                        workbook.add_named_style(header_style)
+                    # Общая функция для форматирования листа
+                    def format_worksheet(ws):
+                        # Стиль заголовков
+                        style_name = "header_style"
+                        if style_name not in workbook.named_styles:
+                            header_style = NamedStyle(name=style_name)
+                            header_style.font = Font(bold=True)
+                            header_style.alignment = Alignment(
+                                wrap_text=True, horizontal="center", vertical="center"
+                            )
+                            workbook.add_named_style(header_style)
 
-                    for cell in worksheet[1]:
-                        cell.style = style_name
+                        for cell in ws[1]:
+                            cell.style = style_name
 
-                    # Автоподбор ширины столбцов
-                    for column in worksheet.columns:
-                        max_length = 0
-                        col_letter = get_column_letter(column[0].column)
-                        for cell in column:
-                            try:
-                                if cell.value not in [None, ""]:
-                                    max_length = max(max_length, len(str(cell.value)))
-                            except:
-                                continue
-                        adjusted_width = min(max_length + 2, 50)
-                        worksheet.column_dimensions[col_letter].width = adjusted_width
+                        # Автоподбор ширины столбцов
+                        for column in ws.columns:
+                            max_length = 0
+                            col_letter = get_column_letter(column[0].column)
+                            for cell in column:
+                                try:
+                                    if cell.value not in [None, ""]:
+                                        max_length = max(
+                                            max_length, len(str(cell.value))
+                                        )
+                                except:
+                                    continue
+                            adjusted_width = min(max_length + 2, 50)
+                            ws.column_dimensions[col_letter].width = adjusted_width
+
+                    # Форматируем оба листа
+                    format_worksheet(writer.sheets["Стат_продаж"])
+                    format_worksheet(writer.sheets["Стат_продаж_по_артикулам"])
 
                 output.seek(0)
 
@@ -98,7 +130,8 @@ def form10_view(request):
             except Exception as e:
                 error_message = f"Ошибка при обработке файла: {str(e)}"
 
-    # Преобразуем результат в HTML-таблицу для отображения
+    # --- Подготовка таблицы для отображения в браузере ---
+    # Отображаем df1 (по размерам) в HTML, если нужно
     table_html = (
         result_df.to_html(classes="table table-striped table-bordered", index=False)
         if result_df is not None

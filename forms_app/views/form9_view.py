@@ -146,6 +146,77 @@ def form9_view(request):
             )
             df2_grouped = df2_grouped.rename(columns={"шт.": "Заказы, шт."})
 
+            # --- Лист 3: Оборот по артикулам (без размеров) ---
+            df3 = (
+                df_raw.groupby(
+                    ["Артикул WB", "Артикул продавца"],
+                    as_index=False,
+                )
+                .agg(
+                    {
+                        "шт.": "sum",
+                        "Текущий остаток, шт.": "sum",
+                        "Выкупили, шт.": "sum",
+                    }
+                )
+                .round(0)
+            )
+            df3 = df3.rename(columns={"шт.": "Заказы, шт."})
+
+            # Оборачиваемость по Заказам
+            numerator3 = df3["Текущий остаток, шт."]
+            denominator3 = df3["Заказы, шт."]
+            conditions3 = [
+                (numerator3 == 0) & (denominator3 == 0),
+                (numerator3 == 0) & (denominator3 > 0),
+                (numerator3 > 0) & (denominator3 == 0),
+                (numerator3 > 0) & (denominator3 > 0),
+            ]
+            turnover_value3 = (
+                (numerator3 / denominator3 * 7)
+                .replace([np.inf, -np.inf], 0)
+                .fillna(0)
+                .round(1)
+            )
+            choices3 = [
+                "0",
+                "пополнить/FBS",
+                "SOS!SOS!SOS!SOS!",
+                turnover_value3.astype(str),
+            ]
+            df3["Оборачиваемость по Заказам"] = np.select(
+                conditions3, choices3, default="0"
+            )
+
+            # Оборачиваемость по Продажам
+            numerator3_sell = df3["Текущий остаток, шт."]
+            denominator3_sell = df3["Выкупили, шт."]
+            conditions3_sell = [
+                (numerator3_sell == 0) & (denominator3_sell == 0),
+                (numerator3_sell == 0) & (denominator3_sell > 0),
+                (numerator3_sell > 0) & (denominator3_sell == 0),
+                (numerator3_sell > 0) & (denominator3_sell > 0),
+            ]
+            turnover_value3_sell = (
+                (numerator3_sell / denominator3_sell * 7)
+                .replace([np.inf, -np.inf], 0)
+                .fillna(0)
+                .round(1)
+            )
+            choices3_sell = [
+                "0",
+                "пополнить/FBS",
+                "SOS!SOS!SOS!SOS!",
+                turnover_value3_sell.astype(str),
+            ]
+            df3["Оборачиваемость по Продажам"] = np.select(
+                conditions3_sell, choices3_sell, default="0"
+            )
+
+            # Сортировка
+            df3_orders = df3.sort_values(by=["Текущий остаток, шт."], ascending=False)
+            df3_sales = df3.sort_values(by=["Текущий остаток, шт."], ascending=False)
+
             # Оборачиваемость по Заказам
             numerator2 = df2_grouped["Текущий остаток, шт."]
             denominator2 = df2_grouped["Заказы, шт."]
@@ -418,6 +489,41 @@ def form9_view(request):
                     writer, index=False, sheet_name="Оборот_по_складам_Продажи"
                 )
 
+                # ===== ОБОРОТ ПО АРТИКУЛАМ (БЕЗ РАЗМЕРОВ) =====
+                df3_orders_final = add_turnover_grade(
+                    df3_orders, "Оборачиваемость по Заказам", "Градация", is_sales=False
+                )
+                df3_orders_final = df3_orders_final[
+                    [
+                        "Артикул WB",
+                        "Артикул продавца",
+                        "Заказы, шт.",
+                        "Текущий остаток, шт.",
+                        "Оборачиваемость по Заказам",
+                        "Градация",
+                    ]
+                ]
+                df3_orders_final.to_excel(
+                    writer, index=False, sheet_name="Оборот_по_артикулам_Заказы"
+                )
+
+                df3_sales_final = add_turnover_grade(
+                    df3_sales, "Оборачиваемость по Продажам", "Градация", is_sales=True
+                )
+                df3_sales_final = df3_sales_final[
+                    [
+                        "Артикул WB",
+                        "Артикул продавца",
+                        "Выкупили, шт.",
+                        "Текущий остаток, шт.",
+                        "Оборачиваемость по Продажам",
+                        "Градация",
+                    ]
+                ]
+                df3_sales_final.to_excel(
+                    writer, index=False, sheet_name="Оборот_по_артикулам_Продажи"
+                )
+
                 # === Группировка по статусам для Оборачиваемости по Заказам ===
                 df1_temp_orders = df1.copy()
                 df1_temp_orders["Оборачиваемость_str"] = df1_temp_orders[
@@ -517,6 +623,114 @@ def form9_view(request):
                         errors="ignore",
                     )
                     cols_order = ["Артикул WB", "Баркод", "Артикул продавца", "Размер"]
+                    other_cols = [
+                        c for c in filtered_clean.columns if c not in cols_order
+                    ]
+                    filtered_clean = filtered_clean[cols_order + other_cols]
+                    safe_sheet_name = category.replace("/", "_").replace("!", "")[:31]
+                    filtered_clean.to_excel(
+                        writer, sheet_name=safe_sheet_name, index=False
+                    )
+
+                    # === Группировка по статусам для Оборачиваемости по Заказам (по артикулам) ===
+                df3_temp_orders = df3.copy()
+                df3_temp_orders["Оборачиваемость_str"] = df3_temp_orders[
+                    "Оборачиваемость по Заказам"
+                ].astype(str)
+
+                conditions_gr3 = [
+                    df3_temp_orders["Оборачиваемость_str"] == "SOS!SOS!SOS!SOS!",
+                    df3_temp_orders["Оборачиваемость_str"] == "пополнить/FBS",
+                    df3_temp_orders["Оборачиваемость_str"] == "0",
+                    pd.to_numeric(
+                        df3_temp_orders["Оборачиваемость_str"], errors="coerce"
+                    )
+                    > 0,
+                ]
+
+                categories_oborot3 = [
+                    "1. SOS по Заказам (арт)",
+                    "2. пополнить_FBS по Заказам (арт)",
+                    "3. 0 по Заказам (арт)",
+                    "4. >0 по Заказам (арт)",
+                ]
+
+                df3_temp_orders["Группа по оборачиваемости"] = np.select(
+                    conditions_gr3, categories_oborot3, default="Не попал"
+                )
+
+                # === Группировка по статусам для Оборачиваемости по Продажам (по артикулам) ===
+                df3_temp_sales = df3.copy()
+                df3_temp_sales["Оборачиваемость_str"] = df3_temp_sales[
+                    "Оборачиваемость по Продажам"
+                ].astype(str)
+
+                conditions_gr3_sales = [
+                    df3_temp_sales["Оборачиваемость_str"] == "SOS!SOS!SOS!SOS!",
+                    df3_temp_sales["Оборачиваемость_str"] == "пополнить/FBS",
+                    df3_temp_sales["Оборачиваемость_str"] == "0",
+                    pd.to_numeric(
+                        df3_temp_sales["Оборачиваемость_str"], errors="coerce"
+                    )
+                    > 0,
+                ]
+
+                categories_oborot3_sales = [
+                    "1. SOS по Продажам (арт)",
+                    "2. пополнить_FBS по Продажам (арт)",
+                    "3. 0 по Продажам (арт)",
+                    "4. >0 по Продажам (арт)",
+                ]
+
+                df3_temp_sales["Группа по оборачиваемости"] = np.select(
+                    conditions_gr3_sales, categories_oborot3_sales, default="Не попал"
+                )
+
+                # Запись групп для Заказов (по артикулам)
+                for category in categories_oborot3:
+                    filtered = df3_temp_orders[
+                        df3_temp_orders["Группа по оборачиваемости"] == category
+                    ]
+                    if filtered.empty:
+                        continue
+                    filtered_with_grade = add_turnover_grade(
+                        filtered,
+                        "Оборачиваемость по Заказам",
+                        "Градация",
+                        is_sales=False,
+                    )
+                    filtered_clean = filtered_with_grade.drop(
+                        columns=["Оборачиваемость_str", "Группа по оборачиваемости"],
+                        errors="ignore",
+                    )
+                    cols_order = ["Артикул WB", "Артикул продавца"]
+                    other_cols = [
+                        c for c in filtered_clean.columns if c not in cols_order
+                    ]
+                    filtered_clean = filtered_clean[cols_order + other_cols]
+                    safe_sheet_name = category.replace("/", "_").replace("!", "")[:31]
+                    filtered_clean.to_excel(
+                        writer, sheet_name=safe_sheet_name, index=False
+                    )
+
+                # Запись групп для Продаж (по артикулам)
+                for category in categories_oborot3_sales:
+                    filtered = df3_temp_sales[
+                        df3_temp_sales["Группа по оборачиваемости"] == category
+                    ]
+                    if filtered.empty:
+                        continue
+                    filtered_with_grade = add_turnover_grade(
+                        filtered,
+                        "Оборачиваемость по Продажам",
+                        "Градация",
+                        is_sales=True,
+                    )
+                    filtered_clean = filtered_with_grade.drop(
+                        columns=["Оборачиваемость_str", "Группа по оборачиваемости"],
+                        errors="ignore",
+                    )
+                    cols_order = ["Артикул WB", "Артикул продавца"]
                     other_cols = [
                         c for c in filtered_clean.columns if c not in cols_order
                     ]
