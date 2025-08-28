@@ -16,9 +16,9 @@ def form10_view(request):
     if request.method == "POST" and request.FILES.get("excel_file"):
         uploaded_file = request.FILES["excel_file"]
 
-        # Проверка расширения файла
-        if not uploaded_file.name.endswith(".xlsx"):
-            error_message = "Пожалуйста, загрузите файл в формате .xlsx"
+        # Проверка расширения файла (игнорируем регистр)
+        if not uploaded_file.name.lower().endswith(".xlsx"):
+            error_message = "Пожалуйста, загрузите файл в формате .xlsx (поддерживаются .xlsx и .XLSX от Wildberries)."
         else:
             try:
                 # Чтение Excel-файла
