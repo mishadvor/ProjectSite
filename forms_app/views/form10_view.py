@@ -112,7 +112,7 @@ def form10_view(request):
                             ws.column_dimensions[col_letter].width = adjusted_width
 
                     # Форматируем оба листа
-                    format_worksheet(writer.sheets["Стат_продаж"])
+                    format_worksheet(writer.sheets["Стат_продаж_по_размерам"])
                     format_worksheet(writer.sheets["Стат_продаж_по_артикулам"])
 
                 output.seek(0)
