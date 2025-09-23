@@ -73,7 +73,9 @@ def form10_view(request):
                 output = BytesIO()
                 with pd.ExcelWriter(output, engine="openpyxl", mode="w") as writer:
                     # Лист 1: по размерам
-                    df1.to_excel(writer, index=False, sheet_name="Стат_продаж")
+                    df1.to_excel(
+                        writer, index=False, sheet_name="Стат_продаж_по_размерам"
+                    )
                     # Лист 2: по артикулам
                     df2.to_excel(
                         writer, index=False, sheet_name="Стат_продаж_по_артикулам"
