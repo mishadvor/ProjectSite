@@ -462,7 +462,7 @@ def form2(request):
 
             # === Начало: Группировка по "Чистое Перечисление без Логистики" ===
             conditions = [
-                third_merged["Прибыль"] == "SOS!SOS!SOS!SOS!",
+                third_merged["Прибыль"] > 10000,
                 (third_merged["Прибыль"] >= 5000) & (third_merged["Прибыль"] <= 10000),
                 (third_merged["Прибыль"] > 0) & (third_merged["Прибыль"] < 5000),
                 third_merged["Прибыль"] < 0,
