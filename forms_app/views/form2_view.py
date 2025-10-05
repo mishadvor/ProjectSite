@@ -63,7 +63,7 @@ def form2(request):
                         "forms_app/form2.html",
                         {"error": "Необходимо загрузить файл."},
                     )
-                df = pd.read_excel(file, dtype={"Баркод": str, "Размер": str})
+                df = pd.read_excel(file)
             elif mode == "combined":
                 file_russia = request.FILES.get("file_russia")
                 file_cis = request.FILES.get("file_cis")
@@ -73,10 +73,8 @@ def form2(request):
                         "forms_app/form2.html",
                         {"error": "Пожалуйста, загрузите оба файла."},
                     )
-                df_russia = pd.read_excel(
-                    file_russia, dtype={"Баркод": str, "Размер": str}
-                )
-                df_cis = pd.read_excel(file_cis, dtype={"Баркод": str, "Размер": str})
+                df_russia = pd.read_excel(file_russia)
+                df_cis = pd.read_excel(file_cis)
                 df = pd.concat([df_russia, df_cis], ignore_index=True)
             else:
                 return render(
