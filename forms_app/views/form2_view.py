@@ -33,7 +33,7 @@ def form2(request):
 
             import tempfile
             import os
-            import signal
+            from openpyxl import load_workbook
 
             # Сохраняем файл временно
             with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp_file:
@@ -43,64 +43,43 @@ def form2(request):
 
             print(f"=== FORM2 DEBUG: File saved to {tmp_path} ===")
 
-            # Функция с таймаутом
-            def read_excel_with_timeout(path, timeout=30):
-                def timeout_handler(signum, frame):
-                    raise TimeoutError("Чтение Excel превысило время ожидания")
-
-                # Устанавливаем таймаут
-                signal.signal(signal.SIGALRM, timeout_handler)
-                signal.alarm(timeout)
-
-                try:
-                    result = pd.read_excel(path, engine="openpyxl")
-                    signal.alarm(0)  # Отключаем таймаут
-                    return result
-                except TimeoutError:
-                    print("=== FORM2 DEBUG: TIMEOUT ERROR ===")
-                    raise
-                except Exception as e:
-                    signal.alarm(0)  # Отключаем таймаут при других ошибках
-                    raise
-
-            # Пробуем прочитать с таймаутом
-            print("=== FORM2 DEBUG: Before pd.read_excel with timeout ===")
+            # Пробуем openpyxl напрямую (более легковесный)
+            print("=== FORM2 DEBUG: Trying openpyxl directly ===")
             try:
-                df = read_excel_with_timeout(tmp_path, timeout=60)
-                print(f"=== FORM2 DEBUG: DataFrame shape: {df.shape} ===")
-            except TimeoutError:
-                print("=== FORM2 DEBUG: Excel reading timed out ===")
-                # Пробуем альтернативный метод - чтение по частям
-                try:
-                    print("=== FORM2 DEBUG: Trying chunk reading ===")
-                    chunks = []
-                    for chunk in pd.read_excel(
-                        tmp_path, engine="openpyxl", chunksize=1000
-                    ):
-                        chunks.append(chunk)
-                    df = pd.concat(chunks, ignore_index=True)
-                    print(
-                        f"=== FORM2 DEBUG: Chunk reading success, shape: {df.shape} ==="
-                    )
-                except Exception as chunk_error:
-                    print(f"=== FORM2 CHUNK ERROR: {str(chunk_error)} ===")
-                    raise chunk_error
-            except Exception as read_error:
-                print(f"=== FORM2 READ ERROR: {str(read_error)} ===")
+                # Только чтение данных, без всего лишнего
+                wb = load_workbook(tmp_path, read_only=True, data_only=True)
+                sheet = wb.active
+
+                # Просто считаем строки для теста
+                row_count = 0
+                for row in sheet.iter_rows(values_only=True):
+                    row_count += 1
+                    if row_count % 1000 == 0:  # Логируем каждые 1000 строк
+                        print(f"=== FORM2 DEBUG: Read {row_count} rows ===")
+
+                wb.close()
+                print(
+                    f"=== FORM2 DEBUG: Successfully read {row_count} rows with openpyxl ==="
+                )
+
+                # Удаляем временный файл
+                os.unlink(tmp_path)
+
+                return render(
+                    request,
+                    "forms_app/form2.html",
+                    {"success": f"Файл прочитан успешно! Строк: {row_count}"},
+                )
+
+            except Exception as openpyxl_error:
+                print(f"=== FORM2 OPENPYXL ERROR: {str(openpyxl_error)} ===")
                 import traceback
 
-                print(f"=== FORM2 READ TRACEBACK: {traceback.format_exc()} ===")
-                raise read_error
+                print(f"=== FORM2 OPENPYXL TRACEBACK: {traceback.format_exc()} ===")
 
-            # Удаляем временный файл
-            os.unlink(tmp_path)
-            print("=== FORM2 DEBUG: Temp file deleted ===")
-
-            return render(
-                request,
-                "forms_app/form2.html",
-                {"success": f"Файл прочитан успешно! Строк: {len(df)}"},
-            )
+                # Удаляем временный файл
+                os.unlink(tmp_path)
+                raise openpyxl_error
 
         except Exception as e:
             import traceback
