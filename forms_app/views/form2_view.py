@@ -66,7 +66,7 @@ def form2(request):
                     f"=== FORM2 DEBUG: Reading file {file.name}, size: {file.size} ==="
                 )
 
-                df = pd.read_excel(file)
+                df = pd.read_excel(file, engine="openpyxl", dtype="object")
             elif mode == "combined":
                 file_russia = request.FILES.get("file_russia")
                 file_cis = request.FILES.get("file_cis")
@@ -80,8 +80,10 @@ def form2(request):
                 print(f"=== FORM2 DEBUG: Reading Russia file {file_russia.name} ===")
                 print(f"=== FORM2 DEBUG: Reading CIS file {file_cis.name} ===")
 
-                df_russia = pd.read_excel(file_russia)
-                df_cis = pd.read_excel(file_cis)
+                df_russia = pd.read_excel(
+                    file_russia, engine="openpyxl", dtype="object"
+                )
+                df_cis = pd.read_excel(file_cis, engine="openpyxl", dtype="object")
                 df = pd.concat([df_russia, df_cis], ignore_index=True)
             else:
                 return render(
