@@ -1,8 +1,25 @@
+import pandas as pd
+import numpy as np
+from django.http import HttpResponse
+from django.shortcuts import render
+from io import BytesIO
+from openpyxl import load_workbook
+from openpyxl.styles import (
+    Alignment,
+    Font,
+    Border,
+    Side,
+    PatternFill,
+)
+from openpyxl.utils import get_column_letter
+from openpyxl.worksheet.dimensions import ColumnDimension
+from openpyxl.styles import NamedStyle, Alignment, Font, Border, Side
+
+
 def form2(request):
     if request.method == "POST":
         mode = request.POST.get("mode")
 
-        # ВРЕМЕННО УПРОЩЕННАЯ ВЕРСИЯ ДЛЯ ДИАГНОСТИКИ
         try:
             file = request.FILES.get("file_single")
             if not file:
