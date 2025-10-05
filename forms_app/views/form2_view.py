@@ -50,13 +50,7 @@ def safe_mean_calculation(x, decimals=1):
         return 0.0
 
 
-import logging
-
-logger = logging.getLogger(__name__)
-
-
 def form2(request):
-    logger.info("FORM2: Function started")  # Это поможет отследить
     if request.method == "POST":
         mode = request.POST.get("mode")
         try:
@@ -69,6 +63,11 @@ def form2(request):
                         "forms_app/form2.html",
                         {"error": "Необходимо загрузить файл."},
                     )
+                # ДЕТАЛЬНОЕ ЛОГИРОВАНИЕ ПЕРЕД ЧТЕНИЕМ
+                print(
+                    f"=== FORM2 DEBUG: Reading file {file.name}, size: {file.size} ==="
+                )
+
                 df = pd.read_excel(file)
             elif mode == "combined":
                 file_russia = request.FILES.get("file_russia")
@@ -79,6 +78,10 @@ def form2(request):
                         "forms_app/form2.html",
                         {"error": "Пожалуйста, загрузите оба файла."},
                     )
+                # Логирование для combined mode
+                print(f"=== FORM2 DEBUG: Reading Russia file {file_russia.name} ===")
+                print(f"=== FORM2 DEBUG: Reading CIS file {file_cis.name} ===")
+
                 df_russia = pd.read_excel(file_russia)
                 df_cis = pd.read_excel(file_cis)
                 df = pd.concat([df_russia, df_cis], ignore_index=True)
@@ -86,6 +89,24 @@ def form2(request):
                 return render(
                     request, "forms_app/form2.html", {"error": "Неизвестный режим."}
                 )
+            # начало изменений
+        except Exception as e:
+            import traceback
+
+            error_details = traceback.format_exc()
+            print("=== FORM2 FULL ERROR TRACEBACK ===")
+            print(error_details)
+            print("=== END ERROR ===")
+            # Более информативное сообщение для пользователя
+            error_message = f"Ошибка чтения Excel файла: {str(e)}"
+            if "No engine for filetype" in str(e):
+                error_message = (
+                    "Неверный формат файла. Загрузите файл в формате .xlsx или .xls"
+                )
+            elif "file is not a zip file" in str(e):
+                error_message = "Файл поврежден или имеет неверный формат"
+            return render(request, "forms_app/form2.html", {"error": error_message})
+            # конец изменений
 
             # Список числовых колонок для обработки
             numeric_cols = [
