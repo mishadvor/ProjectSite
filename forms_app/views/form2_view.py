@@ -43,12 +43,21 @@ def form2(request):
 
             print(f"=== FORM2 DEBUG: File saved to {tmp_path} ===")
 
-            # Пробуем прочитать
-            df = pd.read_excel(tmp_path, engine="openpyxl")
-            print(f"=== FORM2 DEBUG: DataFrame shape: {df.shape} ===")
+            # Пробуем прочитать с детальным логированием
+            print("=== FORM2 DEBUG: Before pd.read_excel ===")
+            try:
+                df = pd.read_excel(tmp_path, engine="openpyxl")
+                print(f"=== FORM2 DEBUG: DataFrame shape: {df.shape} ===")
+            except Exception as read_error:
+                print(f"=== FORM2 READ ERROR: {str(read_error)} ===")
+                import traceback
+
+                print(f"=== FORM2 READ TRACEBACK: {traceback.format_exc()} ===")
+                raise read_error
 
             # Удаляем временный файл
             os.unlink(tmp_path)
+            print("=== FORM2 DEBUG: Temp file deleted ===")
 
             return render(
                 request,
