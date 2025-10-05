@@ -31,11 +31,11 @@ def form2(request):
 
             print(f"=== FORM2 DEBUG: File: {file.name}, Size: {file.size} ===")
 
-            # Простейшее чтение файла
             import tempfile
             import os
+            import signal
 
-            # Сохраняем файл временно для диагностики
+            # Сохраняем файл временно
             with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp_file:
                 for chunk in file.chunks():
                     tmp_file.write(chunk)
@@ -43,11 +43,48 @@ def form2(request):
 
             print(f"=== FORM2 DEBUG: File saved to {tmp_path} ===")
 
-            # Пробуем прочитать с детальным логированием
-            print("=== FORM2 DEBUG: Before pd.read_excel ===")
+            # Функция с таймаутом
+            def read_excel_with_timeout(path, timeout=30):
+                def timeout_handler(signum, frame):
+                    raise TimeoutError("Чтение Excel превысило время ожидания")
+
+                # Устанавливаем таймаут
+                signal.signal(signal.SIGALRM, timeout_handler)
+                signal.alarm(timeout)
+
+                try:
+                    result = pd.read_excel(path, engine="openpyxl")
+                    signal.alarm(0)  # Отключаем таймаут
+                    return result
+                except TimeoutError:
+                    print("=== FORM2 DEBUG: TIMEOUT ERROR ===")
+                    raise
+                except Exception as e:
+                    signal.alarm(0)  # Отключаем таймаут при других ошибках
+                    raise
+
+            # Пробуем прочитать с таймаутом
+            print("=== FORM2 DEBUG: Before pd.read_excel with timeout ===")
             try:
-                df = pd.read_excel(tmp_path, engine="openpyxl")
+                df = read_excel_with_timeout(tmp_path, timeout=60)
                 print(f"=== FORM2 DEBUG: DataFrame shape: {df.shape} ===")
+            except TimeoutError:
+                print("=== FORM2 DEBUG: Excel reading timed out ===")
+                # Пробуем альтернативный метод - чтение по частям
+                try:
+                    print("=== FORM2 DEBUG: Trying chunk reading ===")
+                    chunks = []
+                    for chunk in pd.read_excel(
+                        tmp_path, engine="openpyxl", chunksize=1000
+                    ):
+                        chunks.append(chunk)
+                    df = pd.concat(chunks, ignore_index=True)
+                    print(
+                        f"=== FORM2 DEBUG: Chunk reading success, shape: {df.shape} ==="
+                    )
+                except Exception as chunk_error:
+                    print(f"=== FORM2 CHUNK ERROR: {str(chunk_error)} ===")
+                    raise chunk_error
             except Exception as read_error:
                 print(f"=== FORM2 READ ERROR: {str(read_error)} ===")
                 import traceback
