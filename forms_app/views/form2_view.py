@@ -50,7 +50,13 @@ def safe_mean_calculation(x, decimals=1):
         return 0.0
 
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+
 def form2(request):
+    logger.info("FORM2: Function started")  # Это поможет отследить
     if request.method == "POST":
         mode = request.POST.get("mode")
         try:
