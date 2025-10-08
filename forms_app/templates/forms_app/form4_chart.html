@@ -102,6 +102,11 @@
     class="btn {% if chart_type == 'percent' %}active{% endif %}"
     >% Выкупа</a
   >
+  <a
+    href="{% url 'forms_app:form4_chart_type' code=code chart_type='price' %}"
+    class="btn {% if chart_type == 'price' %}active{% endif %}"
+    >🏷️ Цена Наша Средняя</a
+  >
 </div>
 
 <!-- Chart.js -->

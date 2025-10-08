@@ -377,19 +377,28 @@ def form4_chart(request, code, chart_type=None):
     # Форматируем даты и данные
     dates = [r.date.strftime("%d.%m.%Y") for r in records]
     if chart_type == "sales":
-        data = [float(r.clear_sales_our or 0) for r in records]
+        # Округляем до 1 знака после запятой
+        data = [round(float(r.clear_sales_our or 0), 1) for r in records]
         label = "Чистые продажи Наши"
         color = "rgb(54, 162, 235)"
     elif chart_type == "orders":
+        # Заказы - целые числа, округление не нужно
         data = [r.orders or 0 for r in records]
         label = "Заказы"
         color = "rgb(153, 102, 255)"
     elif chart_type == "percent":
-        data = [float(r.percent_sell or 0) for r in records]
+        # Округляем до 1 знака после запятой
+        data = [round(float(r.percent_sell or 0), 1) for r in records]
         label = "% Выкупа"
         color = "rgb(255, 159, 64)"
+    elif chart_type == "price":  # <-- НОВЫЙ БЛОК ДЛЯ "Наша цена Средняя"
+        # Округляем до 1 знака после запятой
+        data = [round(float(r.our_price_mid or 0), 1) for r in records]
+        label = "Наша цена Средняя"
+        color = "rgb(255, 99, 132)"  # Ярко-красный цвет для цены
     else:  # profit
-        data = [float(r.profit or 0) for r in records]
+        # Округляем до 1 знака после запятой
+        data = [round(float(r.profit or 0), 1) for r in records]
         label = "Прибыль"
         color = "rgb(75, 192, 192)"
 
