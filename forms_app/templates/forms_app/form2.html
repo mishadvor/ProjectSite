@@ -1,49 +1,61 @@
 <!-- forms_app/templates/forms_app/form2.html -->
-{% extends "forms_app/base_form.html" %}
-{% block title %}Форма 2: Обработка детализированных отчётов Wildberries{% endblock %}
+{% extends "forms_app/base_form.html" %} {% block title %}Форма 2: Обработка
+детализированных отчётов Wildberries{% endblock %} {% block content %}
+<h2>📊 Форма 2. Обработка ДЕТАЛИЗИРОВАННЫХ финансовых отчётов Wildberries</h2>
+<p>Выберите режим работы и загрузите один или два файла.</p>
 
-{% block content %}
-    <h2>📊 Форма 2. Обработка ДЕТАЛИЗИРОВАННЫХ финансовых отчётов Wildberries</h2>
-    <p>Выберите режим работы и загрузите один или два файла.</p>
+<form method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+  <label>
+    <input type="radio" name="mode" value="single" checked /> Один файл
+  </label>
+  <br />
+  <label>
+    <input type="radio" name="mode" value="combined" /> Два файла (Россия + СНГ)
+  </label>
+  <br /><br />
 
-    <form method="post" enctype="multipart/form-data">
-        {% csrf_token %}
-        <label>
-            <input type="radio" name="mode" value="single" checked> Один файл
-        </label>
-        <br>
-        <label>
-            <input type="radio" name="mode" value="combined"> Два файла (Россия + СНГ)
-        </label>
-        <br><br>
+  <label>Файл отчёта Wildberries:</label><br /><br />
+  <input type="file" name="file_single" accept=".xlsx,.xls" /><br /><br />
 
-        <label>Файл отчёта Wildberries:</label><br><br>
-        <input type="file" name="file_single" accept=".xlsx,.xls"><br><br>
+  <div id="multiFiles" style="display: none">
+    <label>Файл по России:</label>
+    <input type="file" name="file_russia" accept=".xlsx,.xls" /><br />
 
-        <div id="multiFiles" style="display: none;">
-            <label>Файл по России:</label>
-            <input type="file" name="file_russia" accept=".xlsx,.xls"><br>
+    <label>Файл по СНГ:</label>
+    <input type="file" name="file_cis" accept=".xlsx,.xls" /><br />
+  </div>
 
-            <label>Файл по СНГ:</label>
-            <input type="file" name="file_cis" accept=".xlsx,.xls"><br>
-        </div>
+  <!-- Поле для себестоимости -->
+  <br />
+  <label for="sebestoimost">Себестоимость товара (руб):</label><br />
+  <input
+    type="number"
+    id="sebestoimost"
+    name="sebestoimost"
+    value="600"
+    min="0"
+    step="10"
+    required
+    style="width: 120px; padding: 5px"
+  /><br /><br />
 
-        <button type="submit" class="btn">Обработать</button>
-    </form>
+  <button type="submit" class="btn">Обработать</button>
+</form>
 
-    <script>
-        // Отображение полей в зависимости от режима
-        const modeRadios = document.querySelectorAll('input[name="mode"]');
-        const multiFiles = document.getElementById('multiFiles');
+<script>
+  // Отображение полей в зависимости от режима
+  const modeRadios = document.querySelectorAll('input[name="mode"]');
+  const multiFiles = document.getElementById("multiFiles");
 
-        modeRadios.forEach(radio => {
-            radio.addEventListener('change', () => {
-                if (radio.value === 'combined') {
-                    multiFiles.style.display = 'block';
-                } else {
-                    multiFiles.style.display = 'none';
-                }
-            });
-        });
-    </script>
+  modeRadios.forEach((radio) => {
+    radio.addEventListener("change", () => {
+      if (radio.value === "combined") {
+        multiFiles.style.display = "block";
+      } else {
+        multiFiles.style.display = "none";
+      }
+    });
+  });
+</script>
 {% endblock %}

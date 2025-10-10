@@ -53,6 +53,11 @@ def safe_mean_calculation(x, decimals=1):
 def form2(request):
     if request.method == "POST":
         mode = request.POST.get("mode")
+        # Получаем себестоимость из формы
+        try:
+            sebestoimost = float(request.POST.get("sebestoimost", 600))
+        except (ValueError, TypeError):
+            sebestoimost = 600.0
         try:
             # Загрузка файлов
             if mode == "single":
@@ -302,38 +307,43 @@ def form2(request):
                     axis=1,
                 )
 
-                # Расчет показателей логистики
-                for col in [
+                # Убедимся, что нужные колонки существуют и числовые
+                required_events = [
                     "К клиенту при продаже",
                     "От клиента при возврате",
                     "От клиента при отмене",
-                ]:
-                    status_log[col] = status_log.get(col, pd.Series(0)).fillna(0)
+                ]
+                for event in required_events:
+                    if event not in status_log.columns:
+                        status_log[event] = 0
+                    # Приводим к числу (на случай, если остались строки)
+                    status_log[event] = (
+                        pd.to_numeric(status_log[event], errors="coerce")
+                        .fillna(0)
+                        .astype(float)
+                    )
 
+                # Расчёт числителя и знаменателя
                 numerator = status_log["К клиенту при продаже"]
                 denominator = (
-                    status_log["От клиента при отмене"]
-                    + status_log["К клиенту при продаже"]
+                    status_log["К клиенту при продаже"]
                     + status_log["От клиента при возврате"]
+                    + status_log["От клиента при отмене"]
                 )
 
-                status_log["%Выкупа"] = np.where(
-                    (numerator == 0) & (denominator == 0),
-                    0,
-                    np.where(
-                        (numerator == 0) & (denominator > 0),
-                        0,
-                        np.where(
-                            denominator == 0, 0, (numerator / denominator) * 100
-                        ).astype(int),
-                    ),
-                )
+                # Безопасный расчёт %Выкупа без .fillna() на ndarray
+                with np.errstate(divide="ignore", invalid="ignore"):
+                    buyout_rate = np.where(
+                        denominator == 0, 0.0, (numerator / denominator) * 100
+                    )
 
-                status_log["Себес Продаж (600р)"] = (numerator * 600).round(0)
+                # Присваиваем результат (округляем до 1 знака)
+                status_log["%Выкупа"] = np.round(buyout_rate.astype(float), 1)
+
+                # Дополнительные расчёты
+                status_log["Себес Продаж"] = (numerator * sebestoimost).round(0)
                 status_log["Чистые продажи, шт"] = numerator
                 status_log["Заказы"] = denominator
-                status_log["От клиента при возврате"]
-                status_log["От клиента при отмене"]
 
                 # Объединение с данными логистики
                 third_merged = second_merged.merge(
@@ -341,7 +351,7 @@ def form2(request):
                         [
                             "Код номенклатуры",
                             "%Выкупа",
-                            "Себес Продаж (600р)",
+                            "Себес Продаж",
                             "Чистые продажи, шт",
                             "Заказы",
                             "От клиента при возврате",
@@ -369,7 +379,7 @@ def form2(request):
             # Финальные расчеты
             third_merged["Маржа"] = (
                 third_merged["Чистое Перечисление без Логистики"]
-                - third_merged["Себес Продаж (600р)"]
+                - third_merged["Себес Продаж"]
             ).round(1)
 
             third_merged["Налоги"] = (
@@ -416,7 +426,7 @@ def form2(request):
                 "Чистая реализация ВБ",
                 "Чистое Перечисление",
                 "Чистое Перечисление без Логистики",
-                "Себес Продаж (600р)",
+                "Себес Продаж",
                 "Прибыль",
                 "Наша цена Средняя",  # Наша цена Средняя
                 "Реализация ВБ Средняя",
@@ -573,7 +583,7 @@ def form2(request):
                         third_merged["Чистое Перечисление без Логистики"].sum(),
                         third_merged["Чистые продажи, шт"].sum(),
                         third_merged["Заказы"].sum(),
-                        third_merged["Себес Продаж (600р)"].sum(),
+                        third_merged["Себес Продаж"].sum(),
                         third_merged["Прибыль"].sum(),
                         all_add_log["Общая сумма штрафов"].sum(),
                         all_add_log["Хранение"].sum(),
@@ -678,7 +688,7 @@ def form2(request):
 
                         try:
                             qty_col = col_names["Чистые продажи, шт"]
-                            cost_col = col_names["Себес Продаж (600р)"]
+                            cost_col = col_names["Себес Продаж"]
                             margin_col = col_names["Маржа"]
                             tax_col = col_names["Налоги"]
                             extra_deduction_col = col_names[
