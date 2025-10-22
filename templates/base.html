@@ -23,7 +23,7 @@
     <!-- Подключаем Font Awesome для иконок -->
     <link
       rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      href="  https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css  "
     />
 
     <style>
@@ -126,10 +126,10 @@
       } /* Красный */
 
       .form-btn-6 {
-        background: #9e9e9e; /* Серый для неработающей функции */
+        background: #ff5722; /* ярко-оранжевый цвет */
       }
       .form-btn-6:hover {
-        background: #757575;
+        background: #e64a19;
       }
 
       .form-btn-7 {
@@ -146,26 +146,27 @@
         background: #689f38;
       }
 
-      .form-btn-1:hover {
-        background: #3e8e41;
+      .form-btn-9 {
+        background: #e91e63; /* Розовый для Формы 9 */
       }
-      .form-btn-2:hover {
-        background: #0b7dda;
+      .form-btn-9:hover {
+        background: #c2185b;
       }
-      .form-btn-3:hover {
-        background: #7b1fa2;
+
+      .form-btn-10 {
+        background: #ffeb3b; /* Желтый для Формы 10 */
+        color: black; /* Черный текст для лучшей читаемости */
       }
-      .form-btn-4:hover {
-        background: #e68a00;
+      .form-btn-10:hover {
+        background: #fdd835;
       }
-      .form-btn-5:hover {
-        background: #d32f2f;
+
+      .form-btn-11 {
+        /* Новый класс для Формы 11 */
+        background: #3f51b5; /* Индиго для Формы 11 */
       }
-      .form-btn-6 {
-        background: #ff5722; /* ярко-оранжевый цвет */
-      }
-      .form-btn-6:hover {
-        background: #e64a19;
+      .form-btn-11:hover {
+        background: #303f9f;
       }
 
       /* Контейнер форм */
@@ -288,10 +289,7 @@
               </a>
               <div class="form-label">Склад старый</div>
             </div>
-          </div>
 
-          <!-- Нижний ряд -->
-          <div class="forms-row">
             <!-- Форма 6 -->
             <div class="form-item">
               <a href="{% url 'forms_app:form6' %}" class="form-btn form-btn-6">
@@ -299,7 +297,11 @@
               </a>
               <div class="form-label">Склад Новый</div>
             </div>
+          </div>
+          <!-- Закрытие верхнего ряда -->
 
+          <!-- Нижний ряд -->
+          <div class="forms-row">
             <!-- Форма 7 -->
             <div class="form-item">
               <a
@@ -309,20 +311,9 @@
                 <i class="fas fa-calendar-alt"></i> Форма 7
               </a>
               <div class="form-label">Формы 2 по датам</div>
-
-              <!-- Форма 10 — Экспресс анализ -->
-              <div class="form-item">
-                <a
-                  href="{% url 'forms_app:form10_view' %}"
-                  class="form-btn form-btn-1"
-                >
-                  <i class="fas fa-bolt"></i> Форма 10
-                </a>
-                <div class="form-label">Экспресс анализ продаж</div>
-              </div>
             </div>
 
-            <!-- График прибыли -->
+            <!-- График Прибыли -->
             <div class="form-item">
               <a
                 href="{% url 'forms_app:form7_graph' %}"
@@ -348,14 +339,38 @@
             <div class="form-item">
               <a
                 href="{% url 'forms_app:form9_view' %}"
-                class="form-btn form-btn-6"
+                class="form-btn form-btn-9"
               >
                 <i class="fas fa-sync-alt"></i> Форма 9
               </a>
               <div class="form-label">Оборачиваемость</div>
             </div>
+
+            <!-- Форма 10 -->
+            <div class="form-item">
+              <a
+                href="{% url 'forms_app:form10_view' %}"
+                class="form-btn form-btn-10"
+              >
+                <i class="fas fa-bolt"></i> Форма 10
+              </a>
+              <div class="form-label">Экспресс анализ продаж</div>
+            </div>
+
+            <!-- Форма 11 -->
+            <div class="form-item">
+              <a
+                href="{% url 'forms_app:form11_view' %}"
+                class="form-btn form-btn-11"
+              >
+                <i class="fas fa-box-open"></i> Форма 11
+              </a>
+              <div class="form-label">Формирование ФБО</div>
+            </div>
           </div>
+          <!-- Закрытие нижнего ряда -->
         </div>
+        <!-- Закрытие forms-grid -->
 
         <!-- Остальные кнопки (Теория, Профиль и т.д.) -->
         <div style="text-align: center; margin-top: 15px">

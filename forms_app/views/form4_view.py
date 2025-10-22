@@ -135,6 +135,7 @@ def upload_file(request):
                         percent_sell=safe_float(row.get("%Выкупа")),
                         profit=safe_float(row.get("Прибыль")),
                         orders=safe_int(row.get("Заказы")),
+                        percent_log_price=safe_float(row.get("% Лог/Наша Цена")),
                     )
                 )
 
@@ -286,6 +287,7 @@ def export_form4_excel(request):
                 "%Выкупа": item.percent_sell,
                 "Прибыль": item.profit,
                 "Заказы": item.orders,
+                "% Лог/Наша Цена": item.percent_log_price,
             }
         )
 
@@ -396,6 +398,11 @@ def form4_chart(request, code, chart_type=None):
         data = [round(float(r.our_price_mid or 0), 1) for r in records]
         label = "Наша цена Средняя"
         color = "rgb(255, 99, 132)"  # Ярко-красный цвет для цены
+    elif chart_type == "log_price_percent":
+        # Округляем до 1 знака после запятой
+        data = [round(float(r.percent_log_price or 0), 1) for r in records]
+        label = "% Лог/Наша Цена"
+        color = "rgb(255, 205, 86)"  # Жёлтый цвет
     else:  # profit
         # Округляем до 1 знака после запятой
         data = [round(float(r.profit or 0), 1) for r in records]

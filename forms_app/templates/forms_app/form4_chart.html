@@ -107,6 +107,11 @@
     class="btn {% if chart_type == 'price' %}active{% endif %}"
     >🏷️ Цена Наша Средняя</a
   >
+  <a
+    href="{% url 'forms_app:form4_chart_type' code=code chart_type='log_price_percent' %}"
+    class="btn {% if chart_type == 'log_price_percent' %}active{% endif %}"
+    >🚚% Лог/Цена</a
+  >
 </div>
 
 <!-- Chart.js -->
@@ -119,15 +124,17 @@
       // Проверяем данные
       const labels = {{ dates|safe }};
       const chartData = {{ data|safe }};
+      // Получаем chart_type из шаблона, чтобы использовать в JavaScript
+      const chartType = '{{ chart_type }}';
 
       // Создаём график
       new Chart(ctx, {
           type: 'line',
-          data: {
+          data: { // <-- ✅ ИСПРАВЛЕНО: добавлено 'data:'
               labels: labels,
               datasets: [{
                   label: '{{ label }}',
-                  data: chartData,
+                  data: chartData, // <-- ✅ ИСПРАВЛЕНО: добавлено 'data:' внутри datasets
                   borderColor: '{{ color }}',
                   backgroundColor: '{{ color }}'.replace(')', ', 0.1)'),
                   borderWidth: 2,
@@ -152,12 +159,13 @@
                       beginAtZero: false,
                       ticks: {
                           callback: function(value) {
-                              // Форматируем числа в зависимости от типа
-                              if ('{{ label }}' === '% Выкупа') {
+                              // Форматируем числа в зависимости от chart_type
+                              if (chartType === 'percent' || chartType === 'log_price_percent') { // <-- Проверка по chart_type
                                   return value + '%';
-                              } else if ('{{ label }}' === 'Заказы') {
+                              } else if (chartType === 'orders') { // <-- Проверка по chart_type
                                   return value;
                               } else {
+                                  // Для остальных (profit, sales, price) по умолчанию рубли
                                   return value.toLocaleString() + ' ₽';
                               }
                           }

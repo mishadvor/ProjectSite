@@ -1,0 +1,60 @@
+<!-- forms_app/templates/forms_app/form11.html -->
+
+{% extends "base.html" %} {% load static %} {% block title %}Форма 11 —
+Формирование ФБО{% endblock %} {% block content %}
+<div class="container">
+  <h2 class="mb-3 text-center">📦 Форма 11 — Формирование ФБО</h2>
+
+  <div
+    class="text-center mb-4 text-muted"
+    style="font-size: 0.95em; line-height: 1.5"
+  >
+    <p class="mb-0">
+      Загрузите <strong>отчёт по продажам и остаткам с Wildberries</strong> в
+      формате <code>.xlsx</code>.
+    </p>
+    <p class="mb-0">
+      Файл можно скачать в личном кабинете WB:
+      <strong>Аналитика → Отчёты → Продажи</strong>
+    </p>
+    <p class="mb-0 mt-1">
+      <em>Формируется на основе текущего спроса по Федеральным Округам.</em>
+    </p>
+  </div>
+
+  <!-- Форма загрузки -->
+  <form
+    method="post"
+    enctype="multipart/form-data"
+    class="border p-4 bg-white rounded shadow-sm"
+  >
+    {% csrf_token %}
+    <div class="mb-3">
+      <label for="excel_file" class="form-label">
+        <i class="fas fa-file-excel"></i> Загрузите Excel-файл (формат .xlsx):
+      </label>
+      <input
+        type="file"
+        class="form-control"
+        id="excel_file"
+        name="excel_file"
+        accept=".xlsx"
+        required
+      />
+    </div>
+    <button type="submit" class="btn btn-primary">
+      <i class="fas fa-cogs"></i> Обработать файл
+    </button>
+  </form>
+
+  <!-- Ошибка - Исправлено: используем {{ error }}, а не {{ error_message }} -->
+  {% if error %}
+  <div class="alert alert-danger mt-4">
+    <i class="fas fa-exclamation-triangle"></i> {{ error }}
+  </div>
+  {% endif %}
+
+  <!-- Сообщение об успехе (если нужно, но файл отправляется напрямую) -->
+  <!-- Не используется, так как файл отправляется через HttpResponse -->
+</div>
+{% endblock %}

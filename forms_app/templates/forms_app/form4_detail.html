@@ -50,6 +50,7 @@
         <th>Себес Продаж (600р)</th>
         <th>Прибыль на 1 Юбку</th>
         <th>%Выкупа</th>
+        <th>% Лог/Наша Цена</th>
         <th>Прибыль</th>
         <th>Заказы</th>
         <th>Действия</th>
@@ -71,6 +72,7 @@
         <td>{{ r.sebes_sale|floatformat:2|default:"—" }}</td>
         <td>{{ r.profit_1|floatformat:2|default:"—" }}</td>
         <td>{{ r.percent_sell|floatformat:1|default:"—" }}</td>
+        <td>{{ r.percent_log_price|floatformat:1|default:"—" }}</td>
         <td>{{ r.profit|floatformat:2|default:"—" }}</td>
         <td>{{ r.orders|default:"—" }}</td>
         <td>
@@ -106,6 +108,11 @@
       href="{% url 'forms_app:form4_chart_type' code=code chart_type='price' %}"
       class="btn"
       >🏷️ Цена Наша Средняя</a
+    >
+     <a
+      href="{% url 'forms_app:form4_chart_type' code=code chart_type='log_price_percent' %}"
+      class="btn"
+      >🚚% Лог/Цена</a
     >
 
   </div>
