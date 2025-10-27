@@ -400,7 +400,12 @@ def form4_chart(request, code, chart_type=None):
         color = "rgb(255, 99, 132)"  # Ярко-красный цвет для цены
     elif chart_type == "log_price_percent":
         # Округляем до 1 знака после запятой
-        data = [round(float(r.percent_log_price or 0), 1) for r in records]
+        data = [
+            round(
+                float(r.percent_log_price if r.percent_log_price is not None else 0), 1
+            )
+            for r in records
+        ]
         label = "% Лог/Наша Цена"
         color = "rgb(255, 205, 86)"  # Жёлтый цвет
     else:  # profit
