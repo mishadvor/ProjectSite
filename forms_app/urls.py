@@ -52,6 +52,22 @@ from .views.form10_view import form10_view
 # --- Форма 11 ---
 from .views.form11_view import form11_view
 
+# ---- Форма 12 -----
+from .views.form12_view import (
+    upload_file12,
+    form12_list,
+    form12_detail,
+    form12_edit,
+    form12_delete,  # Убедитесь, что это есть
+    form12_delete_article,  # Добавьте эту функцию
+    form12_delete_all,  # Добавьте эту функцию
+    export_form12_excel,
+    form12_chart,
+    clear_form12_data,
+)
+
+from .views.form13_view import form13_simple_upload
+
 app_name = "forms_app"
 
 urlpatterns = [
@@ -106,4 +122,28 @@ urlpatterns = [
     path("form10/", form10_view, name="form10_view"),
     # --- Форма 11 -----
     path("form11/", form11_view, name="form11_view"),
+    # --- Форма 12 ---
+    path("form12/upload/", upload_file12, name="form12_upload"),
+    path("form12/list/", form12_list, name="form12_list"),
+    path("form12/detail/<str:wb_article>/", form12_detail, name="form12_detail"),
+    path("form12/edit/<int:pk>/", form12_edit, name="form12_edit"),
+    path("form12/export/", export_form12_excel, name="form12_export"),
+    path(
+        "form12/chart/<str:wb_article>/<str:chart_type>/",
+        form12_chart,
+        name="form12_chart",
+    ),
+    path("form12/clear/", clear_form12_data, name="form12_clear"),
+    # Три уровня удаления:
+    path("form12/delete/<int:pk>/", form12_delete, name="form12_delete"),  # Одна запись
+    path(
+        "form12/delete-article/<str:wb_article>/",
+        form12_delete_article,
+        name="form12_delete_article",
+    ),  # Один артикул
+    path(
+        "form12/delete-all/", form12_delete_all, name="form12_delete_all"
+    ),  # Все данные
+    # --- Форма 13 (простая версия) ---
+    path("form13/", form13_simple_upload, name="form13_simple"),
 ]

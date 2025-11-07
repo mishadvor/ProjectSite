@@ -1,0 +1,54 @@
+<!-- forms_app/templates/forms_app/form12_confirm_delete.html -->
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header bg-warning">
+            <h4 class="mb-0">🗑️ Подтверждение удаления</h4>
+        </div>
+        <div class="card-body">
+            <p class="alert alert-danger">
+                <strong>Внимание!</strong> Вы собираетесь удалить запись. Это действие нельзя отменить.
+            </p>
+            
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h5>Данные записи:</h5>
+                    <table class="table table-sm">
+                        <tr>
+                            <th>Дата:</th>
+                            <td>{{ record.date|date:"d.m.Y" }}</td>
+                        </tr>
+                        <tr>
+                            <th>Артикул WB:</th>
+                            <td>{{ record.wb_article }}</td>
+                        </tr>
+                        <tr>
+                            <th>Артикул продавца:</th>
+                            <td>{{ record.seller_article|default:"—" }}</td>
+                        </tr>
+                        <tr>
+                            <th>Заказы, шт.:</th>
+                            <td>{{ record.orders_qty|default:"—" }}</td>
+                        </tr>
+                        <tr>
+                            <th>Выкупили, шт.:</th>
+                            <td>{{ record.sold_qty|default:"—" }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <form method="post">
+                {% csrf_token %}
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-danger">🗑️ Удалить запись</button>
+                    <a href="{% url 'forms_app:form12_detail' record.wb_article %}" class="btn btn-secondary">❌ Отмена</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

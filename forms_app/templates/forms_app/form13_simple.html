@@ -1,0 +1,79 @@
+<!-- forms_app/templates/forms_app/form13_simple.html -->
+{% extends "base.html" %}  <!-- или возможно "forms_app/base.html" -->
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-clipboard-check me-2"></i>
+                        Форма 13: Признаки доступности
+                    </h4>
+                </div>
+                
+                <div class="card-body">
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <!-- Информационный блок -->
+                    <div class="alert alert-info">
+                        <h5 class="alert-heading">
+                            <i class="fas fa-info-circle me-2"></i>Инструкция:
+                        </h5>
+                        <ul class="mb-0">
+                            <li>Загрузите Excel файл с вкладки "Детальная информация" из отчета Wildberries</li>
+                            <li>Файл должен содержать колонки: <strong>Артикул продавца, Артикул WB, Доступность</strong></li>
+                            <li>Система создаст отчет с сортировкой по статусам и цветовым кодированием</li>
+                        </ul>
+                    </div>
+
+                    <!-- Форма загрузки -->
+                    <form method="post" enctype="multipart/form-data" class="mb-4">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="file" class="form-label fw-bold">Выберите Excel файл:</label>
+                            <input type="file" class="form-control form-control-lg" id="file" name="file" accept=".xlsx" required>
+                            <div class="form-text">Поддерживаются только файлы в формате .xlsx</div>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-success btn-lg w-100 py-3">
+                            <i class="fas fa-file-excel me-2"></i>Обработать и скачать отчет
+                        </button>
+                    </form>
+
+                    <!-- Информация о статусах -->
+                    <div class="mt-4 p-3 border rounded">
+                        <h6 class="fw-bold mb-3">Порядок сортировки и цветовое кодирование статусов:</h6>
+                        <div class="row g-2">
+                            <div class="col-md-6 col-lg-4">
+                                <span class="badge bg-danger status-badge p-2 w-100">Дефицит</span>
+                            </div>
+                            <div class="col-md-6 col-lg-4">
+                                <span class="badge bg-success status-badge p-2 w-100">Актуальный</span>
+                            </div>
+                            <div class="col-md-6 col-lg-4">
+                                <span class="badge bg-primary status-badge p-2 w-100">Баланс</span>
+                            </div>
+                            <div class="col-md-6 col-lg-4">
+                                <span class="badge bg-warning status-badge p-2 w-100 text-dark">Неликвидный</span>
+                            </div>
+                            <div class="col-md-6 col-lg-4">
+                                <span class="badge bg-info status-badge p-2 w-100">Не рассчитано</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

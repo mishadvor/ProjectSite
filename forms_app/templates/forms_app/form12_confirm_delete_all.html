@@ -1,0 +1,52 @@
+<!-- forms_app/templates/forms_app/form12_confirm_delete_all.html -->
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h4 class="mb-0">💥 Удаление ВСЕХ данных формы 12</h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-danger">
+                        <strong>🚨 КРИТИЧЕСКОЕ ДЕЙСТВИЕ!</strong><br>
+                        Вы собираетесь удалить <strong>ВСЕ данные формы 12</strong>.
+                    </div>
+                    
+                    <div class="card mb-4">
+                        <div class="card-body">
+                            <h5>Будут удалены:</h5>
+                            <table class="table table-sm table-bordered">
+                                <tr>
+                                    <th style="width: 60%">Общее количество записей:</th>
+                                    <td class="text-danger"><strong>{{ records_count }} записей</strong></td>
+                                </tr>
+                                <tr>
+                                    <th>Количество артикулов:</th>
+                                    <td class="text-danger"><strong>{{ articles_count }} артикулов</strong></td>
+                                </tr>
+                            </table>
+                            <small class="text-muted">Будут удалены ВСЕ исторические данные по ВСЕМ артикулам.</small>
+                        </div>
+                    </div>
+
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-danger">
+                                💥 Удалить ВСЕ {{ records_count }} записей
+                            </button>
+                            <a href="{% url 'forms_app:form12_list' %}" class="btn btn-secondary">
+                                ❌ Отмена
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

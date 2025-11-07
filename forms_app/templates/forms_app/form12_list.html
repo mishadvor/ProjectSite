@@ -1,0 +1,221 @@
+<!-- forms_app/templates/forms_app/form12_list.html -->
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>📦 Список артикулов WB</h2>
+        <div>
+            <a href="{% url 'forms_app:form12_upload' %}" class="btn btn-success">
+                📤 Загрузить данные
+            </a>
+            <a href="{% url 'forms_app:form12_export' %}" class="btn btn-outline-primary">
+                📊 Экспорт в Excel
+            </a>
+            <!-- Добавить рядом с другими кнопками -->
+            <a href="{% url 'forms_app:form12_delete_all' %}" class="btn shadow-sm" style="background: linear-gradient(45deg, #dc3545, #c82333) !important; border: 1px solid #bd2130 !important; color: white !important; text-shadow: 0 1px 1px rgba(0,0,0,0.2);">
+                💥 Очистить все
+            </a>
+        </div>
+    </div>
+
+    {% if articles_with_seller %}
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Артикулы</h5>
+            <div class="d-flex align-items-center">
+                <span class="badge bg-primary me-3" id="article-count">{{ articles_with_seller|length }} артикулов</span>
+                <div class="input-group" style="width: 400px;">
+                    <span class="input-group-text bg-light">🔍</span>
+                    <input type="text" id="search-input" class="form-control form-control-lg" placeholder="Поиск по артикулам WB или продавца...">
+                    <button class="btn btn-outline-secondary" type="button" id="clear-search" title="Очистить поиск">
+                        ❌
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-container" style="max-height: 600px; overflow-y: auto;">
+                <table class="table table-striped table-hover mb-0" id="articles-table">
+                    <thead class="table-light sticky-top">
+                        <tr>
+                            <th style="width: 25%">Артикул WB</th>
+                            <th style="width: 50%">Артикул продавца</th>
+                            <th style="width: 25%">Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody id="articles-tbody">
+                        {% for article in articles_with_seller %}
+                        <tr class="article-row">
+                            <td>
+                                <strong class="wb-article">{{ article.wb_article }}</strong>
+                            </td>
+                            <td class="seller-article">{{ article.seller_article }}</td>
+                            <td>
+                                <div class="d-flex flex-nowrap gap-1">
+                                    <a href="{% url 'forms_app:form12_detail' article.wb_article %}" class="btn btn-sm btn-outline-primary" title="Просмотреть детали" style="min-width: 45px;">
+                                        👁️
+                                    </a>
+                                    <a href="{% url 'forms_app:form12_chart' article.wb_article 'orders' %}" class="btn btn-sm btn-outline-success" title="Посмотреть графики" style="min-width: 45px;">
+                                        📈
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card-footer text-muted">
+            <small>Найдено: <span id="visible-count">{{ articles_with_seller|length }}</span> из {{ articles_with_seller|length }} артикулов</small>
+        </div>
+    </div>
+    {% else %}
+    <div class="card">
+        <div class="card-body text-center py-5">
+            <h4 class="text-muted">📭 Нет данных</h4>
+            <p class="text-muted">Загрузите данные, чтобы увидеть список артикулов</p>
+            <a href="{% url 'forms_app:form12_upload' %}" class="btn btn-primary">
+                📤 Загрузить первый файл
+            </a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.table-container {
+    position: relative;
+}
+
+.sticky-top {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background-color: #f8f9fa;
+}
+
+.article-row {
+    transition: all 0.3s ease;
+}
+
+.highlight {
+    background-color: #fff3cd !important;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(0, 123, 255, 0.075);
+}
+
+/* Стили для кнопок действий */
+.d-flex.flex-nowrap {
+    flex-wrap: nowrap;
+}
+
+.btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+    min-width: 45px;
+}
+
+/* Стили для скроллбара */
+.table-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+.table-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.table-container::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+}
+
+.table-container::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+/* Увеличенное поле поиска */
+.input-group {
+    width: 400px !important;
+}
+
+.form-control-lg {
+    font-size: 1rem;
+    padding: 0.75rem 1rem;
+}
+
+.input-group-text {
+    font-size: 1.1rem;
+}
+
+/* Компактные кнопки */
+.btn-compact {
+    min-width: 45px !important;
+    padding: 0.25rem 0.4rem !important;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('search-input');
+    const clearSearch = document.getElementById('clear-search');
+    const articleRows = document.querySelectorAll('.article-row');
+    const visibleCount = document.getElementById('visible-count');
+    const totalCount = {{ articles_with_seller|length }};
+
+    function performSearch() {
+        const searchTerm = searchInput.value.toLowerCase().trim();
+        let visibleRows = 0;
+
+        articleRows.forEach(row => {
+            const wbArticle = row.querySelector('.wb-article').textContent.toLowerCase();
+            const sellerArticle = row.querySelector('.seller-article').textContent.toLowerCase();
+            
+            const matches = wbArticle.includes(searchTerm) || sellerArticle.includes(searchTerm);
+            
+            if (matches) {
+                row.style.display = '';
+                visibleRows++;
+                // Подсветка совпадений
+                if (searchTerm) {
+                    row.classList.add('highlight');
+                } else {
+                    row.classList.remove('highlight');
+                }
+            } else {
+                row.style.display = 'none';
+                row.classList.remove('highlight');
+            }
+        });
+
+        visibleCount.textContent = visibleRows;
+    }
+
+    // Событие поиска при вводе
+    searchInput.addEventListener('input', performSearch);
+
+    // Очистка поиска
+    clearSearch.addEventListener('click', function() {
+        searchInput.value = '';
+        performSearch();
+        searchInput.focus();
+    });
+
+    // Очистка поиска при нажатии Escape
+    searchInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            searchInput.value = '';
+            performSearch();
+        }
+    });
+
+    // Автофокус на поле поиска
+    searchInput.focus();
+});
+</script>
+{% endblock %}

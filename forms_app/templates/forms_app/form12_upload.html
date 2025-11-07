@@ -1,0 +1,86 @@
+<!-- forms_app/templates/forms_app/form12_upload.html -->
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Form 12: Загрузка данных</h2>
+        <div>
+            <a href="{% url 'forms_app:form12_list' %}" class="btn btn-secondary">
+                📋 К списку артикулов
+            </a>
+        </div>
+    </div>
+
+    <!-- Основной контент -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Загрузка файлов Form12</h5>
+        </div>
+        <div class="card-body">
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+
+                <div class="mb-3">
+                    <label for="{{ form.file.id_for_label }}" class="form-label">
+                        Выберите файлы (.xlsx):
+                    </label>
+                    {{ form.file }}
+                    <div class="form-text">
+                        Можно выбрать несколько файлов. Поддерживаются файлы в формате Excel.
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-success w-100 py-2">
+                    📤 Загрузить файлы
+                </button>
+            </form>
+        </div>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show mt-3" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Разделитель -->
+    <div class="my-4 text-center">
+        <hr style="border-top: 2px dashed #dee2e6; margin: 2rem 0;">
+    </div>
+
+    <!-- Кнопка очистки - ОТДЕЛЬНЫЙ БЛОК -->
+    {% if articles_count > 0 %}
+    <div class="card border-danger">
+        <div class="card-header bg-danger text-white">
+            <h6 class="mb-0">⚠️ Опасная операция</h6>
+        </div>
+        <div class="card-body text-center">
+            <a href="{% url 'forms_app:form12_clear' %}" 
+               class="btn btn-outline-danger btn-lg" 
+               onclick="return confirm('Вы уверены, что хотите удалить ВСЕ данные Form 12?\\n\\nБудет удалено записей: {{ articles_count }}\\n\\nЭто действие нельзя отменить.');">
+                🗑️ Очистить все данные ({{ articles_count }})
+            </a>
+            <small class="d-block text-muted mt-2">
+                Внимание! Это действие удалит все загруженные данные и не может быть отменено.
+            </small>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.card-border-danger {
+    border: 2px solid #dc3545;
+}
+
+.btn-outline-danger:hover {
+    background-color: #dc3545;
+    color: white;
+}
+</style>
+{% endblock %}

@@ -1,0 +1,60 @@
+<!-- forms_app/templates/forms_app/form12_confirm_delete_article.html -->
+{% extends "base.html" %} {% load static %} {% block content %}
+<div class="container mt-4">
+  <div class="row justify-content-center">
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-header bg-warning text-dark">
+          <h4 class="mb-0">🗑️ Удаление данных по артикулу</h4>
+        </div>
+        <div class="card-body">
+          <div class="alert alert-warning">
+            <strong>⚠️ Внимание!</strong><br />
+            Вы собираетесь удалить все записи по артикулу {{ wb_article }}.
+          </div>
+
+          <div class="card mb-4">
+            <div class="card-body">
+              <h5>Данные для удаления:</h5>
+              <table class="table table-sm table-bordered">
+                <tr>
+                  <th style="width: 40%">Артикул WB:</th>
+                  <td>{{ wb_article }}</td>
+                </tr>
+                <tr>
+                  <th>Артикул продавца:</th>
+                  <td>{{ seller_article }}</td>
+                </tr>
+                <tr>
+                  <th>Количество записей:</th>
+                  <td class="text-danger">
+                    <strong>{{ records_count }} записей</strong>
+                  </td>
+                </tr>
+              </table>
+              <small class="text-muted"
+                >Будут удалены все исторические данные по этому артикулу.</small
+              >
+            </div>
+          </div>
+
+          <form method="post">
+            {% csrf_token %}
+            <div class="d-flex gap-2">
+              <button type="submit" class="btn btn-warning">
+                🗑️ Удалить {{ records_count }} записей
+              </button>
+              <a
+                href="{% url 'forms_app:form12_detail' wb_article %}"
+                class="btn btn-secondary"
+              >
+                ❌ Отмена
+              </a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

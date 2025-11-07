@@ -4,7 +4,7 @@
 <html lang="ru">
   <head>
     <meta charset="UTF-8" />
-    <title>{% block title %}Главная страница{% endblock %}</title>
+    <title>{% block title %}Генератор финансовых отчётов{% endblock %}</title>
 
     <!-- Favicon -->
     <link
@@ -162,11 +162,24 @@
       }
 
       .form-btn-11 {
-        /* Новый класс для Формы 11 */
         background: #3f51b5; /* Индиго для Формы 11 */
       }
       .form-btn-11:hover {
         background: #303f9f;
+      }
+
+      .form-btn-12 {
+        background: #607d8b; /* Серо-голубой (Material Design Grey) */
+      }
+      .form-btn-12:hover {
+        background: #455a64;
+      }
+
+      .form-btn-13 {
+        background: #795548; /* Коричневый для Формы 13 */
+      }
+      .form-btn-13:hover {
+        background: #5d4037;
       }
 
       /* Контейнер форм */
@@ -200,7 +213,7 @@
         }
       }
 
-      /* === СЕТКА: ДВА РЯДА ПО 5 КНОПОК === */
+      /* === СЕТКА: ТРИ РЯДА ПО 5 КНОПОК === */
       .forms-grid {
         display: flex;
         flex-direction: column;
@@ -289,7 +302,11 @@
               </a>
               <div class="form-label">Склад старый</div>
             </div>
+          </div>
+          <!-- Закрытие верхнего ряда -->
 
+          <!-- Средний ряд -->
+          <div class="forms-row">
             <!-- Форма 6 -->
             <div class="form-item">
               <a href="{% url 'forms_app:form6' %}" class="form-btn form-btn-6">
@@ -297,11 +314,7 @@
               </a>
               <div class="form-label">Склад Новый</div>
             </div>
-          </div>
-          <!-- Закрытие верхнего ряда -->
 
-          <!-- Нижний ряд -->
-          <div class="forms-row">
             <!-- Форма 7 -->
             <div class="form-item">
               <a
@@ -345,7 +358,11 @@
               </a>
               <div class="form-label">Оборачиваемость</div>
             </div>
+          </div>
+          <!-- Закрытие среднего ряда -->
 
+          <!-- Нижний ряд -->
+          <div class="forms-row">
             <!-- Форма 10 -->
             <div class="form-item">
               <a
@@ -366,6 +383,28 @@
                 <i class="fas fa-box-open"></i> Форма 11
               </a>
               <div class="form-label">Формирование ФБО</div>
+            </div>
+
+            <!-- Форма 12 -->
+            <div class="form-item">
+              <a
+                href="{% url 'forms_app:form12_upload' %}"
+                class="form-btn form-btn-12"
+              >
+                <i class="fas fa-chart-bar"></i> Форма 12
+              </a>
+              <div class="form-label">Ежедневная статистика</div>
+            </div>
+
+            <!-- ✅ НОВАЯ: Форма 13 -->
+            <div class="form-item">
+              <a
+                href="{% url 'forms_app:form13_simple' %}"
+                class="form-btn form-btn-13"
+              >
+                <i class="fas fa-clipboard-check"></i> Форма 13
+              </a>
+              <div class="form-label">Признаки доступности</div>
             </div>
           </div>
           <!-- Закрытие нижнего ряда -->

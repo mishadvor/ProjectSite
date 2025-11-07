@@ -1,0 +1,288 @@
+<!-- templates/forms_app/form12_chart.html -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">📈 График: {{ label }} - WB: {{ wb_article }} {% if seller_article and seller_article != "—" %}({{ seller_article }}){% endif %}</h2>
+        <div>
+            <a href="{% url 'forms_app:form12_detail' wb_article %}" class="btn btn-secondary">
+                ← Назад к деталям
+            </a>
+        </div>
+    </div>
+    
+   
+    <!-- Фильтр по датам - КАК В ФОРМЕ 8 -->
+    <div class="card mb-4">
+        <div class="card-header bg-success text-white">
+            <h4 class="mb-0">📅 Фильтр по датам</h4>
+        </div>
+        <div class="card-body">
+            <form method="GET" style="margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                <label for="start_date" style="margin-right: 15px;">
+                    <strong>Начало:</strong>
+                    <input type="date" id="start_date" name="start_date" value="{{ start_date }}" 
+                        style="padding: 6px; border: 1px solid #ccc; border-radius: 4px" />
+                </label>
+
+                <label for="end_date" style="margin-right: 15px;">
+                    <strong>Конец:</strong>
+                    <input type="date" id="end_date" name="end_date" value="{{ end_date }}" 
+                        style="padding: 6px; border: 1px solid #ccc; border-radius: 4px" />
+                </label>
+
+                <button type="submit" 
+                        style="padding: 6px 12px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; margin-right: 10px;">
+                    📅 Применить
+                </button>
+
+                <a href="{% url 'forms_app:form12_chart' wb_article chart_type %}" 
+                style="color: #666; font-size: 0.9em">
+                    Сбросить
+                </a>
+            </form>
+        </div>
+    </div>
+
+    <!-- График - УВЕЛИЧЕННЫЙ -->
+    <div class="card mb-4">
+        
+        <div class="card-body p-3">  <!-- Уменьшили padding для большего пространства -->
+            <div class="chart-container">
+                <canvas id="myChart" width="1200" height="600"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Кнопки переключения графиков - В ОДНУ ГОРИЗОНТАЛЬНУЮ ЛИНИЮ -->
+    <div class="card">
+        <div class="card-header">
+            <h4 class="mb-0">🔄 Переключение графиков</h4>
+        </div>
+        <div class="card-body">
+            <div class="d-flex flex-row gap-2 justify-content-between">
+                <a href="{% url 'forms_app:form12_chart' wb_article 'orders' %}" 
+                   class="btn {% if chart_type == 'orders' %}btn-primary{% else %}btn-outline-primary{% endif %} flex-fill fs-6">
+                    📈 График заказов
+                </a>
+                <a href="{% url 'forms_app:form12_chart' wb_article 'sold' %}" 
+                   class="btn {% if chart_type == 'sold' %}btn-success{% else %}btn-outline-success{% endif %} flex-fill fs-6">
+                    💰 График выкупов
+                </a>
+                <a href="{% url 'forms_app:form12_chart' wb_article 'transfer' %}" 
+                   class="btn {% if chart_type == 'transfer' %}btn-warning{% else %}btn-outline-warning{% endif %} flex-fill fs-6">
+                    💳 График к перечислению
+                </a>
+                <a href="{% url 'forms_app:form12_chart' wb_article 'stock' %}" 
+                   class="btn {% if chart_type == 'stock' %}btn-info{% else %}btn-outline-info{% endif %} flex-fill fs-6">
+                    📦 График остатков
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const ctx = document.getElementById('myChart').getContext('2d');
+    
+    // Получаем данные для расчета динамического масштаба
+    const data = {{ data|safe }};
+    const chartType = '{{ chart_type }}';
+    
+    // Функция для расчета границ оси Y
+    function calculateYBounds(chartData, type) {
+        if (type !== 'stock') {
+            return { beginAtZero: true };
+        }
+        
+        // Для графика остатков используем динамический масштаб
+        const validData = chartData.filter(value => value !== null && value !== undefined);
+        if (validData.length === 0) {
+            return { beginAtZero: true };
+        }
+        
+        const minValue = Math.min(...validData);
+        const maxValue = Math.max(...validData);
+        const range = maxValue - minValue;
+        
+        // Если диапазон маленький, добавляем отступы
+        if (range < 10) {
+            const padding = Math.max(2, range * 0.2); // 20% от диапазона, но не менее 2
+            return {
+                beginAtZero: false,
+                min: Math.max(0, minValue - padding), // Не опускаемся ниже 0
+                max: maxValue + padding,
+                ticks: {
+                    precision: 0
+                }
+            };
+        }
+        
+        // Для больших диапазонов используем автоматическое масштабирование
+        return {
+            beginAtZero: false,
+            suggestedMin: Math.max(0, minValue - (range * 0.1)), // 10% отступ снизу
+            suggestedMax: maxValue + (range * 0.1), // 10% отступ сверху
+            ticks: {
+                precision: 0
+            }
+        };
+    }
+    
+    const yBounds = calculateYBounds(data, chartType);
+
+    const myChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: {{ dates|safe }},
+            datasets: [{
+                label: '{{ label }}',
+                data: data,
+                borderColor: '{{ color }}',
+                backgroundColor: '{{ color }}22',
+                borderWidth: 3,
+                tension: 0, // Прямые линии между точками
+                fill: false,
+                pointBackgroundColor: '{{ color }}',
+                pointBorderColor: '#ffffff',
+                pointBorderWidth: 2,
+                pointRadius: 5,
+                pointHoverRadius: 8,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                title: {
+                    display: true,
+                    text: '{{ wb_article }} - {{ label }}',
+                    font: {
+                        size: 18
+                    }
+                },
+                legend: {
+                    display: true,
+                    labels: {
+                        font: {
+                            size: 14
+                        }
+                    }
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                    bodyFont: {
+                        size: 14
+                    },
+                    titleFont: {
+                        size: 14
+                    },
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.dataset.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            if (context.parsed.y !== null) {
+                                label += new Intl.NumberFormat('ru-RU').format(context.parsed.y);
+                                if (chartType === 'stock' || chartType === 'orders' || chartType === 'sold') {
+                                    label += ' шт';
+                                } else if (chartType === 'transfer') {
+                                    label += ' руб';
+                                }
+                            }
+                            return label;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    display: true,
+                    title: {
+                        display: true,
+                        text: 'Дата',
+                        font: {
+                            size: 14
+                        }
+                    },
+                    ticks: {
+                        font: {
+                            size: 12
+                        }
+                    }
+                },
+                y: {
+                    display: true,
+                    title: {
+                        display: true,
+                        text: '{{ label }}',
+                        font: {
+                            size: 14
+                        }
+                    },
+                    ...yBounds, // Динамические настройки масштаба
+                    ticks: {
+                        font: {
+                            size: 12
+                        },
+                        callback: function(value) {
+                            return new Intl.NumberFormat('ru-RU').format(value);
+                        }
+                    }
+                }
+            },
+            elements: {
+                line: {
+                    tension: 0 // Гарантирует прямые линии
+                }
+            }
+        }
+    });
+</script>
+
+<style>
+.chart-container {
+    position: relative;
+    height: 600px;  /* Увеличили с 400px до 600px */
+    width: 100%;
+    margin: 0 auto;
+}
+
+/* Увеличиваем шрифты в графике */
+.card-header h4 {
+    font-weight: 600;
+    font-size: 1.4rem;  /* Увеличили заголовок */
+}
+.fs-5 {
+    font-size: 1.2rem !important;  /* Увеличили основную информацию */
+}
+
+/* Гарантируем одинаковую ширину кнопок */
+.flex-fill {
+    flex: 1 1 0px;
+    min-width: 0;
+}
+/* Небольшие отступы между кнопками */
+.gap-2 {
+    gap: 0.5rem;
+}
+.gap-3 {
+    gap: 1rem;
+}
+
+/* Адаптивность для мобильных */
+@media (max-width: 768px) {
+    .chart-container {
+        height: 400px;  /* Меньшая высота на мобильных */
+    }
+    .card-body.p-3 {
+        padding: 1rem !important;
+    }
+}
+</style>
+{% endblock %}

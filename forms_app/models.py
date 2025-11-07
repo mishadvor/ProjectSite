@@ -132,3 +132,38 @@ class Form8Report(models.Model):
         # Опционально: запретить дубли у одного пользователя
         unique_together = ("user", "week_name")
         ordering = ["-uploaded_at"]
+
+
+from datetime import date
+
+
+class Form12Data(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    wb_article = models.CharField(max_length=100, verbose_name="Артикул WB")
+    barcode = models.CharField(
+        max_length=50, blank=True, null=True, verbose_name="Баркод"
+    )
+    seller_article = models.CharField(
+        max_length=255, blank=True, null=True, verbose_name="Артикул продавца"
+    )
+    size = models.CharField(max_length=20, blank=True, null=True, verbose_name="Размер")
+    orders_qty = models.IntegerField(blank=True, null=True, verbose_name="Заказы, шт.")
+    order_amount_net = models.FloatField(
+        blank=True, null=True, verbose_name="Сумма заказов минус комиссия WB, руб."
+    )
+    sold_qty = models.IntegerField(blank=True, null=True, verbose_name="Выкупили, шт.")
+    transfer_amount = models.FloatField(
+        blank=True, null=True, verbose_name="К перечислению за товар, руб."
+    )
+    current_stock = models.IntegerField(
+        blank=True, null=True, verbose_name="Текущий остаток, шт."
+    )
+    date = models.DateField(verbose_name="Дата отчёта")
+
+    class Meta:
+        verbose_name = "Данные формы 12"
+        verbose_name_plural = "Данные формы 12"
+        ordering = ["-date"]
+
+    def __str__(self):
+        return f"{self.wb_article} ({self.date})"
