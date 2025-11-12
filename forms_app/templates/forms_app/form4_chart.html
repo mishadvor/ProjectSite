@@ -67,6 +67,7 @@
 </div>
 
 <!-- Отладочная информация -->
+
 <div
   style="
     background: #f8f9fa;
@@ -76,75 +77,132 @@
   "
 >
   <p><strong>Количество записей:</strong> {{ dates|length }}</p>
+  
+  {% if chart_type == 'profit' %}
+  <div style="background: {% if total_profit >= 0 %}#d4edda{% else %}#f8d7da{% endif %}; 
+              padding: 10px; 
+              border-radius: 5px; 
+              margin: 10px 0;
+              border: 1px solid {% if total_profit >= 0 %}#c3e6cb{% else %}#f5c6cb{% endif %};">
+    <p style="margin: 0; font-weight: bold;">
+      💰 Сумма прибыли за период: 
+      <span style="color: {% if total_profit >= 0 %}#155724{% else %}#721c24{% endif %};">
+        {{ total_profit|floatformat:2 }} ₽
+      </span>
+    </p>
+    {% if dates|length > 0 %}
+    <p style="margin: 5px 0 0 0; font-size: 0.9em; color: #666;">
+      Средняя прибыль в день: {{ avg_profit_per_day|floatformat:2 }} ₽
+    </p>
+    {% endif %}
+  </div>
+  {% endif %}
+  
+  <p><strong>Медианное значение:</strong> {{ median_value|floatformat:1 }}</p>
   <p><strong>Даты:</strong> {{ dates|safe }}</p>
   <p><strong>Данные:</strong> {{ data|safe }}</p>
 </div>
 
 <!-- Кнопки выбора типа графика -->
 <div style="margin-bottom: 20px">
-  <a
-    href="{% url 'forms_app:form4_chart' code=code %}"
-    class="btn {% if chart_type == 'profit' %}active{% endif %}"
-    >📈 Прибыль</a
-  >
-  <a
-    href="{% url 'forms_app:form4_chart_type' code=code chart_type='sales' %}"
-    class="btn {% if chart_type == 'sales' %}active{% endif %}"
-    >💰 Продажи</a
-  >
-  <a
-    href="{% url 'forms_app:form4_chart_type' code=code chart_type='orders' %}"
-    class="btn {% if chart_type == 'orders' %}active{% endif %}"
-    >📦 Заказы</a
-  >
-  <a
-    href="{% url 'forms_app:form4_chart_type' code=code chart_type='percent' %}"
-    class="btn {% if chart_type == 'percent' %}active{% endif %}"
-    >% Выкупа</a
-  >
-  <a
-    href="{% url 'forms_app:form4_chart_type' code=code chart_type='price' %}"
-    class="btn {% if chart_type == 'price' %}active{% endif %}"
-    >🏷️ Цена Наша Средняя</a
-  >
-  <a
-    href="{% url 'forms_app:form4_chart_type' code=code chart_type='log_price_percent' %}"
-    class="btn {% if chart_type == 'log_price_percent' %}active{% endif %}"
-    >🚚% Лог/Цена</a
-  >
+  <!-- Первый ряд кнопок -->
+  <div style="margin-bottom: 10px">
+    <a
+      href="{% url 'forms_app:form4_chart' code=code %}"
+      class="btn {% if chart_type == 'profit' %}active{% endif %}"
+      >📈 Прибыль</a
+    >
+    <a
+      href="{% url 'forms_app:form4_chart_type' code=code chart_type='sales' %}"
+      class="btn {% if chart_type == 'sales' %}active{% endif %}"
+      >💰 Продажи</a
+    >
+    <a
+      href="{% url 'forms_app:form4_chart_type' code=code chart_type='orders' %}"
+      class="btn {% if chart_type == 'orders' %}active{% endif %}"
+      >📦 Заказы</a
+    >
+    <a
+      href="{% url 'forms_app:form4_chart_type' code=code chart_type='percent' %}"
+      class="btn {% if chart_type == 'percent' %}active{% endif %}"
+      >% Выкупа</a
+    >
+    <a
+      href="{% url 'forms_app:form4_chart_type' code=code chart_type='price' %}"
+      class="btn {% if chart_type == 'price' %}active{% endif %}"
+      >🏷️ Цена Наша Средняя</a
+    >
+  </div>
+  
+  <!-- Второй ряд кнопок -->
+  <div style="margin-top: 10px">
+    <a
+      href="{% url 'forms_app:form4_chart_type' code=code chart_type='log_price_percent' %}"
+      class="btn {% if chart_type == 'log_price_percent' %}active{% endif %}"
+      >🚚% Лог/Цена</a
+    >
+    <a
+      href="{% url 'forms_app:form4_chart_type' code=code chart_type='qentity_sale' %}"
+      class="btn {% if chart_type == 'qentity_sale' %}active{% endif %}"
+      >📊 Чистые продажи, шт</a
+    >
+    <a
+      href="{% url 'forms_app:form4_chart_type' code=code chart_type='spp_percent' %}"
+      class="btn {% if chart_type == 'spp_percent' %}active{% endif %}"
+      >📊 % СПП</a
+    >
+  </div>
 </div>
 
 <!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-  // Ждём полной загрузки страницы
   document.addEventListener('DOMContentLoaded', function() {
       const ctx = document.getElementById('chartCanvas').getContext('2d');
-
-      // Проверяем данные
       const labels = {{ dates|safe }};
       const chartData = {{ data|safe }};
-      // Получаем chart_type из шаблона, чтобы использовать в JavaScript
       const chartType = '{{ chart_type }}';
+
+      console.log('Labels:', labels);
+      console.log('Data:', chartData);
+      console.log('Chart type:', chartType);
+
+      // Функция для определения подписи оси Y
+      function getYAxisTitle(chartType) {
+          switch(chartType) {
+              case 'percent':
+              case 'log_price_percent':
+              case 'spp_percent':
+                  return '%';
+              case 'orders':
+              case 'qentity_sale':
+                  return 'шт';
+              case 'profit':
+              case 'sales':
+              case 'price':
+              default:
+                  return 'руб';
+          }
+      }
 
       // Создаём график
       new Chart(ctx, {
           type: 'line',
-          data: { // <-- ✅ ИСПРАВЛЕНО: добавлено 'data:'
+          data: {
               labels: labels,
               datasets: [{
                   label: '{{ label }}',
-                  data: chartData, // <-- ✅ ИСПРАВЛЕНО: добавлено 'data:' внутри datasets
+                  data: chartData,
                   borderColor: '{{ color }}',
                   backgroundColor: '{{ color }}'.replace(')', ', 0.1)'),
                   borderWidth: 2,
-                  tension: 0,  // Прямые линии
+                  tension: 0,
                   fill: true
               }]
           },
           options: {
               responsive: true,
-              maintainAspectRatio: false,  // КРИТИЧЕСКИ ВАЖНО!
+              maintainAspectRatio: false,
               plugins: {
                   legend: {
                       position: 'top',
@@ -159,16 +217,18 @@
                       beginAtZero: false,
                       ticks: {
                           callback: function(value) {
-                              // Форматируем числа в зависимости от chart_type
-                              if (chartType === 'percent' || chartType === 'log_price_percent') { // <-- Проверка по chart_type
+                              if (chartType === 'percent' || chartType === 'log_price_percent' || chartType === 'spp_percent') {
                                   return value + '%';
-                              } else if (chartType === 'orders') { // <-- Проверка по chart_type
+                              } else if (chartType === 'orders' || chartType === 'qentity_sale') {
                                   return value;
                               } else {
-                                  // Для остальных (profit, sales, price) по умолчанию рубли
                                   return value.toLocaleString() + ' ₽';
                               }
                           }
+                      },
+                      title: {
+                          display: true,
+                          text: getYAxisTitle(chartType)
                       }
                   }
               }

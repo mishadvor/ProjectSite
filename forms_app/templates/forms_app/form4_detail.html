@@ -86,35 +86,51 @@
 
   <!-- График -->
   <div style="margin: 20px 0">
-    <a href="{% url 'forms_app:form4_chart' code=code %}" class="btn"
-      >📈 Прибыль</a
-    >
-    <a
-      href="{% url 'forms_app:form4_chart_type' code=code chart_type='sales' %}"
-      class="btn"
-      >💰 Продажи</a
-    >
-    <a
-      href="{% url 'forms_app:form4_chart_type' code=code chart_type='orders' %}"
-      class="btn"
-      >📦 Заказы</a
-    >
-    <a
-      href="{% url 'forms_app:form4_chart_type' code=code chart_type='percent' %}"
-      class="btn"
-      >% Выкуп</a
-    >
-    <a
-      href="{% url 'forms_app:form4_chart_type' code=code chart_type='price' %}"
-      class="btn"
-      >🏷️ Цена Наша Средняя</a
-    >
-     <a
-      href="{% url 'forms_app:form4_chart_type' code=code chart_type='log_price_percent' %}"
-      class="btn"
-      >🚚% Лог/Цена</a
-    >
-
+  <!-- Первый ряд кнопок -->
+    <div style="margin-bottom: 10px">
+      <a href="{% url 'forms_app:form4_chart' code=code %}" class="btn"
+        >📈 Прибыль</a
+      >
+      <a
+        href="{% url 'forms_app:form4_chart_type' code=code chart_type='sales' %}"
+        class="btn"
+        >💰 Продажи</a
+      >
+      <a
+        href="{% url 'forms_app:form4_chart_type' code=code chart_type='orders' %}"
+        class="btn"
+        >📦 Заказы</a
+      >
+      <a
+        href="{% url 'forms_app:form4_chart_type' code=code chart_type='percent' %}"
+        class="btn"
+        >% Выкуп</a
+      >
+      <a
+        href="{% url 'forms_app:form4_chart_type' code=code chart_type='price' %}"
+        class="btn"
+        >🏷️ Цена Наша Средняя</a
+      >
+      <a
+        href="{% url 'forms_app:form4_chart_type' code=code chart_type='log_price_percent' %}"
+        class="btn"
+        >🚚% Лог/Цена</a
+      >
+    </div>
+    
+    <!-- Второй ряд кнопок -->
+    <div style="margin-top: 10px">
+      <a
+        href="{% url 'forms_app:form4_chart_type' code=code chart_type='qentity_sale' %}"
+        class="btn"
+        >📊 Чистые продажи, шт</a
+      >
+      <a
+        href="{% url 'forms_app:form4_chart_type' code=code chart_type='spp_percent' %}"
+        class="btn"
+        >📊 % СПП</a
+      >
+    </div>
   </div>
   <br /><br />
 

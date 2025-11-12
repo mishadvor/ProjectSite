@@ -136,6 +136,7 @@ def upload_file(request):
                         profit=safe_float(row.get("Прибыль")),
                         orders=safe_int(row.get("Заказы")),
                         percent_log_price=safe_float(row.get("% Лог/Наша Цена")),
+                        spp_percent=safe_float(row.get("% СПП")),
                     )
                 )
 
@@ -288,6 +289,7 @@ def export_form4_excel(request):
                 "Прибыль": item.profit,
                 "Заказы": item.orders,
                 "% Лог/Наша Цена": item.percent_log_price,
+                "% СПП": item.spp_percent,
             }
         )
 
@@ -367,7 +369,7 @@ def form4_chart(request, code, chart_type=None):
             start_date_parsed = datetime.strptime(start_date, "%Y-%m-%d").date()
             records = records.filter(date__gte=start_date_parsed)
         except ValueError:
-            start_date = None  # Игнорируем, если дата неверна
+            start_date = None
 
     if end_date:
         try:
@@ -376,43 +378,87 @@ def form4_chart(request, code, chart_type=None):
         except ValueError:
             end_date = None
 
-    # Форматируем даты и данные
+    # Форматируем даты
     dates = [r.date.strftime("%d.%m.%Y") for r in records]
+
+    # Инициализируем переменные
+    data_values = []
+    label = ""
+    color = ""
+
+    # Получаем данные для графика
     if chart_type == "sales":
-        # Округляем до 1 знака после запятой
-        data = [round(float(r.clear_sales_our or 0), 1) for r in records]
+        data_values = [float(r.clear_sales_our or 0) for r in records]
         label = "Чистые продажи Наши"
         color = "rgb(54, 162, 235)"
     elif chart_type == "orders":
-        # Заказы - целые числа, округление не нужно
-        data = [r.orders or 0 for r in records]
+        data_values = [r.orders or 0 for r in records]
         label = "Заказы"
         color = "rgb(153, 102, 255)"
     elif chart_type == "percent":
-        # Округляем до 1 знака после запятой
-        data = [round(float(r.percent_sell or 0), 1) for r in records]
+        data_values = [float(r.percent_sell or 0) for r in records]
         label = "% Выкупа"
         color = "rgb(255, 159, 64)"
-    elif chart_type == "price":  # <-- НОВЫЙ БЛОК ДЛЯ "Наша цена Средняя"
-        # Округляем до 1 знака после запятой
-        data = [round(float(r.our_price_mid or 0), 1) for r in records]
+    elif chart_type == "price":
+        data_values = [float(r.our_price_mid or 0) for r in records]
         label = "Наша цена Средняя"
-        color = "rgb(255, 99, 132)"  # Ярко-красный цвет для цены
+        color = "rgb(255, 99, 132)"
     elif chart_type == "log_price_percent":
-        # Округляем до 1 знака после запятой
-        data = [
-            round(
-                float(r.percent_log_price if r.percent_log_price is not None else 0), 1
-            )
+        data_values = [
+            float(r.percent_log_price if r.percent_log_price is not None else 0)
             for r in records
         ]
         label = "% Лог/Наша Цена"
-        color = "rgb(255, 205, 86)"  # Жёлтый цвет
+        color = "rgb(255, 205, 86)"
+    elif chart_type == "qentity_sale":
+        data_values = [r.qentity_sale or 0 for r in records]
+        label = "Чистые продажи, шт"
+        color = "rgb(40, 167, 69)"
+    elif chart_type == "spp_percent":
+        data_values = [float(r.spp_percent or 0) for r in records]
+        label = "% СПП"
+        color = "rgb(111, 66, 193)"
     else:  # profit
-        # Округляем до 1 знака после запятой
-        data = [round(float(r.profit or 0), 1) for r in records]
+        data_values = [float(r.profit or 0) for r in records]
         label = "Прибыль"
         color = "rgb(75, 192, 192)"
+
+    # Вычисляем медианное значение
+    def calculate_median(values):
+        if not values:
+            return 0
+        # Фильтруем None значения
+        filtered_values = [v for v in values if v is not None]
+        if not filtered_values:
+            return 0
+        sorted_values = sorted(filtered_values)
+        n = len(sorted_values)
+        if n % 2 == 1:
+            return sorted_values[n // 2]
+        else:
+            return (sorted_values[n // 2 - 1] + sorted_values[n // 2]) / 2
+
+    median_value = calculate_median(data_values)
+
+    # Вычисляем сумму прибыли и среднюю прибыль в день (только для графика прибыли)
+    total_profit = 0
+    avg_profit_per_day = 0
+    if chart_type == "profit":
+        total_profit = sum([float(r.profit or 0) for r in records])
+        if len(dates) > 0:
+            avg_profit_per_day = total_profit / len(dates)
+
+    # Подготавливаем данные для графика (заменяем None на 0)
+    data = []
+    for val in data_values:
+        if val is None:
+            data.append(0)
+        else:
+            # Округляем до 1 знака после запятой
+            if chart_type in ["orders", "qentity_sale"]:
+                data.append(int(val))  # Целые числа для заказов и количества
+            else:
+                data.append(round(float(val), 1))
 
     return render(
         request,
@@ -422,6 +468,9 @@ def form4_chart(request, code, chart_type=None):
             "article": article,
             "dates": dates,
             "data": data,
+            "median_value": median_value,
+            "total_profit": total_profit,
+            "avg_profit_per_day": avg_profit_per_day,  # <-- Добавляем среднюю прибыль в день
             "label": label,
             "color": color,
             "chart_type": chart_type,

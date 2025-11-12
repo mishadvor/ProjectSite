@@ -76,6 +76,7 @@ class Form4Data(models.Model):
     profit = models.FloatField("Прибыль", blank=True, null=True)
     orders = models.IntegerField("Заказы", blank=True, null=True)
     percent_log_price = models.FloatField("% Лог/Наша Цена", blank=True, null=True)
+    spp_percent = models.FloatField("% СПП", blank=True, null=True)  # <-- НОВОЕ ПОЛЕ
 
     created_at = models.DateTimeField(auto_now_add=True)
 
