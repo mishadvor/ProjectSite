@@ -7,6 +7,10 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="mb-0">📈 График: {{ label }} - WB: {{ wb_article }} {% if seller_article and seller_article != "—" %}({{ seller_article }}){% endif %}</h2>
         <div>
+            <!-- ДОБАВЛЕНА КНОПКА ПЕРЕХОДА К СПИСКУ АРТИКУЛОВ -->
+            <a href="{% url 'forms_app:form12_list' %}" class="btn btn-outline-info me-2">
+                📋 Список артикулов
+            </a>
             <a href="{% url 'forms_app:form12_detail' wb_article %}" class="btn btn-secondary">
                 ← Назад к деталям
             </a>
