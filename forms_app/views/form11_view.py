@@ -10,6 +10,7 @@ from django.http import FileResponse
 import logging
 import tempfile
 import os
+import re  # Добавляем импорт re
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +52,160 @@ logger = logging.getLogger(__name__)
     "СЦ Ереван": "0_СЦ Ереван",
 }
 
+# Маппинг для федеральных округов с номерами в названии
+fo_mapping = {
+    "01": "01_Центральный ФО",
+    "02": "02_Северо-Западный ФО",
+    "03": "03_Южный ФО",
+    "04": "04_Северо-Кавказский ФО",
+    "05": "05_Приволжский ФО",
+    "06": "06_Уральский ФО",
+    "07": "07_Сибирский ФО",
+    "08": "08_Дальневосточный ФО",
+    "0": "00_Другие страны",
+}
+
+# Порядок сортировки федеральных округов по номеру
+fo_sort_order = {
+    "01": 1,
+    "02": 2,
+    "03": 3,
+    "04": 4,
+    "05": 5,
+    "06": 6,
+    "07": 7,
+    "08": 8,
+    "00": 9,
+    "Не определено": 10,
+}
+
+
+def get_federal_district(warehouse_name):
+    """
+    Определяет федеральный округ по названию склада (уже с префиксом)
+    Берет ПЕРВЫЕ ДВЕ цифры из префикса склада
+    """
+    if pd.isna(warehouse_name):
+        return "Не определено", "Не определено"
+
+    warehouse_str = str(warehouse_name)
+    print(f"Определяем ФО для склада: {warehouse_str}")  # Для отладки
+
+    # Ищем первые цифры перед подчеркиванием (префикс уже есть из склад_mapping)
+    if "_" in warehouse_str:
+        prefix = warehouse_str.split("_")[0]
+        print(f"Префикс: {prefix}")  # Для отладки
+
+        # Извлекаем только цифры из начала строки
+        digits_match = re.match(r"^(\d+)", prefix)
+        if digits_match:
+            digits = digits_match.group(1)
+            print(f"Цифры: {digits}")  # Для отладки
+
+            # Берем ПЕРВЫЕ ДВЕ цифры для определения ФО
+            if len(digits) >= 2:
+                fo_number = digits[:2]  # Всегда берем первые две цифры!
+            else:
+                fo_number = digits  # Для случаев типа "0"
+
+            print(f"Номер ФО: {fo_number}")  # Для отладки
+
+            if fo_number in fo_mapping:
+                result = fo_mapping[fo_number]
+                print(f"Результат: {result}")  # Для отладки
+                return result, fo_number
+
+    print(f"Не удалось определить ФО для: {warehouse_str}")  # Для отладки
+    return "Не определено", "Не определено"
+
+
+def get_fo_sort_key(warehouse_name):
+    """
+    Возвращает ключ сортировки для федерального округа
+    """
+    _, fo_number = get_federal_district(warehouse_name)
+    return fo_sort_order.get(fo_number, 10)
+
+
+def process_sales_data_by_federal_district(df):
+    """
+    Агрегирует данные по федеральным округам
+    """
+    # Создаем копию исходных данных
+    df_fo = df.copy()
+
+    # ПЕРВОЕ: применяем mapping к складам (как в основной функции)
+    df_fo["Склад"] = df_fo["Склад"].map(склад_mapping).fillna(df_fo["Склад"])
+
+    # ВТОРОЕ: определяем федеральный округ для каждого склада (уже с префиксом)
+    df_fo[["Федеральный округ", "Номер ФО"]] = df_fo["Склад"].apply(
+        lambda x: pd.Series(get_federal_district(x))
+    )
+
+    # Группируем по артикулу WB, артикулу продавца, размеру и федеральному округу
+    grouped = (
+        df_fo.groupby(
+            [
+                "Артикул WB",
+                "Артикул продавца",
+                "Размер",
+                "Федеральный округ",
+                "Номер ФО",
+            ]
+        )
+        .agg(
+            {"Заказы шт.": "sum", "Выкупили, шт.": "sum", "Текущий остаток, шт.": "sum"}
+        )
+        .reset_index()
+    )
+
+    # Добавляем расчет оборачиваемости
+    grouped["Оборачиваемость"] = (
+        grouped["Текущий остаток, шт."]
+        .div(grouped["Заказы шт."])
+        .round(1)
+        .where(grouped["Заказы шт."].notna() & (grouped["Заказы шт."] != 0))
+    )
+
+    # Добавляем рекомендации
+    import numpy as np
+
+    grouped["Рекомендации для ФБО"] = np.where(
+        (grouped["Оборачиваемость"] >= 0) & (grouped["Оборачиваемость"] <= 2),
+        "Рассмотреть",
+        pd.NA,
+    )
+
+    # Сортируем данные в нужном порядке
+    grouped = grouped.sort_values(
+        by=["Артикул WB", "Артикул продавца", "Размер", "Номер ФО"],
+        ascending=[True, True, True, True],
+    )
+
+    # Удаляем временную колонку номера ФО
+    grouped = grouped.drop(columns=["Номер ФО"])
+
+    # Выбираем нужные колонки в правильном порядке (добавляем Артикул WB в начало)
+    result_columns = [
+        "Артикул WB",
+        "Артикул продавца",
+        "Размер",
+        "Федеральный округ",
+        "Заказы шт.",
+        "Выкупили, шт.",
+        "Текущий остаток, шт.",
+        "Оборачиваемость",
+        "Рекомендации для ФБО",
+    ]
+
+    return grouped[result_columns]
+
+
+# ... остальной код без изменений (process_sales_data, apply_formatting, form11_view)
+
+
+# ... остальной код без изменений (process_sales_data, apply_formatting, form11_view)
+
 
 def process_sales_data(df):
     """
@@ -75,8 +230,17 @@ def process_sales_data(df):
     df["Склад"] = df["Склад"].map(склад_mapping).fillna(df["Склад"])
 
     # === Сортировка: сначала по 'Артикул продавца', затем внутри — по 'Склад', 'Размер' ===
+    # Добавляем колонку для сортировки по федеральным округам
+    df["Сортировка ФО"] = df["Склад"].apply(get_fo_sort_key)
+
     отсортированный_df_артикулы = df.sort_values(
-        by=["Артикул продавца", "Склад", "Размер"], ascending=[True, True, True]
+        by=["Артикул продавца", "Сортировка ФО", "Склад", "Размер"],
+        ascending=[True, True, True, True],
+    )
+
+    # Удаляем временную колонку
+    отсортированный_df_артикулы = отсортированный_df_артикулы.drop(
+        columns=["Сортировка ФО"]
     )
 
     # --- Новый код для расчёта сумм по складам ---
@@ -198,7 +362,7 @@ def process_sales_data(df):
     return final_df
 
 
-def apply_formatting(worksheet, processed_df):
+def apply_formatting(worksheet, processed_df, is_fo_sheet=False):
     """
     Применяет форматирование к рабочему листу
     """
@@ -233,60 +397,119 @@ def apply_formatting(worksheet, processed_df):
         adjusted_width = min(max_length + 2, 50)
         worksheet.column_dimensions[col_letter].width = adjusted_width
 
-    # 3. Окрашивание строк по складам
-    col_idx_sku = None
-    for idx, cell in enumerate(worksheet[1], start=1):
-        if cell.value == "Склад":
-            col_idx_sku = idx
-            break
+    if is_fo_sheet:
+        # НОВАЯ РАСКРАСКА для страницы федеральных округов - по размерам
+        col_idx_size = None
+        for idx, cell in enumerate(worksheet[1], start=1):
+            if cell.value == "Размер":
+                col_idx_size = idx
+                break
 
-    if col_idx_sku:
-        # Получаем уникальные значения "Склад" из processed_df
-        unique_skus = processed_df["Склад"].dropna().unique()
-        fill_map = {}
-        colors = [
-            "FFB6C1",  # Светло-розовый
-            "90EE90",  # Светло-зеленый
-            "87CEEB",  # Светло-голубой
-            "FFFFE0",  # Светло-желтый
-            "DDA0DD",  # Светло-фиолетовый
-            "F0E68C",  # Хаки
-            "FFA07A",  # Светло-лососевый
-            "E6E6FA",  # Лавандовый
-            "FFDAB9",  # Персиковый
-            "20B2AA",  # Светло-морской волны
-        ]
+        if col_idx_size:
+            # Цвета для разных размеров
+            size_colors = [
+                "FFB6C1",  # Светло-розовый
+                "90EE90",  # Светло-зеленый
+                "87CEEB",  # Светло-голубой
+                "FFFFE0",  # Светло-желтый
+                "DDA0DD",  # Светло-фиолетовый
+                "F0E68C",  # Хаки
+                "FFA07A",  # Светло-лососевый
+                "E6E6FA",  # Лавандовый
+                "FFDAB9",  # Персиковый
+                "20B2AA",  # Светло-морской волны
+                "FFD700",  # Золотой
+                "98FB98",  # Пастельно-зеленый
+                "D8BFD8",  # Чертополох
+                "FFE4B5",  # Мокасиновый
+                "F0FFF0",  # Медовая роса
+            ]
 
-        for i, sku in enumerate(unique_skus):
-            fill_map[sku] = PatternFill(
-                start_color=colors[i % len(colors)],
-                end_color=colors[i % len(colors)],
-                fill_type="solid",
-            )
+            current_size = None
+            current_color_idx = 0
+            size_color_map = {}
 
-        # Проходимся по строкам начиная с 2 (т.к. 1 - заголовки)
-        for row_num in range(2, worksheet.max_row + 1):
-            cell_in_sku_col = worksheet.cell(row=row_num, column=col_idx_sku)
-            cell_value = cell_in_sku_col.value
+            # Проходимся по строкам начиная с 2 (т.к. 1 - заголовки)
+            for row_num in range(2, worksheet.max_row + 1):
+                cell_in_size_col = worksheet.cell(row=row_num, column=col_idx_size)
+                size_value = cell_in_size_col.value
 
-            if cell_value in fill_map:
-                fill_color = fill_map[cell_value]
+                if size_value != current_size:
+                    # Новый размер - новый цвет
+                    current_size = size_value
+                    if current_size not in size_color_map:
+                        size_color_map[current_size] = size_colors[
+                            current_color_idx % len(size_colors)
+                        ]
+                        current_color_idx += 1
+
+                    current_color = size_color_map[current_size]
+                    fill_color = PatternFill(
+                        start_color=current_color,
+                        end_color=current_color,
+                        fill_type="solid",
+                    )
+
+                # Окрашиваем всю строку
                 for col_num in range(1, worksheet.max_column + 1):
                     cell = worksheet.cell(row=row_num, column=col_num)
                     cell.fill = fill_color
 
-    # 4. Форматирование для строк "Итого:"
-    for row_num in range(2, worksheet.max_row + 1):
-        cell_in_art_wb = worksheet.cell(row=row_num, column=1)  # Колонка "Артикул WB"
-        if cell_in_art_wb.value == "Итого:":
-            # Жирный шрифт для строк "Итого:"
-            for col_num in range(1, worksheet.max_column + 1):
-                cell = worksheet.cell(row=row_num, column=col_num)
-                cell.font = Font(bold=True)
-                # Светло-серый фон для строк "Итого:"
-                cell.fill = PatternFill(
-                    start_color="F5F5F5", end_color="F5F5F5", fill_type="solid"
+    else:
+        # Старая раскраска для основной страницы (склады)
+        col_idx_sku = None
+        for idx, cell in enumerate(worksheet[1], start=1):
+            if cell.value == "Склад":
+                col_idx_sku = idx
+                break
+
+        if col_idx_sku:
+            unique_skus = processed_df["Склад"].dropna().unique()
+            fill_map = {}
+            colors = [
+                "FFB6C1",  # Светло-розовый
+                "90EE90",  # Светло-зеленый
+                "87CEEB",  # Светло-голубой
+                "FFFFE0",  # Светло-желтый
+                "DDA0DD",  # Светло-фиолетовый
+                "F0E68C",  # Хаки
+                "FFA07A",  # Светло-лососевый
+                "E6E6FA",  # Лавандовый
+                "FFDAB9",  # Персиковый
+                "20B2AA",  # Светло-морской волны
+            ]
+
+            for i, sku in enumerate(unique_skus):
+                fill_map[sku] = PatternFill(
+                    start_color=colors[i % len(colors)],
+                    end_color=colors[i % len(colors)],
+                    fill_type="solid",
                 )
+
+            for row_num in range(2, worksheet.max_row + 1):
+                cell_in_sku_col = worksheet.cell(row=row_num, column=col_idx_sku)
+                cell_value = cell_in_sku_col.value
+
+                if cell_value in fill_map:
+                    fill_color = fill_map[cell_value]
+                    for col_num in range(1, worksheet.max_column + 1):
+                        cell = worksheet.cell(row=row_num, column=col_num)
+                        cell.fill = fill_color
+
+        # 4. Форматирование для строк "Итого:" (только для основной страницы)
+        for row_num in range(2, worksheet.max_row + 1):
+            cell_in_art_wb = worksheet.cell(
+                row=row_num, column=1
+            )  # Колонка "Артикул WB"
+            if cell_in_art_wb.value == "Итого:":
+                # Жирный шрифт для строк "Итого:"
+                for col_num in range(1, worksheet.max_column + 1):
+                    cell = worksheet.cell(row=row_num, column=col_num)
+                    cell.font = Font(bold=True)
+                    # Светло-серый фон для строк "Итого:"
+                    cell.fill = PatternFill(
+                        start_color="F5F5F5", end_color="F5F5F5", fill_type="solid"
+                    )
 
 
 def form11_view(request):
@@ -308,15 +531,27 @@ def form11_view(request):
             df = df.rename(columns={"шт.": "Заказы шт."})
             processed_df = process_sales_data(df)
 
+            # Создаем данные по федеральным округам
+            fo_df = process_sales_data_by_federal_district(df)
+
             # Создаем временный файл
             with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp_file:
-                # Сохраняем данные в Excel с форматированием
+                # Сохраняем данные в Excel с двумя страницами
                 with pd.ExcelWriter(tmp_file.name, engine="openpyxl") as writer:
-                    processed_df.to_excel(writer, sheet_name="Sheet1", index=False)
+                    # Основная страница (по складам)
+                    processed_df.to_excel(writer, sheet_name="По складам", index=False)
 
-                    # Применяем форматирование
-                    worksheet = writer.sheets["Sheet1"]
-                    apply_formatting(worksheet, processed_df)
+                    # Страница по федеральным округам
+                    fo_df.to_excel(
+                        writer, sheet_name="По федеральным округам", index=False
+                    )
+
+                    # Применяем форматирование к обеим страницам
+                    worksheet_main = writer.sheets["По складам"]
+                    worksheet_fo = writer.sheets["По федеральным округам"]
+
+                    apply_formatting(worksheet_main, processed_df, is_fo_sheet=False)
+                    apply_formatting(worksheet_fo, fo_df, is_fo_sheet=True)
 
                 # Используем FileResponse
                 response = FileResponse(
