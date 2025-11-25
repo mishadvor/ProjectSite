@@ -58,9 +58,10 @@ from .views.form12_view import (
     form12_list,
     form12_detail,
     form12_edit,
-    form12_delete,  # Убедитесь, что это есть
-    form12_delete_article,  # Добавьте эту функцию
-    form12_delete_all,  # Добавьте эту функцию
+    form12_delete,
+    form12_delete_article,
+    form12_delete_all,
+    form12_delete_by_date,
     export_form12_excel,
     form12_chart,
     clear_form12_data,
@@ -144,6 +145,7 @@ urlpatterns = [
     path(
         "form12/delete-all/", form12_delete_all, name="form12_delete_all"
     ),  # Все данные
+    path("form12/delete-by-date/", form12_delete_by_date, name="form12_delete_by_date"),
     # --- Форма 13 (простая версия) ---
     path("form13/", form13_simple_upload, name="form13_simple"),
 ]

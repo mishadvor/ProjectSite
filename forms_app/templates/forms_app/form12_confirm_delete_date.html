@@ -1,0 +1,62 @@
+<!-- forms_app/templates/forms_app/form12_confirm_delete_date.html -->
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h4 class="mb-0">🗑️ Подтверждение удаления</h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-danger">
+                        <h5 class="alert-heading">⛔ Вы уверены?</h5>
+                        <p class="mb-2">Вы собираетесь удалить все данные за <strong>{{ delete_date_display }}</strong></p>
+                    </div>
+
+                    <div class="mb-4">
+                        <h6>Будет удалено:</h6>
+                        <ul class="list-group">
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                Количество записей
+                                <span class="badge bg-danger rounded-pill">{{ records_count }}</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                Затронуто артикулов
+                                <span class="badge bg-warning rounded-pill">{{ articles_count }}</span>
+                            </li>
+                        </ul>
+                    </div>
+
+                    {% if affected_articles %}
+                    <div class="mb-4">
+                        <h6>Затронутые артикулы:</h6>
+                        <div class="bg-light p-3 rounded" style="max-height: 200px; overflow-y: auto;">
+                            {% for article in affected_articles %}
+                            <span class="badge bg-secondary me-1 mb-1">{{ article.wb_article }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="date" value="{{ delete_date|date:'Y-m-d' }}">
+                        
+                        <div class="d-flex gap-2 justify-content-end">
+                            <a href="{% url 'forms_app:form12_delete_by_date' %}" class="btn btn-secondary">
+                                ← Отмена
+                            </a>
+                            <button type="submit" name="confirm" value="1" class="btn btn-danger">
+                                🗑️ Да, удалить данные за {{ delete_date_display }}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

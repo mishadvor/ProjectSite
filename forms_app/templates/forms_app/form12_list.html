@@ -13,6 +13,10 @@
             <a href="{% url 'forms_app:form12_export' %}" class="btn btn-outline-primary">
                 📊 Экспорт в Excel
             </a>
+            <!-- НОВАЯ КНОПКА - Удаление по дате -->
+            <a href="{% url 'forms_app:form12_delete_by_date' %}" class="btn btn-outline-warning">
+                🗑️ Удалить по дате
+            </a>
             <!-- Добавить рядом с другими кнопками -->
             <a href="{% url 'forms_app:form12_delete_all' %}" class="btn shadow-sm" style="background: linear-gradient(45deg, #dc3545, #c82333) !important; border: 1px solid #bd2130 !important; color: white !important; text-shadow: 0 1px 1px rgba(0,0,0,0.2);">
                 💥 Очистить все

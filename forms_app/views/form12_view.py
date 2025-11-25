@@ -534,3 +534,77 @@ def form12_delete_article(request, wb_article):
             ),
         },
     )
+
+
+@login_required
+def form12_delete_by_date(request):
+    """Удаление данных за определенную дату во всех артикулах"""
+    if request.method == "POST":
+        date_str = request.POST.get("date")
+        if not date_str:
+            messages.error(request, "❌ Не указана дата для удаления.")
+            return redirect("forms_app:form12_list")
+
+        try:
+            # Преобразуем дату из формата YYYY-MM-DD
+            delete_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+        except ValueError:
+            messages.error(request, "❌ Неверный формат даты. Используйте ГГГГ-ММ-ДД.")
+            return redirect("forms_app:form12_list")
+
+        # Удаляем записи за указанную дату для текущего пользователя
+        deleted_count = Form12Data.objects.filter(
+            user=request.user, date=delete_date
+        ).count()
+
+        if deleted_count == 0:
+            messages.warning(
+                request,
+                f"ℹ️ Нет данных для удаления за дату {delete_date.strftime('%d.%m.%Y')}",
+            )
+            return redirect("forms_app:form12_list")
+
+        # Подтверждение удаления
+        if "confirm" in request.POST:
+            Form12Data.objects.filter(user=request.user, date=delete_date).delete()
+            messages.success(
+                request,
+                f"✅ Удалено {deleted_count} записей за {delete_date.strftime('%d.%m.%Y')}",
+            )
+            return redirect("forms_app:form12_list")
+        else:
+            # Показываем подтверждение
+            records_to_delete = Form12Data.objects.filter(
+                user=request.user, date=delete_date
+            )
+            affected_articles = records_to_delete.values("wb_article").distinct()
+
+            return render(
+                request,
+                "forms_app/form12_confirm_delete_date.html",
+                {
+                    "delete_date": delete_date,
+                    "delete_date_display": delete_date.strftime("%d.%m.%Y"),
+                    "records_count": deleted_count,
+                    "articles_count": affected_articles.count(),
+                    "affected_articles": affected_articles,
+                },
+            )
+
+    # GET запрос - показываем форму выбора даты
+    # Получаем все доступные даты для текущего пользователя
+    available_dates = (
+        Form12Data.objects.filter(user=request.user)
+        .values_list("date", flat=True)
+        .distinct()
+        .order_by("-date")
+    )
+
+    return render(
+        request,
+        "forms_app/form12_delete_by_date.html",
+        {
+            "available_dates": available_dates,
+            "records_count": Form12Data.objects.filter(user=request.user).count(),
+        },
+    )
