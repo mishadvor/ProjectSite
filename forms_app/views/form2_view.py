@@ -645,6 +645,9 @@ def form2(request):
             # Сортировка по Прибыли
             third_merged.sort_values(by="Прибыль", ascending=False, inplace=True)
 
+            # Удаляем строки с нулевой прибылью
+            third_merged = third_merged[third_merged["Прибыль"] != 0].copy()
+
             # Генерация Excel файла
             output = BytesIO()
 
