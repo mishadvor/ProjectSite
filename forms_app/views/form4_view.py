@@ -170,48 +170,47 @@ def upload_file(request):
 # === СПИСОК ВСЕХ КОДОВ (как "листы") ===
 @login_required
 def form4_list(request):
-    # print("✅ Пользователь:", request.user)
     # ✅ Получаем объекты, сортируем: сначала по коду, потом свежие данные сверху
     queryset = Form4Data.objects.filter(user=request.user).order_by("code", "-date")
-    # print("🔍 Найдено записей:", queryset.count())
-
-    # if queryset.count() == 0:
-    # Проверим, есть ли вообще данные у других пользователей
-    # print("👀 Всего в БД Form4Data:", Form4Data.objects.count())
-    # print(
-    # "👀 Все пользователи в Form4Data:",
-    # Form4Data.objects.values_list("user__username", flat=True).distinct(),
-    # )
 
     seen_codes = {}
-    for item in queryset:  # ← item — это Form4Data
+    for item in queryset:
         if item.code not in seen_codes:
-            seen_codes[item.code] = (
-                item.article
-            )  # сохраняем первый (самый свежий) артикул
+            seen_codes[item.code] = item.article
 
     # Формируем список для шаблона
     codes_with_articles = [
         {
             "code": code,
-            "article": article or "—",  # если None → показываем "—"
+            "article": article or "—",
         }
         for code, article in seen_codes.items()
     ]
-    # print(
-    #    "📌 codes_with_articles:", codes_with_articles
-    # )  # Проверим, что попало в шаблон
 
-    # Сортируем по коду (как строка или число — зависит от формата)
+    # Сортируем по коду
     try:
         codes_with_articles.sort(key=lambda x: int(x["code"]))
     except ValueError:
-        codes_with_articles.sort(key=lambda x: x["code"])  # если код не числовой
+        codes_with_articles.sort(key=lambda x: x["code"])
+
+    # Получаем уникальные даты для пользователя (для формы удаления по дате)
+    user_dates = (
+        Form4Data.objects.filter(user=request.user)
+        .values_list("date", flat=True)
+        .distinct()
+        .order_by("-date")
+    )
+
+    # Преобразуем в список строк
+    dates_list = [date.strftime("%Y-%m-%d") for date in user_dates]
 
     return render(
         request,
         "forms_app/form4_list.html",
-        {"codes_with_articles": codes_with_articles},
+        {
+            "codes_with_articles": codes_with_articles,
+            "available_dates": dates_list,  # Добавляем даты в контекст
+        },
     )
 
 
@@ -495,4 +494,60 @@ def clear_form4_data(request):
         request,
         "forms_app/form4_confirm_clear.html",
         {"count": Form4Data.objects.filter(user=request.user).count()},
+    )
+
+
+@login_required
+def clear_form4_by_date(request):
+    """
+    Удаление всех данных за определенную дату
+    """
+    if request.method == "POST":
+        date_str = request.POST.get("date")
+
+        if not date_str:
+            messages.error(request, "❌ Не указана дата для удаления.")
+            return redirect("forms_app:form4_clear_by_date")
+
+        try:
+            # Парсим дату из строки
+            date_to_delete = datetime.strptime(date_str, "%Y-%m-%d").date()
+        except ValueError:
+            messages.error(request, "❌ Неверный формат даты. Используйте YYYY-MM-DD.")
+            return redirect("forms_app:form4_clear_by_date")
+
+        # Удаляем записи пользователя за указанную дату
+        deleted_count, _ = Form4Data.objects.filter(
+            user=request.user, date=date_to_delete
+        ).delete()
+
+        if deleted_count > 0:
+            messages.success(
+                request,
+                f"✅ Удалено {deleted_count} записей за {date_to_delete.strftime('%d.%m.%Y')}",
+            )
+        else:
+            messages.info(
+                request,
+                f"ℹ️ Нет данных для удаления за {date_to_delete.strftime('%d.%m.%Y')}",
+            )
+
+        return redirect("forms_app:form4_list")
+
+    # Если GET запрос - показываем форму выбора даты
+    # Получаем все уникальные даты у пользователя
+    user_dates = (
+        Form4Data.objects.filter(user=request.user)
+        .values_list("date", flat=True)
+        .distinct()
+        .order_by("-date")
+    )
+
+    # Преобразуем в список для шаблона
+    dates_list = [date.strftime("%Y-%m-%d") for date in user_dates]
+
+    return render(
+        request,
+        "forms_app/form4_clear_by_date.html",
+        {"available_dates": dates_list, "dates_count": len(dates_list)},
     )

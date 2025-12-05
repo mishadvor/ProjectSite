@@ -14,6 +14,7 @@ from .views.form4_view import (
     form4_chart,
     export_form4_excel,
     clear_form4_data,
+    clear_form4_by_date,
 )
 
 from .views.form5_view import form5
@@ -104,6 +105,7 @@ urlpatterns = [
     # Экспорт и очистка
     path("form4/export/", export_form4_excel, name="form4_export"),
     path("form4/clear/", clear_form4_data, name="form4_clear"),
+    path("form4/clear-by-date/", clear_form4_by_date, name="form4_clear_by_date"),
     # Графики — только один раз!
     path("form4/<str:code>/chart/", form4_chart, name="form4_chart"),
     path(
