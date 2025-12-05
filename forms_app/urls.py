@@ -42,7 +42,12 @@ from forms_app.views.form6_sql_views import reset_stock_sql
 from .views.form7_view import form7_upload, form7_graph, clear_form7_data
 
 # Форма 8
-from .views.form8_view import form8_upload, form8_clear, form8_export
+from .views.form8_view import (
+    form8_upload,
+    form8_clear,
+    form8_export,
+    form8_clear_by_date,
+)
 
 # Форма 9
 from .views.form9_view import form9_view
@@ -119,6 +124,7 @@ urlpatterns = [
     path("form8/", form8_upload, name="form8_upload"),
     path("form8/clear/", form8_clear, name="form8_clear"),
     path("form8/export/", form8_export, name="form8_export"),
+    path("form8/clear-by-date/", form8_clear_by_date, name="form8_clear_by_date"),
     # -----Форма 9 ------
     path("form9/", form9_view, name="form9_view"),
     # -----Форма 10 ------

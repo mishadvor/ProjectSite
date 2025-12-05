@@ -155,6 +155,20 @@ def form8_upload(request):
     # Сортировка
     reports = reports.order_by("date_extracted") or reports.order_by("-uploaded_at")
 
+    # Получаем уникальные даты для пользователя (для формы удаления по дате)
+    # ВАЖНО: Фильтруем только те записи, где date_extracted не равно NULL
+    user_dates = (
+        Form8Report.objects.filter(
+            user=request.user, date_extracted__isnull=False  # ← ДОБАВЬТЕ ЭТО УСЛОВИЕ
+        )
+        .values_list("date_extracted", flat=True)
+        .distinct()
+        .order_by("-date_extracted")
+    )
+
+    # Преобразуем в список строк
+    dates_list = [date.strftime("%Y-%m-%d") for date in user_dates if date]
+
     # Подготовка данных для графиков
     chart_data = {
         "labels": [r.week_name for r in reports],
@@ -185,6 +199,7 @@ def form8_upload(request):
         "chart_data": chart_data,
         "start_date": start_date,
         "end_date": end_date,
+        "available_dates": dates_list,  # ← ДОБАВЛЯЕМ ЭТО В КОНТЕКСТ
     }
 
     return render(request, "forms_app/form8_upload.html", context)
@@ -243,3 +258,64 @@ def form8_export(request):
     )
     response["Content-Disposition"] = 'attachment; filename="form8_reports.xlsx"'
     return response
+
+
+# forms_app/views/form8_view.py (добавить в конец файла)
+
+
+@login_required
+def form8_clear_by_date(request):
+    """
+    Удаление всех данных за определенную дату
+    """
+    if request.method == "POST":
+        date_str = request.POST.get("date")
+
+        if not date_str:
+            messages.error(request, "❌ Не указана дата для удаления.")
+            return redirect("forms_app:form8_upload")
+
+        try:
+            # Парсим дату из строки
+            date_to_delete = datetime.strptime(date_str, "%Y-%m-%d").date()
+        except ValueError:
+            messages.error(request, "❌ Неверный формат даты. Используйте YYYY-MM-DD.")
+            return redirect("forms_app:form8_upload")
+
+        # Удаляем записи пользователя за указанную дату
+        deleted_count, _ = Form8Report.objects.filter(
+            user=request.user, date_extracted=date_to_delete
+        ).delete()
+
+        if deleted_count > 0:
+            messages.success(
+                request,
+                f"✅ Удалено {deleted_count} записей за {date_to_delete.strftime('%d.%m.%Y')}",
+            )
+        else:
+            messages.info(
+                request,
+                f"ℹ️ Нет данных для удаления за {date_to_delete.strftime('%d.%m.%Y')}",
+            )
+
+        return redirect("forms_app:form8_upload")
+
+    # Если GET запрос - показываем форму выбора даты
+    # Получаем все уникальные даты у пользователя
+    user_dates = (
+        Form8Report.objects.filter(
+            user=request.user, date_extracted__isnull=False  # ← ДОБАВЬТЕ ЭТО УСЛОВИЕ
+        )
+        .values_list("date_extracted", flat=True)
+        .distinct()
+        .order_by("-date_extracted")
+    )
+
+    # Преобразуем в список для шаблона
+    dates_list = [date.strftime("%Y-%m-%d") for date in user_dates]
+
+    return render(
+        request,
+        "forms_app/form8_clear_by_date.html",
+        {"available_dates": dates_list, "dates_count": len(dates_list)},
+    )
