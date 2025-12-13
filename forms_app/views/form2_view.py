@@ -787,7 +787,7 @@ def form2(request):
                 content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             )
             response["Content-Disposition"] = (
-                'attachment; filename="wildberries_report.xlsx"'
+                'attachment; filename="wildberries_report_Form_2_.xlsx"'
             )
             return response
 

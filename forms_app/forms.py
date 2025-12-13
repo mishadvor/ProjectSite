@@ -110,3 +110,11 @@ class Form12DataForm(forms.ModelForm):
         widgets = {
             "date": forms.DateInput(attrs={"type": "date"}),
         }
+
+
+class UploadFileForm14(forms.Form):
+    file = forms.FileField(
+        label="Загрузить отчет",
+        widget=forms.ClearableFileInput(attrs={"accept": ".xlsx"}),
+        required=False,
+    )

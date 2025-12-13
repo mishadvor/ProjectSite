@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-upload"></i> Загрузка данных для Формы 14
+            </h5>
+        </div>
+        
+        <div class="card-body">
+            <!-- Информация о текущих данных -->
+            <div class="alert alert-info">
+                <h6><i class="fas fa-info-circle"></i> Информация о загрузке:</h6>
+                <ul class="mb-0">
+                    <li>Форма 14 агрегирует данные по <strong>всему кабинету</strong> (без разбивки по артикулам)</li>
+                    <li>Загружайте ежедневные отчеты в формате <code>.xlsx</code></li>
+                    <li>Для каждой даты будет создана/обновлена одна запись с суммой всех показателей</li>
+                    <li>Дата определяется из имени файла (формат: <code>YYYY-MM-DD</code>) или используется текущая дата</li>
+                </ul>
+            </div>
+
+            <!-- Форма загрузки -->
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                
+                <div class="mb-4">
+                    <label for="file" class="form-label">Выберите отчет (формат .xlsx)</label>
+                    {{ form.file }}
+                    {% if form.file.errors %}
+                        <div class="alert alert-danger mt-2">
+                            {{ form.file.errors }}
+                        </div>
+                    {% endif %}
+                    <div class="form-text">
+                        Поддерживается загрузка одного файла. Дата будет извлечена из имени файла.
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-upload"></i> Загрузить
+                        </button>
+                        <a href="{% url 'forms_app:form14_list' %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Назад к списку
+                        </a>
+                    </div>
+                    
+                    <div>
+                        {% if records_count > 0 %}
+                        <span class="badge bg-info text-dark">
+                            <i class="fas fa-database"></i> В базе: {{ records_count }} записей
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+            </form>
+
+            <!-- Пример имени файла -->
+            <div class="card mt-4">
+                <div class="card-body">
+                    <h6><i class="fas fa-lightbulb"></i> Пример правильного имени файла:</h6>
+                    <code>report-2024-03-15.xlsx</code>
+                    <p class="mb-0 mt-2">Дата будет извлечена как: <strong>15.03.2024</strong></p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card-footer text-muted">
+            <small>
+                <i class="fas fa-exclamation-triangle"></i> При загрузке файла за уже существующую дату данные будут обновлены
+            </small>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Стиль для поля загрузки файла */
+    input[type="file"] {
+        padding: 10px;
+        border: 2px dashed #007bff;
+        border-radius: 5px;
+        width: 100%;
+        cursor: pointer;
+    }
+    
+    input[type="file"]:hover {
+        border-color: #0056b3;
+        background-color: #f8f9fa;
+    }
+</style>
+{% endblock %}

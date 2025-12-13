@@ -72,8 +72,17 @@ from .views.form12_view import (
     form12_chart,
     clear_form12_data,
 )
-
 from .views.form13_view import form13_simple_upload
+from .views.form14_view import (
+    upload_file14,
+    form14_list,
+    form14_chart,
+    clear_form14_data,
+    form14_delete_by_date,
+    export_form14_excel,
+    form14_api_data,
+)
+
 
 app_name = "forms_app"
 
@@ -156,4 +165,13 @@ urlpatterns = [
     path("form12/delete-by-date/", form12_delete_by_date, name="form12_delete_by_date"),
     # --- Форма 13 (простая версия) ---
     path("form13/", form13_simple_upload, name="form13_simple"),
+    # --- Форма 14 (Агрегированные данные по всем артикулам) ---
+    path("form14/upload/", upload_file14, name="form14_upload"),
+    path("form14/", form14_list, name="form14_list"),
+    path("form14/chart/<str:chart_type>/", form14_chart, name="form14_chart"),
+    path("form14/chart/", form14_chart, name="form14_chart_default"),
+    path("form14/clear/", clear_form14_data, name="form14_clear"),
+    path("form14/delete-by-date/", form14_delete_by_date, name="form14_delete_by_date"),
+    path("form14/export/", export_form14_excel, name="form14_export"),
+    path("form14/api/<str:chart_type>/", form14_api_data, name="form14_api_data"),
 ]

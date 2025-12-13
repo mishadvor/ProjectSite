@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header bg-danger text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-exclamation-triangle"></i> Подтверждение удаления
+            </h5>
+        </div>
+        
+        <div class="card-body">
+            <div class="alert alert-danger">
+                <h6><i class="fas fa-warning"></i> Внимание!</h6>
+                <p class="mb-0">
+                    Вы собираетесь удалить <strong>ВСЕ</strong> данные формы 14.
+                    Это действие невозможно отменить.
+                </p>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h6>Будет удалено:</h6>
+                    <ul>
+                        <li><strong>{{ count }} записей</strong> агрегированных данных</li>
+                        <li>Все графики будут очищены</li>
+                        <li>Вся статистика по кабинету будет удалена</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <form method="post">
+                {% csrf_token %}
+                <div class="d-flex justify-content-between">
+                    <a href="{% url 'forms_app:form14_list' %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Отмена
+                    </a>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash"></i> Да, удалить все данные
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

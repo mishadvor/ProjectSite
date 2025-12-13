@@ -168,3 +168,41 @@ class Form12Data(models.Model):
 
     def __str__(self):
         return f"{self.wb_article} ({self.date})"
+
+
+class Form14Data(models.Model):
+    """Форма 14: Агрегированные данные по всем артикулам (без разбивки по артикулам)"""
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="form14_data")
+    date = models.DateField(verbose_name="Дата отчета")
+
+    # Суммированные показатели за день
+    total_orders_qty = models.IntegerField(
+        verbose_name="Всего заказов, шт.", null=True, blank=True
+    )
+    total_order_amount_net = models.FloatField(
+        verbose_name="Общая сумма заказов минус комиссия WB, руб.",
+        null=True,
+        blank=True,
+    )
+    total_sold_qty = models.IntegerField(
+        verbose_name="Всего выкуплено, шт.", null=True, blank=True
+    )
+    total_transfer_amount = models.FloatField(
+        verbose_name="Общая сумма к перечислению, руб.", null=True, blank=True
+    )
+    total_current_stock = models.IntegerField(
+        verbose_name="Общий остаток, шт.", null=True, blank=True
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Данные формы 14"
+        verbose_name_plural = "Данные формы 14"
+        ordering = ["-date"]
+        unique_together = ["user", "date"]  # Одна запись на пользователя за день
+
+    def __str__(self):
+        return f"Форма 14 - {self.date} ({self.user.username})"
