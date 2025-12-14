@@ -226,3 +226,33 @@ class Pattern15(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.width}×{self.height} мм)"
+
+
+from django.db import models
+from django.contrib.auth.models import User
+
+
+class Form16Article(models.Model):
+    """Модель для хранения 15 артикулов Формы 16"""
+
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, verbose_name="Пользователь"
+    )
+    position = models.PositiveIntegerField(verbose_name="Позиция (1-15)")
+    article_wb = models.CharField(max_length=100, verbose_name="Артикул WB")
+    description = models.CharField(max_length=200, blank=True, verbose_name="Описание")
+    is_active = models.BooleanField(default=True, verbose_name="Активен")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Дата обновления")
+
+    class Meta:
+        verbose_name = "Артикул Формы 16"
+        verbose_name_plural = "Артикулы Формы 16"
+        unique_together = [
+            "user",
+            "position",
+        ]  # Каждая позиция уникальна для пользователя
+        ordering = ["position"]
+
+    def __str__(self):
+        return f"{self.position}. {self.article_wb} ({self.user.username})"

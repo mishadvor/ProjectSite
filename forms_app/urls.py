@@ -90,6 +90,12 @@ from .views.form15_view import (
     form15_clear_all,
     form15_import_excel,
 )
+from .views.form16_view import (
+    form16_main,  # Это главная страница
+    form16_edit_table,
+    form16_generate_report,
+    form16_delete_all,
+)
 
 app_name = "forms_app"
 
@@ -189,4 +195,9 @@ urlpatterns = [
     path("form15/calculate/", form15_calculate, name="form15_calculate"),
     path("form15/clear-all/", form15_clear_all, name="form15_clear_all"),
     path("form15/import-excel/", form15_import_excel, name="form15_import_excel"),
+    # --- Форма 16 ---
+    path("form16/", form16_main, name="form16_main"),
+    path("form16/edit/", form16_edit_table, name="form16_edit_table"),
+    path("form16/generate/", form16_generate_report, name="form16_generate_report"),
+    path("form16/delete-all/", form16_delete_all, name="form16_delete_all"),
 ]

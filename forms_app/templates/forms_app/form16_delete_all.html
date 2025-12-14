@@ -1,0 +1,38 @@
+<!-- templates/forms_app/form16_delete_all.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-exclamation-triangle"></i> Подтверждение удаления
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <p class="lead">
+                        Вы уверены, что хотите удалить <strong>все {{ articles_count }} артикулов</strong>?
+                    </p>
+                    <p class="text-muted">
+                        Это действие нельзя отменить. Все сохраненные артикулы будут удалены из базы данных.
+                    </p>
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-flex justify-content-between">
+                            <button type="submit" class="btn btn-danger">
+                                <i class="fas fa-trash-alt"></i> Да, удалить все
+                            </button>
+                            <a href="{% url 'forms_app:form16_edit_table' %}" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> Отмена
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

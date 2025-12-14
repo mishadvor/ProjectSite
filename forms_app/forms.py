@@ -176,3 +176,41 @@ class CuttingForm(forms.Form):
         initial="pdf",
         widget=forms.RadioSelect(attrs={"class": "form-check-input"}),
     )
+
+
+class Form16UploadForm(forms.Form):
+    """Форма для загрузки файла оборачиваемости"""
+
+    file = forms.FileField(
+        label="Загрузите файл 'Детальная информация'",
+        widget=forms.FileInput(attrs={"accept": ".xlsx"}),
+        required=True,
+    )
+
+
+class Form16ArticleInputForm(forms.Form):
+    """Форма для ввода 15 артикулов с сохранением порядка"""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Создаем 15 полей с названиями от article_1 до article_15
+        for i in range(1, 16):
+            self.fields[f"article_{i}"] = forms.CharField(
+                label=f"Артикул WB #{i}",
+                required=(i <= 1),  # Только первый артикул обязателен
+                widget=forms.TextInput(
+                    attrs={"class": "form-control", "placeholder": "Введите артикул WB"}
+                ),
+                max_length=50,
+            )
+
+
+class Form16UploadForm(forms.Form):
+    """Форма для загрузки файла оборачиваемости"""
+
+    file = forms.FileField(
+        label="Загрузите файл 'Детальная информация'",
+        widget=forms.FileInput(attrs={"accept": ".xlsx"}),
+        required=True,
+        help_text="Ожидается файл с вкладкой 'Детальная информация'",
+    )
