@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-trash"></i> Очистка всех лекал
+                    </h5>
+                </div>
+                
+                <div class="card-body">
+                    <div class="alert alert-danger">
+                        <h6><i class="fas fa-warning"></i> Критическое действие!</h6>
+                        <p class="mb-0">
+                            Вы собираетесь удалить <strong>ВСЕ</strong> лекала из базы данных.
+                            Это действие невозможно отменить.
+                        </p>
+                    </div>
+                    
+                    <div class="card mb-4">
+                        <div class="card-body">
+                            <h6>Будет удалено:</h6>
+                            <ul>
+                                <li><strong>{{ patterns_count }} лекал</strong></li>
+                                <li>Все данные о размерах деталей</li>
+                                <li>Вся история добавлений</li>
+                            </ul>
+                            <p class="mb-0 text-muted">
+                                После очистки нужно будет заново добавить все лекала для расчетов.
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-danger btn-lg">
+                                <i class="fas fa-trash"></i> Да, удалить ВСЕ лекала
+                            </button>
+                            <a href="{% url 'forms_app:form15_view' %}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Отмена, вернуться к форме
+                            </a>
+                        </div>
+                    </form>
+                </div>
+                
+                <div class="card-footer text-muted">
+                    <small>
+                        <i class="fas fa-exclamation-triangle"></i> Рекомендуется экспортировать данные перед очисткой
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

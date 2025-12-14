@@ -82,7 +82,14 @@ from .views.form14_view import (
     export_form14_excel,
     form14_api_data,
 )
-
+from .views.form15_view import (
+    form15_view,
+    form15_edit_pattern,
+    form15_delete_pattern,
+    form15_calculate,
+    form15_clear_all,
+    form15_import_excel,
+)
 
 app_name = "forms_app"
 
@@ -174,4 +181,12 @@ urlpatterns = [
     path("form14/delete-by-date/", form14_delete_by_date, name="form14_delete_by_date"),
     path("form14/export/", export_form14_excel, name="form14_export"),
     path("form14/api/<str:chart_type>/", form14_api_data, name="form14_api_data"),
+    path("form15/", form15_view, name="form15_view"),
+    path("form15/edit/<int:pk>/", form15_edit_pattern, name="form15_edit_pattern"),
+    path(
+        "form15/delete/<int:pk>/", form15_delete_pattern, name="form15_delete_pattern"
+    ),
+    path("form15/calculate/", form15_calculate, name="form15_calculate"),
+    path("form15/clear-all/", form15_clear_all, name="form15_clear_all"),
+    path("form15/import-excel/", form15_import_excel, name="form15_import_excel"),
 ]

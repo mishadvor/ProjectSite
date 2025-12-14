@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-exclamation-triangle"></i> Удаление лекала
+                    </h5>
+                </div>
+                
+                <div class="card-body">
+                    <div class="alert alert-danger">
+                        <h6><i class="fas fa-warning"></i> Внимание!</h6>
+                        <p class="mb-0">
+                            Вы собираетесь удалить лекало. Это действие нельзя отменить.
+                        </p>
+                    </div>
+                    
+                    <div class="card mb-4">
+                        <div class="card-body">
+                            <h6>Информация о лекале:</h6>
+                            <table class="table table-sm">
+                                <tbody>
+                                    <tr>
+                                        <td><strong>Название:</strong></td>
+                                        <td>{{ pattern.name }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Ширина:</strong></td>
+                                        <td>{{ pattern.width }} мм</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Высота:</strong></td>
+                                        <td>{{ pattern.height }} мм</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Добавлено:</strong></td>
+                                        <td>{{ pattern.created_at|date:"d.m.Y H:i" }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'forms_app:form15_view' %}" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> Отмена
+                            </a>
+                            <button type="submit" class="btn btn-danger">
+                                <i class="fas fa-trash"></i> Да, удалить лекало
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                
+                <div class="card-footer text-muted">
+                    <small>
+                        <i class="fas fa-info-circle"></i> Лекало будет удалено без возможности восстановления
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

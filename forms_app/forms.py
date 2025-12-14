@@ -118,3 +118,61 @@ class UploadFileForm14(forms.Form):
         widget=forms.ClearableFileInput(attrs={"accept": ".xlsx"}),
         required=False,
     )
+
+
+from django import forms
+from .models import Pattern15
+
+
+class PatternForm(forms.ModelForm):
+    """Форма для добавления/редактирования лекала"""
+
+    class Meta:
+        model = Pattern15
+        fields = ["name", "width", "height"]
+        widgets = {
+            "name": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Например: Рукав, Спинка",
+                }
+            ),
+            "width": forms.NumberInput(
+                attrs={"class": "form-control", "placeholder": "в мм"}
+            ),
+            "height": forms.NumberInput(
+                attrs={"class": "form-control", "placeholder": "в мм"}
+            ),
+        }
+
+
+class CuttingForm(forms.Form):
+    """Форма для параметров раскроя"""
+
+    fabric_width = forms.IntegerField(
+        label="Ширина полотна (мм)",
+        initial=1500,
+        min_value=100,
+        max_value=5000,
+        widget=forms.NumberInput(
+            attrs={"class": "form-control", "placeholder": "1500"}
+        ),
+    )
+
+    num_sets = forms.IntegerField(
+        label="Количество комплектов",
+        initial=1,
+        min_value=1,
+        max_value=100,
+        widget=forms.NumberInput(attrs={"class": "form-control", "placeholder": "1"}),
+    )
+
+    output_format = forms.ChoiceField(
+        label="Формат вывода",
+        choices=[
+            ("pdf", "PDF файл"),
+            ("excel", "Excel с параметрами"),
+        ],
+        initial="pdf",
+        widget=forms.RadioSelect(attrs={"class": "form-check-input"}),
+    )

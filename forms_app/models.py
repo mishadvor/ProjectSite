@@ -206,3 +206,23 @@ class Form14Data(models.Model):
 
     def __str__(self):
         return f"Форма 14 - {self.date} ({self.user.username})"
+
+
+class Pattern15(models.Model):
+    """Модель для хранения лекал Формы 15"""
+
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="form15_patterns"
+    )
+    name = models.CharField(max_length=100, verbose_name="Название лекала")
+    width = models.IntegerField(verbose_name="Ширина (мм)")
+    height = models.IntegerField(verbose_name="Высота (мм)")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Лекало (Форма 15)"
+        verbose_name_plural = "Лекала (Форма 15)"
+        ordering = ["name"]
+
+    def __str__(self):
+        return f"{self.name} ({self.width}×{self.height} мм)"
