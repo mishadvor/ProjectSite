@@ -230,17 +230,37 @@ class Pattern15(models.Model):
 
 from django.db import models
 from django.contrib.auth.models import User
+from django.core.validators import MinValueValidator, MaxValueValidator
 
 
 class Form16Article(models.Model):
-    """Модель для хранения 15 артикулов Формы 16"""
+    """Модель для хранения 30 артикулов Формы 16"""
 
     user = models.ForeignKey(
         User, on_delete=models.CASCADE, verbose_name="Пользователь"
     )
-    position = models.PositiveIntegerField(verbose_name="Позиция (1-15)")
+
+    # ОДНО объявление поля position
+    position = models.PositiveIntegerField(
+        verbose_name="Позиция (1-30)",
+        validators=[
+            MinValueValidator(1, message="Позиция должна быть от 1 до 30"),
+            MaxValueValidator(30, message="Позиция должна быть от 1 до 30"),
+        ],
+    )
+
     article_wb = models.CharField(max_length=100, verbose_name="Артикул WB")
-    description = models.CharField(max_length=200, blank=True, verbose_name="Описание")
+    our_article = models.CharField(
+        max_length=200,
+        blank=True,
+        verbose_name="Наш артикул",
+        help_text="Наше внутреннее название артикула",
+    )
+    comments = models.TextField(
+        blank=True,
+        verbose_name="Комментарии",
+        help_text="Заметки и комментарии по артикулу",
+    )
     is_active = models.BooleanField(default=True, verbose_name="Активен")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Дата обновления")

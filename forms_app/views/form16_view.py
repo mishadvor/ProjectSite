@@ -43,11 +43,12 @@ def form16_edit_table(request):
         try:
             with transaction.atomic():
                 # Обрабатываем все 15 позиций
-                for position in range(1, 16):
+                for position in range(1, 31):
                     article_wb = request.POST.get(f"article_{position}", "").strip()
-                    description = request.POST.get(
-                        f"description_{position}", ""
+                    our_article = request.POST.get(
+                        f"our_article_{position}", ""
                     ).strip()
+                    comments = request.POST.get(f"comments_{position}", "").strip()
                     is_active = request.POST.get(f"active_{position}") == "on"
 
                     if position in existing_articles:
@@ -55,7 +56,8 @@ def form16_edit_table(request):
                         article = existing_articles[position]
                         if article_wb:
                             article.article_wb = article_wb
-                            article.description = description
+                            article.our_article = our_article
+                            article.comments = comments
                             article.is_active = is_active
                             article.save()
                         else:
@@ -68,7 +70,8 @@ def form16_edit_table(request):
                                 user=request.user,
                                 position=position,
                                 article_wb=article_wb,
-                                description=description,
+                                our_article=our_article,
+                                comments=comments,
                                 is_active=is_active,
                             )
 
@@ -83,14 +86,15 @@ def form16_edit_table(request):
 
     # Создаем список данных для каждой позиции
     table_data = []
-    for position in range(1, 16):
+    for position in range(1, 31):
         if position in existing_articles:
             article = existing_articles[position]
             table_data.append(
                 {
                     "position": position,
                     "article_wb": article.article_wb,
-                    "description": article.description,
+                    "our_article": article.our_article,
+                    "comments": article.comments,
                     "is_active": article.is_active,
                     "exists": True,
                 }
@@ -100,7 +104,8 @@ def form16_edit_table(request):
                 {
                     "position": position,
                     "article_wb": "",
-                    "description": "",
+                    "our_article": "",
+                    "comments": "",
                     "is_active": False,
                     "exists": False,
                 }
@@ -250,6 +255,7 @@ def form16_generate_report(request):
                 "Артикул WB",
                 "Размер",
                 "Доступность",
+                "Комментарии",
                 "Заказали, шт",
                 "Выкупили, шт",
                 "Процент выкупа",
@@ -262,8 +268,39 @@ def form16_generate_report(request):
 
             df_result = df_sorted[available_columns].copy()
 
+            # Добавляем комментарии из нашей базы данных
+            df_result = df_sorted[available_columns].copy()
+
             # Удаляем дубликаты
             df_result = df_result.drop_duplicates()
+
+            # === ДОБАВЛЯЕМ КОЛОНКУ С КОММЕНТАРИЯМИ ===
+            # Создаем словарь комментариев по артикулам из нашей базы
+            comments_dict = {}
+            for article in Form16Article.objects.filter(
+                user=request.user, is_active=True
+            ):
+                if article.comments:  # Только если есть комментарии
+                    comments_dict[str(article.article_wb).strip()] = article.comments
+
+            # Добавляем колонку "Комментарии" после "Доступность"
+            # Находим индекс колонки "Доступность"
+            if "Доступность" in df_result.columns:
+                availability_idx = df_result.columns.get_loc("Доступность")
+                # Вставляем колонку "Комментарии" после "Доступность"
+                df_result.insert(availability_idx + 1, "Комментарии", "")
+            else:
+                # Если нет колонки "Доступность", добавляем в конец
+                df_result["Комментарии"] = ""
+
+            # Заполняем комментарии из нашей базы
+            def get_comments(row):
+                article_wb = (
+                    str(row["Артикул WB"]).strip() if "Артикул WB" in row else ""
+                )
+                return comments_dict.get(article_wb, "")
+
+            df_result["Комментарии"] = df_result.apply(get_comments, axis=1)
 
             # === ИСПРАВЛЕНИЕ 1: Добавляем пустую колонку "Отгрузка ФБО" ===
             df_result["Отгрузка ФБО"] = ""
@@ -274,6 +311,7 @@ def form16_generate_report(request):
                 "Артикул WB",
                 "Размер",
                 "Доступность",
+                "Комментарии",
                 "Заказали, шт",
                 "Выкупили, шт",
                 "Процент выкупа",
@@ -288,7 +326,7 @@ def form16_generate_report(request):
             # Создаем Excel файл
             wb = Workbook()
             ws = wb.active
-            ws.title = f"Оборачиваемость"
+            ws.title = f"ФОРМИРОВАНИЕ_ФБО"
 
             # === РАСЧЕТ СТРОК ДЛЯ ФОРМАТИРОВАНИЯ ===
 

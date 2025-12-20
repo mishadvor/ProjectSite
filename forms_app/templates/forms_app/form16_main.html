@@ -6,34 +6,20 @@
 <div class="container mt-4">
     <div class="card">
         <div class="card-header bg-primary text-white">
-            <h3 class="mb-0">
-                <i class="fas fa-chart-bar"></i> Форма 16: Отчет по оборачиваемости (15 артикулов)
-            </h3>
+            <h2 class="mb-0">
+                <i class="fas fa-chart-bar"></i> Форма 16: Отчет по Заказам и Остаткам (15 Локо артикулов)
+            </h2>
         </div>
         
         <div class="card-body">
-            <!-- Навигация по вкладкам -->
-            <ul class="nav nav-tabs mb-4" id="form16Tab" role="tablist">
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link active" id="edit-tab" data-bs-toggle="tab" 
-                            data-bs-target="#edit" type="button" role="tab">
-                        <i class="fas fa-edit"></i> Редактировать таблицу артикулов
-                    </button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="generate-tab" data-bs-toggle="tab" 
-                            data-bs-target="#generate" type="button" role="tab">
-                        <i class="fas fa-file-excel"></i> Сгенерировать отчет
-                    </button>
-                </li>
-            </ul>
+            
             
             <!-- Содержимое вкладок -->
             <div class="tab-content" id="form16TabContent">
                 <!-- Вкладка редактирования -->
                 <div class="tab-pane fade show active" id="edit" role="tabpanel">
                     <div class="alert alert-info">
-                        <h5><i class="fas fa-info-circle"></i> Как это работает:</h5>
+                        <h4><i class="fas fa-info-circle"></i> Как это работает:</h4>
                         <ul class="mb-0">
                             <li>Создайте таблицу из 15 артикулов WB для отслеживания</li>
                             <li>Артикулы сохраняются в базе данных</li>
@@ -63,7 +49,7 @@
                     <div class="alert alert-success">
                         <h5><i class="fas fa-file-excel"></i> Генерация отчета:</h5>
                         <ul class="mb-0">
-                            <li>Загрузите файл с данными оборачиваемости</li>
+                            <li>Загрузите файл с данными оборачиваемости. Раздел "История остатков" ФБО. Включите все артикулы.</li>
                             <li>Система автоматически отфильтрует данные по вашим сохраненным артикулам</li>
                             <li>Отчет будет отсортирован по порядку из таблицы</li>
                             <li>Каждый артикул выделен своим цветом для наглядности</li>

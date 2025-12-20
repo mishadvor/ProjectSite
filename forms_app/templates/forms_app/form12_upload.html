@@ -5,7 +5,7 @@
 {% block content %}
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>Form 12: Загрузка данных</h2>
+        <h2>Form 12: Ежедневная статистика по каждому Артикулу</h2>
         <div>
             <a href="{% url 'forms_app:form12_list' %}" class="btn btn-secondary">
                 📋 К списку артикулов
@@ -16,7 +16,7 @@
     <!-- Основной контент -->
     <div class="card">
         <div class="card-header">
-            <h5 class="mb-0">Загрузка файлов Form12</h5>
+            <h4 class="mb-0">Загрузка файлов из раздела "Продажи" </h4>
         </div>
         <div class="card-body">
             <form method="post" enctype="multipart/form-data">
@@ -57,7 +57,7 @@
     {% if articles_count > 0 %}
     <div class="card border-danger">
         <div class="card-header bg-danger text-white">
-            <h6 class="mb-0">⚠️ Опасная операция</h6>
+            <h4 class="mb-0">⚠️ Опасная операция</h4>
         </div>
         <div class="card-body text-center">
             <a href="{% url 'forms_app:form12_clear' %}" 

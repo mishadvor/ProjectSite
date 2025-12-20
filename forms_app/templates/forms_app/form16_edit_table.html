@@ -23,8 +23,9 @@
                         <thead class="table-dark">
                             <tr>
                                 <th width="5%">#</th>
-                                <th width="25%">Артикул WB</th>
-                                <th width="50%">Описание</th>
+                                <th width="20%">Артикул WB</th>
+                                <th width="20%">Наш артикул</th>
+                                <th width="35%">Комментарии</th>
                                 <th width="10%">Активен</th>
                                 <th width="10%">Статус</th>
                             </tr>
@@ -39,15 +40,22 @@
                                     <input type="text" 
                                            name="article_{{ item.position }}" 
                                            value="{{ item.article_wb }}"
-                                           class="form-control"
+                                           class="form-control form-control-sm"
                                            placeholder="Артикул WB">
                                 </td>
                                 <td>
                                     <input type="text" 
-                                           name="description_{{ item.position }}" 
-                                           value="{{ item.description }}"
-                                           class="form-control"
-                                           placeholder="Описание">
+                                           name="our_article_{{ item.position }}" 
+                                           value="{{ item.our_article }}"
+                                           class="form-control form-control-sm"
+                                           placeholder="Наш артикул">
+                                </td>
+                                <td>
+                                    <textarea 
+                                           name="comments_{{ item.position }}" 
+                                           class="form-control form-control-sm"
+                                           rows="2"
+                                           placeholder="Комментарии...">{{ item.comments }}</textarea>
                                 </td>
                                 <td class="text-center">
                                     <div class="form-check d-flex justify-content-center">
@@ -94,9 +102,10 @@
             <div class="alert alert-info mt-4">
                 <h5><i class="fas fa-lightbulb"></i> Советы:</h5>
                 <ul class="mb-0">
-                    <li>Артикулы сохраняются в том порядке, в котором они находятся в таблице</li>
+                    <li><strong>Артикул WB</strong> - артикул на Wildberries</li>
+                    <li><strong>Наш артикул</strong> - наше внутреннее название товара</li>
+                    <li><strong>Комментарии</strong> - любые заметки по артикулу (поставщик, особенности и т.д.)</li>
                     <li>Только артикулы с галочкой "Активен" попадут в отчет</li>
-                    <li>Описание необязательно, но помогает идентифицировать товар</li>
                     <li>Чтобы удалить артикул - очистите поле "Артикул WB" и сохраните</li>
                 </ul>
             </div>
@@ -116,11 +125,30 @@
 </div>
 
 <style>
+    .form-control-sm {
+        font-size: 0.875rem;
+    }
+    textarea.form-control-sm {
+        min-height: 60px;
+        resize: vertical;
+    }
     .form-check-input {
         transform: scale(1.2);
+        margin-top: 0;
     }
     .badge {
         font-size: 0.8rem;
+        padding: 0.3em 0.6em;
+    }
+    th {
+        font-size: 0.9rem;
+        vertical-align: middle;
+    }
+    td {
+        vertical-align: middle;
+    }
+    .table td, .table th {
+        padding: 0.5rem;
     }
 </style>
 {% endblock %}

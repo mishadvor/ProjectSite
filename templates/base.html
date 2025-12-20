@@ -182,7 +182,7 @@
         background: #5d4037;
       }
 
-       .form-btn-14 {
+      .form-btn-14 {
         background: #009688; /* Бирюзовый для Формы 14 */
       }
       .form-btn-14:hover {
@@ -194,6 +194,13 @@
       }
       .form-btn-15:hover {
         background: #138496;
+      }
+
+      .form-btn-16 {
+        background: #9C27B0; /* Фиолетовый для Формы 16 */
+      }
+      .form-btn-16:hover {
+        background: #7B1FA2;
       }
 
       /* Контейнер форм */
@@ -227,7 +234,7 @@
         }
       }
 
-      /* === СЕТКА: ТРИ РЯДА ПО 5 КНОПОК === */
+      /* === СЕТКА: ЧЕТЫРЕ РЯДА === */
       .forms-grid {
         display: flex;
         flex-direction: column;
@@ -257,7 +264,6 @@
           font-size: 0.9em;
         }
       }
-      
     </style>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -275,7 +281,7 @@
       <nav>
         <!-- Блок с формами -->
         <div class="forms-grid">
-          <!-- Верхний ряд -->
+          <!-- Верхний ряд (Формы 1-5) -->
           <div class="forms-row">
             <!-- Форма 1 -->
             <div class="form-item">
@@ -322,7 +328,7 @@
           </div>
           <!-- Закрытие верхнего ряда -->
 
-          <!-- Средний ряд -->
+          <!-- Второй ряд (Формы 6-9) -->
           <div class="forms-row">
             <!-- Форма 6 -->
             <div class="form-item">
@@ -376,63 +382,71 @@
               <div class="form-label">Оборачиваемость</div>
             </div>
           </div>
-          <!-- Закрытие среднего ряда -->
+          <!-- Закрытие второго ряда -->
 
-          <!-- Нижний ряд (обновленный) -->
+          <!-- Третий ряд (Формы 10-14) -->
           <div class="forms-row">
-              <!-- Форма 10 -->
-              <div class="form-item">
-                  <a href="{% url 'forms_app:form10_view' %}" class="form-btn form-btn-10">
-                      <i class="fas fa-bolt"></i> Форма 10
-                  </a>
-                  <div class="form-label">Экспресс анализ продаж</div>
-              </div>
+            <!-- Форма 10 -->
+            <div class="form-item">
+              <a href="{% url 'forms_app:form10_view' %}" class="form-btn form-btn-10">
+                <i class="fas fa-bolt"></i> Форма 10
+              </a>
+              <div class="form-label">Экспресс анализ продаж</div>
+            </div>
 
-              <!-- Форма 11 -->
-              <div class="form-item">
-                  <a href="{% url 'forms_app:form11_view' %}" class="form-btn form-btn-11">
-                      <i class="fas fa-box-open"></i> Форма 11
-                  </a>
-                  <div class="form-label">Формирование ФБО</div>
-              </div>
+            <!-- Форма 11 -->
+            <div class="form-item">
+              <a href="{% url 'forms_app:form11_view' %}" class="form-btn form-btn-11">
+                <i class="fas fa-box-open"></i> Форма 11
+              </a>
+              <div class="form-label">Формирование ФБО</div>
+            </div>
 
-              <!-- Форма 12 -->
-              <div class="form-item">
-                  <a href="{% url 'forms_app:form12_upload' %}" class="form-btn form-btn-12">
-                      <i class="fas fa-chart-bar"></i> Форма 12
-                  </a>
-                  <div class="form-label">Ежедневная статистика</div>
-              </div>
+            <!-- Форма 12 -->
+            <div class="form-item">
+              <a href="{% url 'forms_app:form12_upload' %}" class="form-btn form-btn-12">
+                <i class="fas fa-chart-bar"></i> Форма 12
+              </a>
+              <div class="form-label">Ежедневная статистика</div>
+            </div>
 
-              <!-- Форма 13 -->
-              <div class="form-item">
-                  <a href="{% url 'forms_app:form13_simple' %}" class="form-btn form-btn-13">
-                      <i class="fas fa-clipboard-check"></i> Форма 13
-                  </a>
-                  <div class="form-label">Признаки доступности</div>
-              </div>
+            <!-- Форма 13 -->
+            <div class="form-item">
+              <a href="{% url 'forms_app:form13_simple' %}" class="form-btn form-btn-13">
+                <i class="fas fa-clipboard-check"></i> Форма 13
+              </a>
+              <div class="form-label">Признаки доступности</div>
+            </div>
 
-              <!-- ✅ НОВАЯ: Форма 14 -->
-              <div class="form-item">
-                  <a href="{% url 'forms_app:form14_list' %}" class="form-btn form-btn-14">
-                      <i class="fas fa-chart-line"></i> Форма 14
-                  </a>
-                  <div class="form-label">Общие графики по кабинету</div>
-              </div>
-              <div class="form-item">
-                  <a href="{% url 'forms_app:form15_view' %}" class="form-btn form-btn-15">
-                      <i class="fas fa-cut"></i> Форма 15
-                  </a>
-                  <div class="form-label">Раскрой ткани</div>
-              </div>
-              <!-- В base.html, в блоке с формами добавьте: -->
-              <div class="form-item">
-                <a href="{% url 'forms_app:form16_main' %}" class="form-btn" style="background: #9C27B0;">
-                    <i class="fas fa-table"></i> Форма 16
-                </a>
-              <div class="form-label">15 артикулов SQL</div>
+            <!-- Форма 14 -->
+            <div class="form-item">
+              <a href="{% url 'forms_app:form14_list' %}" class="form-btn form-btn-14">
+                <i class="fas fa-chart-line"></i> Форма 14
+              </a>
+              <div class="form-label">Общие графики по кабинету</div>
             </div>
           </div>
+          <!-- Закрытие третьего ряда -->
+
+          <!-- Четвертый ряд (Формы 15-16) -->
+          <div class="forms-row">
+            <!-- Форма 15 -->
+            <div class="form-item">
+              <a href="{% url 'forms_app:form15_view' %}" class="form-btn form-btn-15">
+                <i class="fas fa-cut"></i> Форма 15
+              </a>
+              <div class="form-label">Раскрой ткани</div>
+            </div>
+
+            <!-- Форма 16 -->
+            <div class="form-item">
+              <a href="{% url 'forms_app:form16_main' %}" class="form-btn form-btn-16">
+                <i class="fas fa-table"></i> Форма 16
+              </a>
+              <div class="form-label">15 Локо ФБО</div>
+            </div>
+          </div>
+          <!-- Закрытие четвертого ряда -->
         </div>
         <!-- Закрытие forms-grid -->
 

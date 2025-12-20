@@ -1,5 +1,3 @@
-# forms_app/views/form1_view.py
-
 import pandas as pd
 from django.http import HttpResponse
 from django.shortcuts import render
@@ -96,32 +94,58 @@ def form1(request):
             "%d-%m-%Y"
         )
 
-        # Построение графика
-        buf = BytesIO()
-        plt.figure(figsize=(10, 5))
-        columns_to_plot = [
+        # Добавляем столбец "Наш %"
+        sums_per_date["Наш %"] = (
+            sums_per_date["Итого к оплате"] / sums_per_date["Продажа"] * 100
+        )
+
+        # Построение графика для основных финансовых показателей
+        buf_main = BytesIO()
+        plt.figure(figsize=(15, 8))
+        for column in [
             "Продажа",
             "К перечислению за товар",
             "Стоимость логистики",
             "Итого к оплате",
-        ]
-
-        for column in columns_to_plot:
+        ]:
             plt.plot(
                 sums_per_date["Дата конца"],
                 sums_per_date[column],
                 label=column,
-                marker="o",
+                marker="o",  # Добавляем точки
+                markersize=6,  # Размер точек
             )
-
-        plt.title(f'Финансовые показатели (с {start_date.strftime("%d-%m-%Y")})')
+        plt.title(
+            f'Основные финансовые показатели (с {start_date.strftime("%d-%m-%Y")})'
+        )
         plt.xlabel("Дата")
         plt.ylabel("Сумма")
         plt.xticks(rotation=90)
         plt.legend()
         plt.grid(True)
         plt.tight_layout()
-        plt.savefig(buf, format="png")
+        plt.savefig(buf_main, format="png")
+        plt.close()
+
+        # Построение отдельного графика для "Наш%"
+        buf_nash_percent = BytesIO()
+        plt.figure(figsize=(15, 4))
+        plt.plot(
+            sums_per_date["Дата конца"],
+            sums_per_date["Наш %"],
+            label="Наш %",
+            color="red",
+            marker="o",  # Добавляем точки
+            markersize=4,  # Размер точек
+        )
+        plt.title(f'Наш Процент (с {start_date.strftime("%d-%m-%Y")})')
+        plt.xlabel("Дата")
+        plt.ylabel("Наш Процент")
+        plt.xticks(rotation=90)
+        plt.legend()
+        plt.grid(True)
+        plt.tight_layout()
+        plt.savefig(buf_nash_percent, format="png")
         plt.close()
 
         # Создание Excel-файла
@@ -134,9 +158,15 @@ def form1(request):
             for row in dataframe_to_rows(sums_per_date, index=False, header=True):
                 worksheet.append(row)
 
-            # Добавляем график
-            img = OpenpyxlImage(buf)
-            worksheet.add_image(img, "K10")
+            # Добавляем график для основных финансовых показателей
+            img_main = OpenpyxlImage(buf_main)
+            worksheet.add_image(img_main, "K10")
+
+            # Добавляем отдельный график для "Наш%"
+            img_nash_percent = OpenpyxlImage(buf_nash_percent)
+            worksheet.add_image(
+                img_nash_percent, "K50"
+            )  # Вы можете изменить позицию как удобно
 
         output.seek(0)
 
