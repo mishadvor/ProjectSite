@@ -114,9 +114,8 @@ class Form12DataForm(forms.ModelForm):
 
 class UploadFileForm14(forms.Form):
     file = forms.FileField(
-        label="Загрузить отчет",
-        widget=forms.ClearableFileInput(attrs={"accept": ".xlsx"}),
-        required=False,
+        label="Выберите файлы (.xlsx)"
+        # НЕ указываем widget с multiple!
     )
 
 

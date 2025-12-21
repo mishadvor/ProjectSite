@@ -28,14 +28,14 @@
                 
                 <div class="mb-4">
                     <label for="file" class="form-label">Выберите отчет (формат .xlsx)</label>
-                    {{ form.file }}
+                    <input type="file" name="file" multiple class="form-control">
                     {% if form.file.errors %}
                         <div class="alert alert-danger mt-2">
                             {{ form.file.errors }}
                         </div>
                     {% endif %}
                     <div class="form-text">
-                        Поддерживается загрузка одного файла. Дата будет извлечена из имени файла.
+                        Поддерживается загрузка <strong>нескольких файлов</strong> одновременно. Дата каждого файла будет извлечена из его имени.
                     </div>
                 </div>
 
