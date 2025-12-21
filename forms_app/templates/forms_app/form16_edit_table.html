@@ -37,25 +37,28 @@
                                     <strong>{{ item.position }}</strong>
                                 </td>
                                 <td>
+                                    <!-- Артикул WB -->
                                     <input type="text" 
-                                           name="our_article_{{ item.position }}" 
-                                           value="{{ item.article_wb }}"
-                                           class="form-control form-control-sm"
-                                           placeholder="Артикул WB">
+                                        name="article_wb_{{ item.position }}" 
+                                        value="{{ item.article_wb }}"
+                                        class="form-control form-control-sm"
+                                        placeholder="Артикул WB">
                                 </td>
                                 <td>
+                                    <!-- Наш артикул -->
                                     <input type="text" 
-                                           name="comments_{{ item.position }}" 
-                                           value="{{ item.our_article }}"
-                                           class="form-control form-control-sm"
-                                           placeholder="Наш артикул">
+                                        name="our_article_{{ item.position }}" 
+                                        value="{{ item.our_article }}"
+                                        class="form-control form-control-sm"
+                                        placeholder="Наш артикул">
                                 </td>
                                 <td>
+                                    <!-- Комментарии -->
                                     <textarea 
-                                           name="comments_{{ item.position }}" 
-                                           class="form-control form-control-sm"
-                                           rows="2"
-                                           placeholder="Комментарии...">{{ item.comments }}</textarea>
+                                        name="comments_{{ item.position }}" 
+                                        class="form-control form-control-sm"
+                                        rows="2"
+                                        placeholder="Комментарии...">{{ item.comments }}</textarea>
                                 </td>
                                 <td class="text-center">
                                     <div class="form-check d-flex justify-content-center">

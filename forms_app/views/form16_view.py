@@ -44,7 +44,7 @@ def form16_edit_table(request):
             with transaction.atomic():
                 # Обрабатываем все 15 позиций
                 for position in range(1, 31):
-                    article_wb = request.POST.get(f"article_{position}", "").strip()
+                    article_wb = request.POST.get(f"article_wb_{position}", "").strip()
                     our_article = request.POST.get(
                         f"our_article_{position}", ""
                     ).strip()
