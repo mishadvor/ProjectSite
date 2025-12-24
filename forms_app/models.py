@@ -208,12 +208,18 @@ class Form14Data(models.Model):
         return f"Форма 14 - {self.date} ({self.user.username})"
 
 
+# forms_app/models.py
+from django.db import models
+from django.contrib.auth.models import User
+
+
 class Pattern15(models.Model):
     """Модель для хранения лекал Формы 15"""
 
     user = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="form15_patterns"
     )
+    pattern_number = models.IntegerField(verbose_name="Номер лекала", default=0)
     name = models.CharField(max_length=100, verbose_name="Название лекала")
     width = models.IntegerField(verbose_name="Ширина (мм)")
     height = models.IntegerField(verbose_name="Высота (мм)")
@@ -222,10 +228,22 @@ class Pattern15(models.Model):
     class Meta:
         verbose_name = "Лекало (Форма 15)"
         verbose_name_plural = "Лекала (Форма 15)"
-        ordering = ["name"]
+        ordering = ["pattern_number", "name"]
 
     def __str__(self):
-        return f"{self.name} ({self.width}×{self.height} мм)"
+        return (
+            f"#{self.pattern_number:02d} - {self.name} ({self.width}×{self.height} мм)"
+        )
+
+    def save(self, *args, **kwargs):
+        # Автоматически присваиваем номер при создании
+        if not self.pk and self.pattern_number == 0:
+            # Находим максимальный номер у пользователя
+            max_number = Pattern15.objects.filter(user=self.user).aggregate(
+                models.Max("pattern_number")
+            )["pattern_number__max"]
+            self.pattern_number = (max_number or 0) + 1
+        super().save(*args, **kwargs)
 
 
 from django.db import models

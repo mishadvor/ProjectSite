@@ -64,6 +64,7 @@
                                 <table class="table table-sm">
                                     <thead>
                                         <tr>
+                                            <th>№</th>
                                             <th>Название</th>
                                             <th>Ширина (мм)</th>
                                             <th>Высота (мм)</th>
@@ -73,6 +74,7 @@
                                     <tbody>
                                         {% for pattern in patterns %}
                                         <tr>
+                                            <td>{{ pattern.pattern_number }}</td>
                                             <td>{{ pattern.name }}</td>
                                             <td>{{ pattern.width }}</td>
                                             <td>{{ pattern.height }}</td>
