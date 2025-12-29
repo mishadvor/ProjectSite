@@ -33,12 +33,28 @@
     type="number"
     id="sebestoimost"
     name="sebestoimost"
-    value="600"
+    value="0"
     min="0"
     step="10"
     required
     style="width: 120px; padding: 5px"
   /><br /><br />
+  <div class="form-section">
+    <h3><i class="fas fa-percentage"></i> Налоговая ставка</h3>
+    <div class="input-with-help">
+        <div class="input-group">
+            <input type="number" id="nalog_procent" name="nalog_procent" 
+                   value="0" min="0" max="100" step="0.1" required
+                   placeholder="Введите процент налога"
+                   class="tax-input" />
+            <span class="input-suffix">%</span>
+        </div>
+        <div class="help-text">
+            <i class="fas fa-info-circle"></i>
+            Укажите процент налоговой ставки
+        </div>
+    </div>
+</div>
 
   <button type="submit" class="btn">Обработать</button>
 </form>

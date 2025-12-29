@@ -58,6 +58,17 @@ def form2(request):
             sebestoimost = float(request.POST.get("sebestoimost", 600))
         except (ValueError, TypeError):
             sebestoimost = 600.0
+        # Получаем процент налога из формы
+        try:
+            # Получаем процент как строку и заменяем запятую на точку
+            nalog_procent_str = request.POST.get("nalog_procent", "7")
+            nalog_procent_str = nalog_procent_str.replace(",", ".")
+            # Преобразуем в float и делим на 100 для получения коэффициента
+            nalog_procent = float(nalog_procent_str) / 100
+            # Ограничиваем значение от 0 до 1
+            nalog_procent = max(0.0, min(1.0, nalog_procent))
+        except (ValueError, TypeError):
+            nalog_procent = 0.07  # Значение по умолчанию 7%
         try:
             # Загрузка файлов
             if mode == "single":
@@ -383,7 +394,7 @@ def form2(request):
             ).round(1)
 
             third_merged["Налоги"] = (
-                third_merged["Чистая реализация ВБ"] * 0.07
+                third_merged["Чистая реализация ВБ"] * nalog_procent
             ).round(1)
 
             third_merged["Прибыль"] = (
@@ -570,7 +581,9 @@ def form2(request):
                         "Чистые продажи, шт",
                         "Заказы",
                         "Себестоимость продаж",
-                        "Прибыль без налога",
+                        "Процент налога",  # Добавлена эта строка
+                        "Налоги",  # Добавлена эта строка
+                        "Прибыль без налога - маржа",
                         "Штрафы",
                         "Хранение",
                         "Удержания",
@@ -584,7 +597,9 @@ def form2(request):
                         third_merged["Чистые продажи, шт"].sum(),
                         third_merged["Заказы"].sum(),
                         third_merged["Себес Продаж"].sum(),
-                        third_merged["Прибыль"].sum(),
+                        f"{round(nalog_procent * 100, 1)}%",  # Это для "Процент налога"
+                        third_merged["Налоги"].sum(),  # Это для "Налоги"
+                        third_merged["Маржа"].sum(),  # Это для "Прибыль без налога"
                         all_add_log["Общая сумма штрафов"].sum(),
                         all_add_log["Хранение"].sum(),
                         all_add_log["Удержания"].sum(),
