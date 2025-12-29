@@ -97,7 +97,7 @@ def form1(request):
         # Добавляем столбец "Наш %"
         sums_per_date["Наш %"] = (
             sums_per_date["Итого к оплате"] / sums_per_date["Продажа"] * 100
-        )
+        ).round(1)
 
         # Построение графика для основных финансовых показателей
         buf_main = BytesIO()
