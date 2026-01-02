@@ -294,3 +294,38 @@ class Form16Article(models.Model):
 
     def __str__(self):
         return f"{self.position}. {self.article_wb} ({self.user.username})"
+
+
+# forms_app/models.py
+from django.db import models
+from django.contrib.auth.models import User
+
+
+class ManualChart(models.Model):
+    title = models.CharField("Название графика", max_length=200)
+    label1 = models.CharField(
+        "Название Значения 1", max_length=100, default="Значение 1"
+    )
+    label2 = models.CharField(
+        "Название Значения 2", max_length=100, default="Значение 2", blank=True
+    )
+    created_at = models.DateTimeField("Создано", auto_now_add=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f"{self.title} ({self.user.username})"
+
+
+class ManualChartDataPoint(models.Model):
+    chart = models.ForeignKey(
+        ManualChart, on_delete=models.CASCADE, related_name="data_points"
+    )
+    date = models.DateField("Дата")
+    value1 = models.FloatField("Значение 1")
+    value2 = models.FloatField(
+        "Значение 2", null=True, blank=True
+    )  # может отсутствовать
+
+    class Meta:
+        ordering = ["date"]
+        unique_together = ("chart", "date")

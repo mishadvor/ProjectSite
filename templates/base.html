@@ -202,6 +202,13 @@
       .form-btn-16:hover {
         background: #7B1FA2;
       }
+      .form-btn-17 {
+        background: #00796b; /* Тёмно-бирюзовый (Material Teal 800) — не используется ранее */
+      }
+      .form-btn-17:hover {
+        background: #004d40; /* Ещё темнее при наведении */
+      }  
+
 
       /* Контейнер форм */
       .forms-container {
@@ -444,6 +451,13 @@
                 <i class="fas fa-table"></i> Форма 16
               </a>
               <div class="form-label">Сбор ФБО</div>
+            </div>
+            <!-- Форма 17 -->
+            <div class="form-item">
+              <a href="{% url 'forms_app:form17_view' %}" class="form-btn form-btn-17">
+                <i class="fas fa-chart-line"></i> Форма 17
+              </a>
+              <div class="form-label">Построение графика</div>
             </div>
           </div>
           <!-- Закрытие четвертого ряда -->

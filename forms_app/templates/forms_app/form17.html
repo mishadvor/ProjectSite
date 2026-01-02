@@ -1,0 +1,254 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h2 class="mb-0">
+                <i class="fas fa-chart-line"></i> Форма 17: Ручной график (Дата + 2 значения)
+            </h2>
+        </div>
+        
+        <div class="card-body">
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.level_tag }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Закрыть"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <!-- Инструкция -->
+            <div class="alert alert-info">
+                <h4><i class="fas fa-info-circle"></i> Как это работает:</h4>
+                <ul class="mb-0">
+                    <li>Введите дату и до двух числовых значений</li>
+                    <li><strong>Значение 1</strong> — обязательно, отображается синей линией (левая ось)</li>
+                    <li><strong>Значение 2</strong> — опционально, отображается красной линией (правая ось)</li>
+                    <li>Масштабы осей Y независимы — данные могут сильно различаться</li>
+                    <li>Укажите название и подписи для легенды, затем нажмите «Сохранить график»</li>
+                    <li>Все графики привязаны к вашему аккаунту</li>
+                </ul>
+            </div>
+
+            <!-- Форма ввода -->
+            <form method="post" id="chartForm" class="mb-4" action="{% url 'forms_app:form17_view' %}">
+                {% csrf_token %}
+                <input type="hidden" name="chart_id" id="chartIdInput" value="">
+
+                <!-- Три поля в одной строке -->
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <label for="titleInput" class="form-label fw-bold">Название графика:</label>
+                        <input type="text" id="titleInput" name="title" class="form-control" 
+                               placeholder="Например: Продажи и прибыль" 
+                               value="{{ current_title }}" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="label1Input" class="form-label">Подпись для Значения 1:</label>
+                        <input type="text" id="label1Input" name="label1" class="form-control" 
+                               value="{{ current_label1 }}" placeholder="Например: Продажи">
+                    </div>
+                    <div class="col-md-4">
+                        <label for="label2Input" class="form-label">Подпись для Значения 2:</label>
+                        <input type="text" id="label2Input" name="label2" class="form-control" 
+                               value="{{ current_label2 }}" placeholder="Например: Прибыль">
+                    </div>
+                </div>
+
+                <!-- Таблица данных -->
+                <div class="table-responsive mb-3">
+                    <table class="table table-bordered" id="input-table">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Дата</th>
+                                <th>Значение 1 <small class="text-muted">(обязательно)</small></th>
+                                <th>Значение 2 <small class="text-muted">(опционально)</small></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if table_data %}
+                                {% for date, value1, value2 in table_data %}
+                                <tr>
+                                    <td><input type="date" name="date" class="form-control" value="{{ date|date:'Y-m-d' }}" required></td>
+                                    <td><input type="number" name="value1" step="any" class="form-control" value="{{ value1|floatformat:'g' }}" required></td>
+                                    <td><input type="number" name="value2" step="any" class="form-control" value="{% if value2 %}{{ value2|floatformat:'g' }}{% endif %}"></td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td><input type="date" name="date" class="form-control" required></td>
+                                    <td><input type="number" name="value1" step="any" class="form-control" required></td>
+                                    <td><input type="number" name="value2" step="any" class="form-control"></td>
+                                </tr>
+                                <tr>
+                                    <td><input type="date" name="date" class="form-control"></td>
+                                    <td><input type="number" name="value1" step="any" class="form-control"></td>
+                                    <td><input type="number" name="value2" step="any" class="form-control"></td>
+                                </tr>
+                                <tr>
+                                    <td><input type="date" name="date" class="form-control"></td>
+                                    <td><input type="number" name="value1" step="any" class="form-control"></td>
+                                    <td><input type="number" name="value2" step="any" class="form-control"></td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <button type="button" class="btn btn-outline-secondary btn-sm mb-3" onclick="addRow()">
+                    <i class="fas fa-plus"></i> Добавить строку
+                </button>
+
+                <div class="d-flex gap-2">
+                    <button type="submit" name="action" value="preview" class="btn btn-outline-primary">
+                        <i class="fas fa-eye"></i> Предпросмотр
+                    </button>
+                    <button type="submit" name="action" value="save" class="btn btn-success">
+                        <i class="fas fa-save"></i> Сохранить график
+                    </button>
+                </div>
+            </form>
+
+            <!-- Список сохранённых графиков -->
+            {% if charts %}
+                <h4 class="mb-3"><i class="fas fa-list"></i> Ваши сохранённые графики</h4>
+                <div class="list-group mb-4">
+                    {% for ch in charts %}
+                        <div class="list-group-item d-flex justify-content-between align-items-start">
+                            <div class="ms-2 me-auto">
+                                <div class="fw-bold">{{ ch.title }}</div>
+                                <small class="text-muted">{{ ch.created_at|date:"d.m.Y H:i" }}</small>
+                            </div>
+                            <div>
+                                <button type="button" class="btn btn-sm btn-outline-primary me-1"
+                                    onclick="loadPreview({{ ch.pk }})">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button 
+                                    type="button" 
+                                    class="btn btn-sm btn-outline-secondary me-1 edit-btn"
+                                    data-chart-id="{{ ch.pk }}"
+                                    data-chart-title="{{ ch.title|escapejs }}"
+                                    data-chart-label1="{{ ch.label1|escapejs }}"
+                                    data-chart-label2="{{ ch.label2|escapejs }}"
+                                    data-chart-points='[
+                                        {% for dp in ch.data_points.all %}
+                                            {
+                                                "date": "{{ dp.date|date:'Y-m-d' }}",
+                                                "value1": {{ dp.value1|floatformat:"g" }},
+                                                "value2": {% if dp.value2 %}{{ dp.value2|floatformat:"g" }}{% else %}null{% endif %}
+                                            }{% if not forloop.last %},{% endif %}
+                                        {% endfor %}
+                                    ]'
+                                >
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <a href="{% url 'forms_app:form17_delete' ch.pk %}" 
+                                   class="btn btn-sm btn-outline-danger"
+                                   onclick="return confirm('Удалить график «{{ ch.title }}»? Это действие нельзя отменить.')">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <!-- Отображение графика -->
+            {% if chart_data %}
+                <div class="card border-success">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0"><i class="fas fa-chart-area"></i> {{ current_title|default:"График" }}</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive mb-3">
+                            <table class="table table-striped table-bordered">
+                                <thead>
+                                    <tr>
+                                        <th>Дата</th>
+                                        <th>{{ current_label1|default:"Значение 1" }}</th>
+                                        <th>{{ current_label2|default:"Значение 2" }}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for date, value1, value2 in table_data %}
+                                        <tr>
+                                            <td>{{ date|date:"d.m.Y" }}</td>
+                                            <td>{{ value1|floatformat:"g" }}</td>
+                                            <td>{{ value2|floatformat:"g"|default:"—" }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="text-center">
+                            <img src="data:image/png;base64,{{ chart_data }}" 
+                                 class="img-fluid border rounded shadow-sm" 
+                                 alt="График" 
+                                 style="max-height: 500px; object-fit: contain;">
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="card-footer text-muted">
+            <small>
+                <i class="fas fa-user-lock"></i> Все данные привязаны к вашему аккаунту и хранятся в базе данных
+            </small>
+        </div>
+    </div>
+</div>
+
+<script>
+    function addRow() {
+        const tbody = document.querySelector('#input-table tbody');
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td><input type="date" name="date" class="form-control" required></td>
+            <td><input type="number" name="value1" step="any" class="form-control" required></td>
+            <td><input type="number" name="value2" step="any" class="form-control"></td>
+        `;
+        tbody.appendChild(row);
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.edit-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const chartId = this.dataset.chartId;
+                const title = this.dataset.chartTitle;
+                const label1 = this.dataset.chartLabel1 || 'Значение 1';
+                const label2 = this.dataset.chartLabel2 || '';
+                const points = JSON.parse(this.dataset.chartPoints);
+
+                const tbody = document.querySelector('#input-table tbody');
+                tbody.innerHTML = '';
+
+                points.forEach(point => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td><input type="date" name="date" class="form-control" value="${point.date}" required></td>
+                        <td><input type="number" name="value1" step="any" class="form-control" value="${point.value1}" required></td>
+                        <td><input type="number" name="value2" step="any" class="form-control" value="${point.value2 !== null ? point.value2 : ''}"></td>
+                    `;
+                    tbody.appendChild(row);
+                });
+
+                document.getElementById('titleInput').value = title;
+                document.getElementById('label1Input').value = label1;
+                document.getElementById('label2Input').value = label2;
+                document.getElementById('chartIdInput').value = chartId;
+                document.getElementById('chartForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+        });
+    });
+
+    function loadPreview(chartId) {
+        const url = "{% url 'forms_app:form17_load' 0 %}".replace('/0/', '/' + chartId + '/');
+        window.location.href = url;
+    }
+</script>
+{% endblock %}

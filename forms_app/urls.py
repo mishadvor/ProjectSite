@@ -96,6 +96,8 @@ from .views.form16_view import (
     form16_generate_report,
     form16_delete_all,
 )
+from .views.form17_view import form17_view, form17_load_chart, form17_delete_chart
+
 
 app_name = "forms_app"
 
@@ -200,4 +202,8 @@ urlpatterns = [
     path("form16/edit/", form16_edit_table, name="form16_edit_table"),
     path("form16/generate/", form16_generate_report, name="form16_generate_report"),
     path("form16/delete-all/", form16_delete_all, name="form16_delete_all"),
+    # --- Форма 17 ----
+    path("form17/", form17_view, name="form17_view"),
+    path("form17/load/<int:pk>/", form17_load_chart, name="form17_load"),
+    path("form17/delete/<int:pk>/", form17_delete_chart, name="form17_delete"),
 ]
