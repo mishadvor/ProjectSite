@@ -1,6 +1,18 @@
 {% extends "base.html" %}
 {% load static %}
 
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  .chart-container {
+    position: relative;
+    height: 400px;
+    width: 100%;
+    margin: 20px 0;
+  }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container mt-4">
     <div class="card">
@@ -27,8 +39,7 @@
                     <li>Введите дату и до двух числовых значений</li>
                     <li><strong>Значение 1</strong> — обязательно, отображается синей линией (левая ось)</li>
                     <li><strong>Значение 2</strong> — опционально, отображается красной линией (правая ось)</li>
-                    <li>Масштабы осей Y независимы — данные могут сильно различаться</li>
-                    <li>Укажите название и подписи для легенды, затем нажмите «Сохранить график»</li>
+                    <li>Укажите название и подписи, нажмите «Предпросмотр» или «Сохранить»</li>
                     <li>Все графики привязаны к вашему аккаунту</li>
                 </ul>
             </div>
@@ -157,13 +168,14 @@
                 </div>
             {% endif %}
 
-            <!-- Отображение графика -->
-            {% if chart_data %}
+            <!-- Отображение графика (Chart.js с двумя осями Y) -->
+            {% if chart_js_data %}
                 <div class="card border-success">
                     <div class="card-header bg-success text-white">
                         <h5 class="mb-0"><i class="fas fa-chart-area"></i> {{ current_title|default:"График" }}</h5>
                     </div>
                     <div class="card-body">
+                        <!-- Таблица данных -->
                         <div class="table-responsive mb-3">
                             <table class="table table-striped table-bordered">
                                 <thead>
@@ -184,14 +196,73 @@
                                 </tbody>
                             </table>
                         </div>
-                        <div class="text-center">
-                            <img src="data:image/png;base64,{{ chart_data }}" 
-                                 class="img-fluid border rounded shadow-sm" 
-                                 alt="График" 
-                                 style="max-height: 500px; object-fit: contain;">
+
+                        <!-- График -->
+                        <div class="chart-container">
+                            <canvas id="manualChart"></canvas>
                         </div>
                     </div>
                 </div>
+
+                <!-- Скрипт графика с двумя осями Y -->
+                <script>
+                    document.addEventListener('DOMContentLoaded', function () {
+                        const ctx = document.getElementById('manualChart').getContext('2d');
+                        const rawData = {{ chart_js_data|safe }};
+                        
+                        const hasSecondDataset = rawData.datasets.length > 1;
+
+                        const scales = {
+                            x: {
+                                display: true
+                            },
+                            y: {
+                                display: true,
+                                position: 'left',
+                                title: {
+                                    display: true,
+                                    text: rawData.datasets[0].label || 'Значение 1'
+                                },
+                                grid: {
+                                    drawOnChartArea: true
+                                }
+                            }
+                        };
+
+                        if (hasSecondDataset) {
+                            scales.y1 = {
+                                display: true,
+                                position: 'right',
+                                title: {
+                                    display: true,
+                                    text: rawData.datasets[1].label || 'Значение 2'
+                                },
+                                grid: {
+                                    drawOnChartArea: false
+                                }
+                            };
+                            rawData.datasets[1].yAxisID = 'y1';
+                        }
+
+                        new Chart(ctx, {
+                            type: 'line',
+                            data: rawData,
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: { position: 'top' },
+                                    tooltip: {
+                                        callbacks: {
+                                            label: (item) => item.dataset.label + ': ' + item.parsed.y.toLocaleString()
+                                        }
+                                    }
+                                },
+                                scales: scales
+                            }
+                        });
+                    });
+                </script>
             {% endif %}
         </div>
 

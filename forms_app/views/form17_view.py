@@ -1,12 +1,12 @@
-# forms_app/views/form17_view.py
-import io
-import base64
-import math
+# forms_app/views/form17_view.py (обновлённая версия)
+
+import json
 from datetime import datetime
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseBadRequest
+from django.core.serializers.json import DjangoJSONEncoder
 from forms_app.models import ManualChart, ManualChartDataPoint
 
 
@@ -17,12 +17,12 @@ def form17_view(request):
         .prefetch_related("data_points")
         .order_by("-created_at")
     )
-    chart_data = None
     table_data = []
     current_title = ""
     current_label1 = "Значение 1"
     current_label2 = ""
     loaded_chart_id = None
+    chart_js_data = None
 
     if request.method == "POST":
         action = request.POST.get("action", "save")
@@ -54,6 +54,7 @@ def form17_view(request):
                     "current_label1": current_label1,
                     "current_label2": current_label2,
                     "loaded_chart_id": loaded_chart_id,
+                    "chart_js_data": None,
                 },
             )
 
@@ -64,11 +65,12 @@ def form17_view(request):
                 "forms_app/form17.html",
                 {
                     "charts": charts,
-                    "table_build": [],
+                    "table_data": [],  # ← исправлено: было table_build
                     "current_title": current_title,
                     "current_label1": current_label1,
                     "current_label2": current_label2,
                     "loaded_chart_id": loaded_chart_id,
+                    "chart_js_data": None,
                 },
             )
 
@@ -92,7 +94,37 @@ def form17_view(request):
                     "current_label1": current_label1,
                     "current_label2": current_label2,
                     "loaded_chart_id": loaded_chart_id,
+                    "chart_js_data": None,
                 },
+            )
+
+        # Подготовка данных для Chart.js
+        labels = [d.strftime("%d.%m.%Y") for d, _, _ in parsed_data]
+        values1 = [v1 for _, v1, _ in parsed_data]
+        values2 = [v2 if v2 is not None else None for _, _, v2 in parsed_data]
+        chart_js_data = {
+            "labels": labels,
+            "datasets": [
+                {
+                    "label": current_label1,
+                    "data": values1,
+                    "borderColor": "rgb(54, 162, 235)",
+                    "backgroundColor": "rgba(54, 162, 235, 0.1)",
+                    "fill": False,
+                    "tension": 0,
+                }
+            ],
+        }
+        if any(v2 is not None for v2 in values2):
+            chart_js_data["datasets"].append(
+                {
+                    "label": current_label2 or "Значение 2",
+                    "data": values2,
+                    "borderColor": "rgb(255, 99, 132)",
+                    "backgroundColor": "rgba(255, 99, 132, 0.1)",
+                    "fill": False,
+                    "tension": 0,
+                }
             )
 
         if action == "save":
@@ -134,13 +166,15 @@ def form17_view(request):
         {
             "charts": charts,
             "table_data": table_data,
-            "chart_data": _generate_chart_b64(
-                table_data, current_title, current_label1, current_label2
-            ),
             "current_title": current_title,
             "current_label1": current_label1,
             "current_label2": current_label2,
             "loaded_chart_id": loaded_chart_id,
+            "chart_js_data": (
+                json.dumps(chart_js_data, cls=DjangoJSONEncoder)
+                if chart_js_data
+                else None
+            ),
         },
     )
 
@@ -148,10 +182,40 @@ def form17_view(request):
 @login_required
 def form17_load_chart(request, pk):
     chart = get_object_or_404(ManualChart, pk=pk, user=request.user)
-    data_points = chart.data_points.all()
+    data_points = chart.data_points.all().order_by("date")
     table_data = [(dp.date, dp.value1, dp.value2) for dp in data_points]
 
     charts = ManualChart.objects.filter(user=request.user).order_by("-created_at")
+
+    # Подготовка данных для Chart.js
+    labels = [dp.date.strftime("%d.%m.%Y") for dp in data_points]
+    values1 = [dp.value1 for dp in data_points]
+    values2 = [dp.value2 for dp in data_points]
+
+    chart_js_data = {
+        "labels": labels,
+        "datasets": [
+            {
+                "label": chart.label1,
+                "data": values1,
+                "borderColor": "rgb(54, 162, 235)",
+                "backgroundColor": "rgba(54, 162, 235, 0.1)",
+                "fill": False,
+                "tension": 0,
+            }
+        ],
+    }
+    if any(v2 is not None for v2 in values2):
+        chart_js_data["datasets"].append(
+            {
+                "label": chart.label2 or "Значение 2",
+                "data": values2,
+                "borderColor": "rgb(255, 99, 132)",
+                "backgroundColor": "rgba(255, 99, 132, 0.1)",
+                "fill": False,
+                "tension": 0,
+            }
+        )
 
     return render(
         request,
@@ -159,13 +223,11 @@ def form17_load_chart(request, pk):
         {
             "charts": charts,
             "table_data": table_data,
-            "chart_data": _generate_chart_b64(
-                table_data, chart.title, chart.label1, chart.label2
-            ),
             "current_title": chart.title,
             "current_label1": chart.label1,
             "current_label2": chart.label2,
             "loaded_chart_id": pk,
+            "chart_js_data": json.dumps(chart_js_data, cls=DjangoJSONEncoder),
         },
     )
 
@@ -177,66 +239,3 @@ def form17_delete_chart(request, pk):
     chart.delete()
     messages.success(request, f"График «{title}» удалён.")
     return redirect("forms_app:form17_view")
-
-
-def _generate_chart_b64(
-    table_data, title="График", label1="Значение 1", label2="Значение 2"
-):
-    """
-    Генерирует график в base64 с поддержкой двух осей и кастомных меток.
-    table_data: список кортежей (date, value1, value2)
-    """
-    if not table_data:
-        return None
-
-    import matplotlib
-
-    matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
-    import io
-    import base64
-
-    dates = [row[0] for row in table_data]
-    values1 = [row[1] for row in table_data]
-    values2 = [row[2] for row in table_data]
-
-    fig, ax1 = plt.subplots(figsize=(10, 5))
-
-    # --- Ось Y1: Значение 1 ---
-    ax1.set_xlabel("Дата")
-    ax1.set_ylabel(label1, color="tab:blue")
-    line1 = ax1.plot(dates, values1, marker="o", color="tab:blue", label=label1)
-    ax1.tick_params(axis="y", labelcolor="tab:blue")
-    ax1.grid(True, linestyle="--", alpha=0.5)
-
-    # --- Ось Y2: Значение 2 (если есть данные) ---
-    has_value2 = any(v2 is not None for v2 in values2)
-    if has_value2:
-        ax2 = ax1.twinx()
-        display_label2 = label2 if label2 else "Значение 2"
-        ax2.set_ylabel(display_label2, color="tab:red")
-        values2_clean = [v if v is not None else math.nan for v in values2]
-        line2 = ax2.plot(
-            dates, values2_clean, marker="s", color="tab:red", label=display_label2
-        )
-        ax2.tick_params(axis="y", labelcolor="tab:red")
-    else:
-        line2 = []
-
-    # --- Легенда ---
-    lines = line1 + line2
-    labels = [l.get_label() for l in lines]
-    if labels:
-        ax1.legend(lines, labels, loc="upper left")
-
-    plt.title(title)
-    fig.tight_layout()
-    plt.xticks(rotation=45)
-
-    buf = io.BytesIO()
-    plt.savefig(buf, format="png", dpi=120, bbox_inches="tight")
-    plt.close(fig)
-    buf.seek(0)
-    data = base64.b64encode(buf.read()).decode("utf-8")
-    buf.close()
-    return data
