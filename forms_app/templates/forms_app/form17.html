@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load static %}
+{% load static l10n %}
 
 {% block extra_head %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -148,9 +148,9 @@
                                     data-chart-points='[
                                         {% for dp in ch.data_points.all %}
                                             {
-                                                "date": "{{ dp.date|date:'Y-m-d' }}",
-                                                "value1": {{ dp.value1|floatformat:"g" }},
-                                                "value2": {% if dp.value2 %}{{ dp.value2|floatformat:"g" }}{% else %}null{% endif %}
+                                                "date": "{{ dp.date|date:'Y-m-d'|escapejs }}",
+                                                "value1": {{ dp.value1|unlocalize }},
+                                                "value2": {% if dp.value2 %}{{ dp.value2|unlocalize }}{% else %}null{% endif %}
                                             }{% if not forloop.last %},{% endif %}
                                         {% endfor %}
                                     ]'
@@ -169,7 +169,7 @@
             {% endif %}
 
             <!-- Отображение графика (Chart.js с двумя осями Y) -->
-            {% if chart_js_data %}
+            {% if chart_js_data and table_data %}
                 <div class="card border-success">
                     <div class="card-header bg-success text-white">
                         <h5 class="mb-0"><i class="fas fa-chart-area"></i> {{ current_title|default:"График" }}</h5>
@@ -210,7 +210,13 @@
                         const ctx = document.getElementById('manualChart').getContext('2d');
                         const rawData = {{ chart_js_data|safe }};
                         
-                        const hasSecondDataset = rawData.datasets.length > 1;
+                        // Проверяем, что rawData действительно содержит данные
+                        if (!rawData || !rawData.labels || rawData.labels.length === 0) {
+                            console.error('Нет данных для графика');
+                            return;
+                        }
+                        
+                        const hasSecondDataset = rawData.datasets && rawData.datasets.length > 1;
 
                         const scales = {
                             x: {
@@ -263,6 +269,16 @@
                         });
                     });
                 </script>
+            {% else %}
+                <!-- ОТЛАДКА: покажите, почему график не отображается -->
+                <div class="alert alert-warning">
+                    <p>График не отображается. Причина:</p>
+                    <ul>
+                        <li>chart_js_data присутствует: {{ chart_js_data|yesno:"Да,Нет" }}</li>
+                        <li>table_data присутствует: {{ table_data|yesno:"Да,Нет" }}</li>
+                        <li>Количество точек данных: {{ table_data|length }}</li>
+                    </ul>
+                </div>
             {% endif %}
         </div>
 
@@ -293,7 +309,16 @@
                 const title = this.dataset.chartTitle;
                 const label1 = this.dataset.chartLabel1 || 'Значение 1';
                 const label2 = this.dataset.chartLabel2 || '';
-                const points = JSON.parse(this.dataset.chartPoints);
+                let points;
+                
+                // Защита от ошибок парсинга JSON
+                try {
+                    points = JSON.parse(this.dataset.chartPoints);
+                } catch (e) {
+                    console.error("Ошибка при парсинге данных графика:", e);
+                    alert("Не удалось загрузить данные графика. Обратитесь к разработчику.");
+                    return;
+                }
 
                 const tbody = document.querySelector('#input-table tbody');
                 tbody.innerHTML = '';

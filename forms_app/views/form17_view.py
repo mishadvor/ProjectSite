@@ -1,11 +1,8 @@
-# forms_app/views/form17_view.py (обновлённая версия)
-
 import json
 from datetime import datetime
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponseBadRequest
 from django.core.serializers.json import DjangoJSONEncoder
 from forms_app.models import ManualChart, ManualChartDataPoint
 
@@ -65,7 +62,7 @@ def form17_view(request):
                 "forms_app/form17.html",
                 {
                     "charts": charts,
-                    "table_data": [],  # ← исправлено: было table_build
+                    "table_data": [],
                     "current_title": current_title,
                     "current_label1": current_label1,
                     "current_label2": current_label2,
@@ -127,6 +124,13 @@ def form17_view(request):
                 }
             )
 
+        # ОТЛАДКА: выводим в консоль для проверки
+        print(f"Chart.js data prepared: {chart_js_data}")
+        print(f"Labels count: {len(labels)}")
+        print(f"Values1 count: {len(values1)}")
+        print(f"Values2 count: {len(values2)}")
+        print(f"Has second dataset: {any(v2 is not None for v2 in values2)}")
+
         if action == "save":
             if chart_id:
                 chart = get_object_or_404(ManualChart, pk=chart_id, user=request.user)
@@ -155,7 +159,7 @@ def form17_view(request):
             messages.success(
                 request, f"График «{current_title}» успешно {action_name}!"
             )
-            return redirect("forms_app:form17_view")
+            return redirect("forms_app:form17_load", pk=chart.pk)
 
         elif action == "preview":
             table_data = parsed_data
@@ -187,6 +191,11 @@ def form17_load_chart(request, pk):
 
     charts = ManualChart.objects.filter(user=request.user).order_by("-created_at")
 
+    # ОТЛАДКА
+    print(f"Loading chart {pk}")
+    print(f"Data points count: {data_points.count()}")
+    print(f"Table data: {table_data}")
+
     # Подготовка данных для Chart.js
     labels = [dp.date.strftime("%d.%m.%Y") for dp in data_points]
     values1 = [dp.value1 for dp in data_points]
@@ -205,6 +214,8 @@ def form17_load_chart(request, pk):
             }
         ],
     }
+
+    # Исправленная проверка: используем values2 вместо parsed_data
     if any(v2 is not None for v2 in values2):
         chart_js_data["datasets"].append(
             {
