@@ -329,3 +329,32 @@ class ManualChartDataPoint(models.Model):
     class Meta:
         ordering = ["date"]
         unique_together = ("chart", "date")
+
+
+# forms_app/models.py
+
+from django.db import models
+from django.contrib.auth.models import User
+
+
+class ArticleCost(models.Model):
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, verbose_name="Пользователь"
+    )
+    wb_article = models.CharField(
+        max_length=50, verbose_name="WB артикул", db_index=True
+    )
+    seller_article = models.CharField(
+        max_length=255, verbose_name="Артикул продавца", blank=True
+    )
+    cost = models.DecimalField(
+        max_digits=12, decimal_places=2, verbose_name="Себестоимость"
+    )
+
+    class Meta:
+        unique_together = ("user", "wb_article")
+        verbose_name = "Себестоимость артикула"
+        verbose_name_plural = "Себестоимости артикулов"
+
+    def __str__(self):
+        return f"{self.wb_article} → {self.cost} руб"

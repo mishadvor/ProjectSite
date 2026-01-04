@@ -125,11 +125,11 @@ def form17_view(request):
             )
 
         # ОТЛАДКА: выводим в консоль для проверки
-        print(f"Chart.js data prepared: {chart_js_data}")
-        print(f"Labels count: {len(labels)}")
-        print(f"Values1 count: {len(values1)}")
-        print(f"Values2 count: {len(values2)}")
-        print(f"Has second dataset: {any(v2 is not None for v2 in values2)}")
+        # print(f"Chart.js data prepared: {chart_js_data}")
+        # print(f"Labels count: {len(labels)}")
+        # print(f"Values1 count: {len(values1)}")
+        # print(f"Values2 count: {len(values2)}")
+        # print(f"Has second dataset: {any(v2 is not None for v2 in values2)}")
 
         if action == "save":
             if chart_id:
@@ -192,9 +192,9 @@ def form17_load_chart(request, pk):
     charts = ManualChart.objects.filter(user=request.user).order_by("-created_at")
 
     # ОТЛАДКА
-    print(f"Loading chart {pk}")
-    print(f"Data points count: {data_points.count()}")
-    print(f"Table data: {table_data}")
+    # print(f"Loading chart {pk}")
+    # print(f"Data points count: {data_points.count()}")
+    # print(f"Table data: {table_data}")
 
     # Подготовка данных для Chart.js
     labels = [dp.date.strftime("%d.%m.%Y") for dp in data_points]

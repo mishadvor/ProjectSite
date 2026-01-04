@@ -96,7 +96,18 @@ from .views.form16_view import (
     form16_generate_report,
     form16_delete_all,
 )
-from .views.form17_view import form17_view, form17_load_chart, form17_delete_chart
+from .views.form17_view import (
+    form17_view,
+    form17_load_chart,
+    form17_delete_chart,
+)
+
+# --- Форма 18: Себестоимость артикулов ---
+from .views.form18_view import (
+    form18_list,
+    form18_edit,
+    form18_delete,
+)
 
 
 app_name = "forms_app"
@@ -206,4 +217,8 @@ urlpatterns = [
     path("form17/", form17_view, name="form17_view"),
     path("form17/load/<int:pk>/", form17_load_chart, name="form17_load"),
     path("form17/delete/<int:pk>/", form17_delete_chart, name="form17_delete"),
+    # --- Форма 18 ----
+    path("form18/", form18_list, name="form18_list"),
+    path("form18/edit/<int:pk>/", form18_edit, name="form18_edit"),
+    path("form18/delete/<int:pk>/", form18_delete, name="form18_delete"),
 ]

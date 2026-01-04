@@ -1,7 +1,7 @@
 # forms_app/forms.py
 
 from django import forms
-from .models import Form4Data, Form12Data  # Импортируем обе модели сразу
+from .models import Form4Data, Form12Data, ArticleCost  # ← ДОБАВЬТЕ ArticleCost
 
 
 # Кастомный виджет для множественной загрузки файлов
@@ -213,3 +213,26 @@ class Form16UploadForm(forms.Form):
         required=True,
         help_text="Ожидается файл с вкладкой 'Детальная информация'",
     )
+
+
+# forms_app/forms.py
+
+
+class ArticleCostForm(forms.ModelForm):
+    class Meta:
+        model = ArticleCost
+        fields = ["wb_article", "seller_article", "cost"]
+        widgets = {
+            "wb_article": forms.TextInput(
+                attrs={"class": "form-control", "placeholder": "Например: 102721999"}
+            ),
+            "seller_article": forms.TextInput(
+                attrs={
+                    "class": "form-control",
+                    "placeholder": "Например: 001_Юбка карандаш...",
+                }
+            ),
+            "cost": forms.NumberInput(
+                attrs={"class": "form-control", "step": "0.01", "min": "0"}
+            ),
+        }

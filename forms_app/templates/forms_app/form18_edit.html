@@ -1,0 +1,25 @@
+<!-- templates/forms_app/form18_edit.html -->
+{% extends "forms_app/base_form.html" %}
+{% block title %}Редактировать артикул{% endblock %}
+
+{% block content %}
+<h2>✏️ Редактировать артикул {{ record.wb_article }}</h2>
+
+<form method="post">
+  {% csrf_token %}
+  <div class="mb-3">
+    <label>WB артикул</label>
+    {{ form.wb_article }}
+  </div>
+  <div class="mb-3">
+    <label>Артикул продавца</label>
+    {{ form.seller_article }}
+  </div>
+  <div class="mb-3">
+    <label>Себестоимость, ₽</label>
+    {{ form.cost }}
+  </div>
+  <button type="submit" class="btn btn-primary">Сохранить</button>
+  <a href="{% url 'forms_app:form18_list' %}" class="btn btn-secondary">Отмена</a>
+</form>
+{% endblock %}

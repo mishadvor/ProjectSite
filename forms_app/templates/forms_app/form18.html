@@ -1,0 +1,136 @@
+<!-- templates/forms_app/form18.html -->
+{% extends "forms_app/base_form.html" %}
+{% block title %}Форма 18: Финансовый отчёт с индивидуальной себестоимостью{% endblock %}
+
+{% block content %}
+<h2>💰 Форма 18: Форма 2 с разной себестоимостью</h2>
+
+<!-- === Часть 1: Загрузка и обработка отчёта === -->
+<div class="card mb-4">
+  <div class="card-header bg-success text-white">
+    <i class="fas fa-file-excel"></i> Загрузите отчёт Wildberries (.xlsx)
+  </div>
+  <br/>
+  <div class="card-body">
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <label for="report_file">Файл отчёта:</label>
+          <input type="file" name="report_file" id="report_file" accept=".xlsx,.xls" required class="form-control">
+        </div>
+        <br/>
+      </div>
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <label for="sebestoimost">Себестоимость по умолчанию (₽):</label>
+          <input type="number" name="sebestoimost" id="sebestoimost" value="600" min="0" step="10"
+                 class="form-control">
+          <small class="form-text text-muted">Используется, если артикул не найден в таблице ниже</small>
+        </div>
+        <br/>
+        <div class="col-md-6">
+          <label for="nalog_procent">Налог (%):</label>
+          <input type="number" name="nalog_procent" id="nalog_procent" value="7" min="0" max="100" step="0.1"
+                 class="form-control">
+          <small class="form-text text-muted">Процент налога для расчёта прибыли</small>
+        </div>
+      </div>
+      <br/>
+      <button type="submit" name="action" value="process_report" class="btn btn-success">
+        <i class="fas fa-calculator"></i> Обработать файл
+      </button>
+    </form>
+  </div>
+</div>
+<br/>
+<!-- === Часть 2: Управление себестоимостями (CRUD) === -->
+<div class="card">
+  <div class="card-header bg-primary text-white">
+    <i class="fas fa-edit"></i> Управление себестоимостью артикулов
+  </div>
+  <br/>
+  <div class="card-body">
+    {% if messages %}
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+
+    <!-- Форма добавления -->
+    <div class="card mb-4">
+      <div class="card-header bg-light">
+        <i class="fas fa-plus-circle"></i> Добавить новый артикул
+      </div>
+      <br/>
+      <div class="card-body">
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="add_article">
+
+          <div class="mb-3">
+            <label for="{{ form.wb_article.id_for_label }}">WB артикул:</label>
+            {{ form.wb_article }}
+            <small class="form-text text-muted">Уникальный числовой артикул Wildberries</small>
+          </div>
+          <br/>
+
+          <div class="mb-3">
+            <label for="{{ form.seller_article.id_for_label }}">Артикул продавца (опционально):</label>
+            {{ form.seller_article }}
+            <small class="form-text text-muted">Ваш внутренний артикул </small>
+          </div>
+          <br/>
+
+          <div class="mb-3">
+            <label for="{{ form.cost.id_for_label }}">Себестоимость за 1 шт (₽):</label>
+            {{ form.cost }}
+            <small class="form-text text-muted">Стоимость одной единицы товара для этого артикула</small>
+          </div>
+          <br/>
+
+          <button type="submit" class="btn btn-primary">Добавить артикул</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Таблица записей -->
+    {% if records %}
+      <h4 class="mt-4">Ваши артикулы ({{ records.count }})</h4>
+      <table class="table table-hover table-bordered">
+        <thead class="table-dark">
+          <tr>
+            <th>WB артикул</th>
+            <th>Артикул продавца</th>
+            <th>Себестоимость, ₽</th>
+            <th>Действия</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in records %}
+            <tr>
+              <td><code>{{ r.wb_article }}</code></td>
+              <td>{{ r.seller_article|default:"—" }}</td>
+              <td>{{ r.cost }}</td>
+              <td>
+                <a href="{% url 'forms_app:form18_edit' r.pk %}" class="btn btn-sm btn-outline-primary" title="Редактировать">
+                  <i class="fas fa-edit"></i>
+                </a>
+                <a href="{% url 'forms_app:form18_delete' r.pk %}" 
+                   class="btn btn-sm btn-outline-danger"
+                   onclick="return confirm('Удалить запись для артикула {{ r.wb_article }}?')"
+                   title="Удалить">
+                  <i class="fas fa-trash"></i>
+                </a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <div class="alert alert-info">У вас пока нет сохранённых артикулов. Добавьте первый!</div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}
