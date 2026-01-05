@@ -1108,10 +1108,19 @@ def form18_list(request):
         elif action == "add_article":
             form = ArticleCostForm(request.POST)
             if form.is_valid():
-                obj = form.save(commit=False)
-                obj.user = request.user
-                obj.save()
-                messages.success(request, "Артикул добавлен!")
+                wb_article = form.cleaned_data["wb_article"]
+                # Проверяем, существует ли уже ArticleCost с этим пользователем и артикулом
+                obj, created = ArticleCost.objects.get_or_create(
+                    user=request.user, wb_article=wb_article, defaults=form.cleaned_data
+                )
+                if created:
+                    messages.success(request, "Артикул добавлен!")
+                else:
+                    # Обновляем существующий объект новыми данными из формы
+                    for field, value in form.cleaned_data.items():
+                        setattr(obj, field, value)
+                    obj.save()
+                    messages.success(request, "Артикул обновлён!")
             else:
                 messages.error(request, "Ошибка в форме.")
 
