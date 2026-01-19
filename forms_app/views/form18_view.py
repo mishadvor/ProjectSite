@@ -116,6 +116,7 @@ def form18_list(request):
                     - sums1_per_category["Вайлдберриз реализовал Товар (Пр)"]
                 ).apply(safe_convert_to_int)
 
+                # Расчет процентов с обработкой деления на 0
                 sums1_per_category["% Лог/рс"] = (
                     np.where(
                         sums1_per_category[
@@ -179,6 +180,7 @@ def form18_list(request):
                     returns_by_code, on="Код номенклатуры", how="left"
                 ).fillna(0)
 
+                # Расчет чистых продаж
                 first_merged["Чистые продажи Наши"] = (
                     first_merged["Цена розничная"] - first_merged["Возвраты Наша цена"]
                 ).apply(safe_convert_to_int)
@@ -315,33 +317,21 @@ def form18_list(request):
                         )
                     status_log["%Выкупа"] = np.round(buyout_rate.astype(float), 1)
 
-                    # === ВАЖНО: СЕБЕСТОИМОСТЬ ИЗ ФОРМЫ 18 ===
-
-                    # === ОТЛАДКА: ПОКАЖЕМ, КАКИЕ АРТИКУЛЫ ЕСТЬ В БАЗЕ ===
-                    print("=== Артикулы из базы (ArticleCost) ===")
-                    for ac in ArticleCost.objects.filter(user=request.user):
-                        print(
-                            f"WB артикул: '{ac.wb_article}' (тип: {type(ac.wb_article)})"
-                        )
-
-                    # === ОТЛАДКА: ПОКАЖЕМ, КАКИЕ АРТИКУЛЫ В status_log ===
-                    print("\n=== Артикулы из отчёта (status_log) ===")
-                    print(status_log["Код номенклатуры"].head(5).to_list())
-
+                    # === ИНДИВИДУАЛЬНАЯ СЕБЕСТОИМОСТЬ ИЗ БАЗЫ ===
                     cost_map = {
                         str(ac.wb_article): float(ac.cost)
                         for ac in ArticleCost.objects.filter(user=request.user)
                     }
 
-                    # === НОВАЯ КОЛОНКА: Себестоимость за 1 шт ===
+                    # Себестоимость за 1 шт
                     status_log["Себестоимость за 1 шт"] = (
                         status_log["Код номенклатуры"]
-                        .map(cost_map)  # индивидуальная себестоимость
-                        .fillna(sebestoimost)  # fallback на значение по умолчанию
+                        .map(cost_map)
+                        .fillna(sebestoimost)
                         .astype(float)
                     )
 
-                    # Теперь расчёт Себес Продаж использует эту колонку
+                    # Себестоимость продаж
                     status_log["Себес Продаж"] = (
                         status_log["К клиенту при продаже"]
                         * status_log["Себестоимость за 1 шт"]
@@ -370,13 +360,14 @@ def form18_list(request):
                     # Если нет колонки логистики — нельзя определить продажи
                     third_merged = second_merged.copy()
                     third_merged["Себес Продаж"] = 0
+                    third_merged["Себестоимость за 1 шт"] = sebestoimost
                     third_merged["Чистые продажи, шт"] = 0
                     third_merged["Заказы"] = 0
                     third_merged["%Выкупа"] = 0.0
                     third_merged["От клиента при возврате"] = 0
                     third_merged["От клиента при отмене"] = 0
 
-                # === ФИНАЛЬНЫЕ РАСЧЁТЫ ===
+                # Переименование столбцов
                 third_merged = third_merged.rename(
                     columns={
                         "Цена розничная": "Сумма Продаж Наша Цена",
@@ -392,6 +383,7 @@ def form18_list(request):
                     }
                 )
 
+                # =============== ВЫЧИСЛЕНИЕ МАРЖИ И НАЛОГОВ ===============
                 third_merged["Маржа"] = (
                     third_merged["Чистое Перечисление без Логистики"]
                     - third_merged["Себес Продаж"]
@@ -401,10 +393,44 @@ def form18_list(request):
                     third_merged["Чистая реализация ВБ"] * nalog_procent
                 ).round(1)
 
-                third_merged["Прибыль"] = (
-                    third_merged["Маржа"] - third_merged["Налоги"]
+                # =============== ВЫЧИСЛЕНИЕ ДОПОЛНИТЕЛЬНЫХ УДЕРЖАНИЙ ===============
+                all_add_log = (
+                    df.groupby("Обоснование для оплаты")
+                    .agg(
+                        {
+                            "Услуги по доставке товара покупателю": "sum",
+                            "Общая сумма штрафов": "sum",
+                            "Хранение": "sum",
+                            "Удержания": "sum",
+                            "Операции на приемке": "sum",
+                        }
+                    )
+                    .reset_index()
+                )
+
+                sum_dop_uderzhany = (
+                    all_add_log["Общая сумма штрафов"].sum()
+                    + all_add_log["Хранение"].sum()
+                    + all_add_log["Удержания"].sum()
+                    + all_add_log["Операции на приемке"].sum()
+                )
+
+                sum_zakaz = third_merged["Заказы"].sum()
+
+                # Распределяем доп. удержания пропорционально заказам
+                third_merged["Доп удержание на кол-во заказов 1 Артикула"] = (
+                    (sum_dop_uderzhany / sum_zakaz) * third_merged["Заказы"]
                 ).round(1)
 
+                # =============== ПРАВИЛЬНАЯ ПРИБЫЛЬ С УЧЕТОМ ДОП. УДЕРЖАНИЙ ===============
+                third_merged["Прибыль"] = (
+                    third_merged["Маржа"]
+                    - third_merged["Налоги"]
+                    - third_merged["Доп удержание на кол-во заказов 1 Артикула"]
+                ).round(1)
+
+                # =============== ДОПОЛНИТЕЛЬНЫЕ ПОКАЗАТЕЛИ ===============
+                # Прибыль на 1 юбку
                 third_merged["Прибыль на 1 Юбку"] = (
                     third_merged.apply(
                         lambda row: (
@@ -423,14 +449,15 @@ def form18_list(request):
                     .round(1)
                 )
 
-                # Доп. колонки
-                third_merged["План на неделю"] = ""
-                third_merged["План по доходу"] = ""
-                third_merged["Доп удержание на кол-во заказов 1 Артикула"] = ""
+                # % СПП
                 third_merged["% СПП"] = (
                     (third_merged["СПП Средняя"] / third_merged["Наша цена Средняя"])
                     * 100
                 ).round(1)
+
+                # Доп. колонки
+                third_merged["План на неделю"] = ""
+                third_merged["План по доходу"] = ""
 
                 # Порядок колонок
                 desired_columns_order = [
@@ -481,11 +508,10 @@ def form18_list(request):
                 ]
                 third_merged = third_merged[existing_columns]
 
-                # Сортировка и фильтрация
+                # =============== СОРТИРОВКА ПО ПРИБЫЛИ (УЖЕ С ДОП. УДЕРЖАНИЯМИ) ===============
                 third_merged.sort_values(by="Прибыль", ascending=False, inplace=True)
-                third_merged = third_merged[third_merged["Прибыль"] != 0].copy()
 
-                # Группировка по прибыли
+                # =============== ГРУППИРОВКА ПО ПРИБЫЛИ (УЖЕ С ДОП. УДЕРЖАНИЯМИ) ===============
                 conditions = [
                     third_merged["Прибыль"] > 10000,
                     (third_merged["Прибыль"] >= 5000)
@@ -503,7 +529,48 @@ def form18_list(request):
                     conditions, categories_profit, default="Не попал"
                 )
 
-                # Группировка по префиксам артикулов
+                # Удаляем строки с нулевой прибылью
+                third_merged = third_merged[third_merged["Прибыль"] != 0].copy()
+
+                # =============== ИТОГОВАЯ СВОДКА ===============
+                totall_summary = pd.DataFrame(
+                    {
+                        "Колонка": [
+                            "Логистика",
+                            "Сумма СПП",
+                            "Сумма Чистых перечислений без Возвратов и Логистики",
+                            "Чистые продажи, шт",
+                            "Заказы",
+                            "Себестоимость продаж",
+                            "Процент налога",
+                            "Налоги",
+                            "Прибыль без налога - маржа",
+                            "Штрафы",
+                            "Хранение",
+                            "Удержания",
+                            "Операции на приемке",
+                            "Прибыль (с учетом доп. удержаний)",
+                        ],
+                        "Общая сумма": [
+                            third_merged["Логистика"].sum(),
+                            third_merged["Сумма СПП"].sum(),
+                            third_merged["Чистое Перечисление без Логистики"].sum(),
+                            third_merged["Чистые продажи, шт"].sum(),
+                            third_merged["Заказы"].sum(),
+                            third_merged["Себес Продаж"].sum(),
+                            f"{round(nalog_procent * 100, 1)}%",
+                            third_merged["Налоги"].sum(),
+                            third_merged["Маржа"].sum(),
+                            all_add_log["Общая сумма штрафов"].sum(),
+                            all_add_log["Хранение"].sum(),
+                            all_add_log["Удержания"].sum(),
+                            all_add_log["Операции на приемке"].sum(),
+                            third_merged["Прибыль"].sum(),
+                        ],
+                    }
+                )
+
+                # =============== ГРУППИРОВКА ПО ПРЕФИКСАМ АРТИКУЛОВ ===============
                 def get_prefix(article):
                     try:
                         return str(article).split("_")[0][:3]
@@ -514,6 +581,7 @@ def form18_list(request):
                     get_prefix
                 )
 
+                # Определяем категории и соответствующие им префиксы артикула
                 categories = {
                     "Экокожа черная": ["051", "054", "072", "079", "085", "395"],
                     "Джерси черная": ["001", "002", "003", "004", "005", "050", "122"],
@@ -899,108 +967,23 @@ def form18_list(request):
                     ],
                 }
 
-                # Итоговая сводка
-                all_add_log = (
-                    df.groupby("Обоснование для оплаты")
-                    .agg(
-                        {
-                            "Услуги по доставке товара покупателю": "sum",
-                            "Общая сумма штрафов": "sum",
-                            "Хранение": "sum",
-                            "Удержания": "sum",
-                            "Операции на приемке": "sum",
-                        }
-                    )
-                    .reset_index()
-                )
-
-                sum_dop_uderzhany = (
-                    all_add_log["Общая сумма штрафов"].sum()
-                    + all_add_log["Хранение"].sum()
-                    + all_add_log["Удержания"].sum()
-                    + all_add_log["Операции на приемке"].sum()
-                )
-
-                sum_zakaz = third_merged["Заказы"].sum()
-                third_merged["Доп удержание на кол-во заказов 1 Артикула"] = (
-                    (sum_dop_uderzhany / sum_zakaz) * third_merged["Заказы"]
-                ).round(1)
-
-                third_merged["Прибыль"] = (
-                    third_merged["Маржа"]
-                    - third_merged["Налоги"]
-                    - third_merged["Доп удержание на кол-во заказов 1 Артикула"]
-                ).round(1)
-
-                third_merged["Прибыль на 1 Юбку"] = (
-                    third_merged.apply(
-                        lambda row: (
-                            (row["Прибыль"] / row["Чистые продажи, шт"])
-                            if row["Чистые продажи, шт"] > 0
-                            else (
-                                row["Прибыль"] / row["Заказы"]
-                                if row["Заказы"] > 0
-                                else 0
-                            )
-                        ),
-                        axis=1,
-                    )
-                    .replace([np.inf, -np.inf], 0)
-                    .fillna(0)
-                    .round(1)
-                )
-
-                # Итоговая сводка
-                totall_summary = pd.DataFrame(
-                    {
-                        "Колонка": [
-                            "Логистика",
-                            "Сумма СПП",
-                            "Сумма Чистых перечислений без Возвратов и Логистики",
-                            "Чистые продажи, шт",
-                            "Заказы",
-                            "Себестоимость продаж",
-                            "Процент налога",
-                            "Налоги",
-                            "Прибыль без налога - маржа",
-                            "Штрафы",
-                            "Хранение",
-                            "Удержания",
-                            "Операции на приемке",
-                            "Итого: прибыль минус доп. удержания",
-                        ],
-                        "Общая сумма": [
-                            third_merged["Логистика"].sum(),
-                            third_merged["Сумма СПП"].sum(),
-                            third_merged["Чистое Перечисление без Логистики"].sum(),
-                            third_merged["Чистые продажи, шт"].sum(),
-                            third_merged["Заказы"].sum(),
-                            third_merged["Себес Продаж"].sum(),
-                            f"{round(nalog_procent * 100, 1)}%",
-                            third_merged["Налоги"].sum(),
-                            third_merged["Маржа"].sum(),
-                            all_add_log["Общая сумма штрафов"].sum(),
-                            all_add_log["Хранение"].sum(),
-                            all_add_log["Удержания"].sum(),
-                            all_add_log["Операции на приемке"].sum(),
-                            third_merged["Прибыль"].sum() - sum_dop_uderzhany,
-                        ],
-                    }
-                )
-
-                # === ЭКСПОРТ В EXCEL ===
+                # =============== ЭКСПОРТ В EXCEL ===============
                 output = BytesIO()
                 with pd.ExcelWriter(output, engine="openpyxl") as writer:
+                    # Лист "Основные данные"
                     third_merged.to_excel(
                         writer,
                         sheet_name="Основные данные",
                         index=False,
                         columns=existing_columns,
                     )
+
+                    # Лист "Итоговая сводка"
                     totall_summary.to_excel(
                         writer, sheet_name="Итоговая сводка", index=False
                     )
 
+                    # Листы с категориями артикулов
                     for category, prefixes in categories.items():
                         filtered = third_merged[
                             third_merged["Префикс"].isin(prefixes)
@@ -1055,6 +1038,7 @@ def form18_list(request):
                             except KeyError:
                                 pass
 
+                    # Листы с группами по прибыли
                     for category in categories_profit:
                         filtered = third_merged[
                             third_merged["Группа по прибыли"] == category
@@ -1109,14 +1093,12 @@ def form18_list(request):
             form = ArticleCostForm(request.POST)
             if form.is_valid():
                 wb_article = form.cleaned_data["wb_article"]
-                # Проверяем, существует ли уже ArticleCost с этим пользователем и артикулом
                 obj, created = ArticleCost.objects.get_or_create(
                     user=request.user, wb_article=wb_article, defaults=form.cleaned_data
                 )
                 if created:
                     messages.success(request, "Артикул добавлен!")
                 else:
-                    # Обновляем существующий объект новыми данными из формы
                     for field, value in form.cleaned_data.items():
                         setattr(obj, field, value)
                     obj.save()
@@ -1128,9 +1110,6 @@ def form18_list(request):
     form = ArticleCostForm()
     records = ArticleCost.objects.filter(user=request.user).order_by("-id")
     return render(request, "forms_app/form18.html", {"form": form, "records": records})
-
-
-# === Остальные view-функции без изменений ===
 
 
 @login_required

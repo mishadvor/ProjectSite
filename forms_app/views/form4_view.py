@@ -452,12 +452,14 @@ def form4_chart(request, code, chart_type=None):
     for val in data_values:
         if val is None:
             data.append(0)
-        else:
-            # Округляем до 1 знака после запятой
+        try:
             if chart_type in ["orders", "qentity_sale"]:
-                data.append(int(val))  # Целые числа для заказов и количества
+                # Приводим к float, округляем, затем к int — защищаемся от 14.000000000000002
+                data.append(int(round(float(val))))
             else:
                 data.append(round(float(val), 1))
+        except (ValueError, TypeError):
+            data.append(0)
 
     return render(
         request,
