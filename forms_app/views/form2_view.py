@@ -213,7 +213,7 @@ def form2(request):
 
             first_merged["Чистая реализация ВБ"] = (
                 first_merged["Вайлдберриз реализовал Товар (Пр)"]
-                - first_merged["Возвраты реализация ВБ"]
+                - (first_merged["Возвраты реализация ВБ"] * 2)
             ).apply(safe_convert_to_int)
 
             first_merged["Чистое Перечисление"] = (
