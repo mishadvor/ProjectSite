@@ -189,8 +189,8 @@
                                     {% for date, value1, value2 in table_data %}
                                         <tr>
                                             <td>{{ date|date:"d.m.Y" }}</td>
-                                            <td>{{ value1|floatformat:"g" }}</td>
-                                            <td>{{ value2|floatformat:"g"|default:"—" }}</td>
+                                            <td>{{ value1|floatformat:2 }}</td>
+                                            <td>{{ value2|floatformat:2|default:"—" }}</td>
                                         </tr>
                                     {% endfor %}
                                 </tbody>
