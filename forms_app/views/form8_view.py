@@ -36,6 +36,7 @@ def form8_upload(request):
                         "Заказы",
                         "%Выкупа",
                         "Чистые продажи, шт",
+                        "Чистое Перечисление без Логистики",
                     ]
                     missing = [col for col in required_cols if col not in df.columns]
                     if missing:
@@ -48,6 +49,10 @@ def form8_upload(request):
                     profit = Decimal(str(df["Прибыль"].sum()))
                     clean_sales = Decimal(str(df["Чистые продажи Наши"].sum()))
                     orders = int(df["Заказы"].sum())
+
+                    clean_transfer = Decimal(
+                        str(df["Чистое Перечисление без Логистики"].sum())
+                    )
 
                     spp_series = df["% СПП"][(df["% СПП"] > 0) & (df["% СПП"].notna())]
                     spp = (
@@ -109,6 +114,9 @@ def form8_upload(request):
                             "profit": profit if pd.notna(profit) else None,
                             "clean_sales_ours": (
                                 clean_sales if pd.notna(clean_sales) else None
+                            ),
+                            "clean_transfer_without_logistics": (  # ← ДОБАВЬТЕ
+                                clean_transfer if pd.notna(clean_transfer) else None
                             ),
                             "spp_percent": spp,
                             "avg_price": avg_price,
@@ -175,6 +183,14 @@ def form8_upload(request):
         "profit": [float(r.profit) if r.profit is not None else 0 for r in reports],
         "sales": [
             float(r.clean_sales_ours) if r.clean_sales_ours is not None else 0
+            for r in reports
+        ],
+        "clean_transfer": [
+            (
+                float(r.clean_transfer_without_logistics)
+                if r.clean_transfer_without_logistics is not None
+                else 0
+            )
             for r in reports
         ],
         "spp": [

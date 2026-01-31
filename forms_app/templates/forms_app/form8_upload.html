@@ -170,6 +170,7 @@
             <th>Неделя</th>
             <th>Прибыль</th>
             <th>Чистые продажи</th>
+            <th>Чистое Перечисление без Логистики</th>
             <th>Заказы</th>
             <th>% СПП</th>
             <th>Ср. цена</th>
@@ -183,6 +184,7 @@
             <td>{{ r.week_name }}</td>
             <td>{{ r.profit|floatformat:0 }} ₽</td>
             <td>{{ r.clean_sales_ours|floatformat:0 }} ₽</td>
+            <td>{{ r.clean_transfer_without_logistics|floatformat:0|default:"-" }} ₽</td>
             <td>{{ r.orders }} шт</td>
             <td>{{ r.spp_percent|floatformat:1 }}%</td>
             <td>{{ r.avg_price|floatformat:0 }} ₽</td>
@@ -263,6 +265,10 @@
 </div>
 
 <div class="chart-container">
+  <canvas id="cleanTransferChart"></canvas>
+</div>
+
+<div class="chart-container">
   <canvas id="sppChart"></canvas>
 </div>
 
@@ -286,8 +292,8 @@
   document.addEventListener('DOMContentLoaded', function() {
     // Проверка существования canvas-элементов
     const chartIds = [
-      'profitChart', 'salesChart', 'sppChart', 'priceChart',
-      'profitPerSkirtChart', 'ordersChart', 'pickupChart'
+      'profitChart', 'salesChart', 'cleanTransferChart', 'sppChart', 
+      'priceChart', 'profitPerSkirtChart', 'ordersChart', 'pickupChart'
     ];
 
     chartIds.forEach(id => {
@@ -301,6 +307,7 @@
     const labels = {{ chart_data.labels|safe }};
     const profitData = {{ chart_data.profit|safe }};
     const salesData = {{ chart_data.sales|safe }};
+    const cleanTransferData = {{ chart_data.clean_transfer|safe }};
     const sppData = {{ chart_data.spp|safe }};
     const priceData = {{ chart_data.price|safe }};
     const profitPerSkirtData = {{ chart_data.profit_per_skirt|safe }};
@@ -308,7 +315,7 @@
     const pickupData = {{ chart_data.pickup|safe }};
 
     console.log("Данные для графиков:", {
-      labels, profitData, salesData, sppData,
+      labels, profitData, salesData, cleanTransferData, sppData,
       priceData, profitPerSkirtData, ordersData, pickupData
     });
 
@@ -320,7 +327,7 @@
         legend: { position: 'top' },
         tooltip: {
           callbacks: {
-            label: ctx => ctx.parsed.y.toLocaleString()
+            label: ctx => ctx.parsed.y.toLocaleString('ru-RU')
           }
         }
       },
@@ -352,6 +359,13 @@
               beginAtZero: true,
               title: { display: true, text: 'Рубли' }
             }
+          },
+          plugins: {
+            tooltip: {
+              callbacks: {
+                label: ctx => `Прибыль: ${ctx.parsed.y.toLocaleString('ru-RU')} ₽`
+              }
+            }
           }
         }
       });
@@ -370,10 +384,51 @@
             tension: 0
           }]
         },
-        options: chartOptions
+        options: {
+          ...chartOptions,
+          plugins: {
+            tooltip: {
+              callbacks: {
+                label: ctx => `Чистые продажи: ${ctx.parsed.y.toLocaleString('ru-RU')} ₽`
+              }
+            }
+          }
+        }
       });
 
-      // График 3: % СПП
+      // График 3: Чистое Перечисление без Логистики
+      new Chart(document.getElementById('cleanTransferChart'), {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Чистое Перечисление без Логистики (руб.)',
+            data: cleanTransferData,
+            borderColor: 'rgb(128, 0, 128)',
+            backgroundColor: 'rgba(128, 0, 128, 0.1)',
+            fill: true,
+            tension: 0
+          }]
+        },
+        options: {
+          ...chartOptions,
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: { display: true, text: 'Рубли' }
+            }
+          },
+          plugins: {
+            tooltip: {
+              callbacks: {
+                label: ctx => `Чистое Перечисление без Логистики: ${ctx.parsed.y.toLocaleString('ru-RU')} ₽`
+              }
+            }
+          }
+        }
+      });
+
+      // График 4: % СПП
       new Chart(document.getElementById('sppChart'), {
         type: 'line',
         data: {
@@ -395,11 +450,18 @@
               max: 50,
               title: { display: true, text: '%' }
             }
+          },
+          plugins: {
+            tooltip: {
+              callbacks: {
+                label: ctx => `% СПП: ${ctx.parsed.y.toFixed(1)}%`
+              }
+            }
           }
         }
       });
 
-      // График 4: Наша цена
+      // График 5: Наша цена
       new Chart(document.getElementById('priceChart'), {
         type: 'line',
         data: {
@@ -413,10 +475,19 @@
             tension: 0
           }]
         },
-        options: chartOptions
+        options: {
+          ...chartOptions,
+          plugins: {
+            tooltip: {
+              callbacks: {
+                label: ctx => `Средняя цена: ${ctx.parsed.y.toLocaleString('ru-RU')} ₽`
+              }
+            }
+          }
+        }
       });
 
-      // График 5: Прибыль на юбку
+      // График 6: Прибыль на юбку
       new Chart(document.getElementById('profitPerSkirtChart'), {
         type: 'line',
         data: {
@@ -430,10 +501,19 @@
             tension: 0
           }]
         },
-        options: chartOptions
+        options: {
+          ...chartOptions,
+          plugins: {
+            tooltip: {
+              callbacks: {
+                label: ctx => `Прибыль на юбку: ${ctx.parsed.y.toLocaleString('ru-RU')} ₽`
+              }
+            }
+          }
+        }
       });
 
-      // График 6: Заказы
+      // График 7: Заказы
       new Chart(document.getElementById('ordersChart'), {
         type: 'bar',
         data: {
@@ -451,11 +531,18 @@
               beginAtZero: true,
               title: { display: true, text: 'Штуки' }
             }
+          },
+          plugins: {
+            tooltip: {
+              callbacks: {
+                label: ctx => `Заказы: ${ctx.parsed.y.toLocaleString('ru-RU')} шт.`
+              }
+            }
           }
         }
       });
 
-      // График 7: % Выкупа
+      // График 8: % Выкупа
       new Chart(document.getElementById('pickupChart'), {
         type: 'line',
         data: {
@@ -476,6 +563,13 @@
               min: 0,
               max: 100,
               title: { display: true, text: '%' }
+            }
+          },
+          plugins: {
+            tooltip: {
+              callbacks: {
+                label: ctx => `% Выкупа: ${ctx.parsed.y.toFixed(1)}%`
+              }
             }
           }
         }
@@ -520,21 +614,18 @@
     if (dateSelect && dateSelect.options.length > 1) {
       dateSelect.selectedIndex = 1;
     }
-  // Автовыбор даты для фильтра (если есть такие элементы)
+    
+    // Автовыбор даты для фильтра
     const startDateInput = document.getElementById('start_date');
     const endDateInput = document.getElementById('end_date');
     
     if (startDateInput && !startDateInput.value && dateSelect.options.length > 1) {
-        // Устанавливаем первую доступную дату как стартовую
         startDateInput.value = dateSelect.options[1].value;
     }
     
     if (endDateInput && !endDateInput.value && dateSelect.options.length > 1) {
-        // Устанавливаем последнюю доступную дату как конечную
         endDateInput.value = dateSelect.options[1].value;
     }
-
-    
   });
 </script>
 

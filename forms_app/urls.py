@@ -109,6 +109,10 @@ from .views.form18_view import (
     form18_delete,
 )
 
+from .views.form19_view import (
+    form19_view,
+)
+
 
 app_name = "forms_app"
 
@@ -221,4 +225,6 @@ urlpatterns = [
     path("form18/", form18_list, name="form18_list"),
     path("form18/edit/<int:pk>/", form18_edit, name="form18_edit"),
     path("form18/delete/<int:pk>/", form18_delete, name="form18_delete"),
+    # --- Форма 19 ---
+    path("form19/", form19_view, name="form19_view"),
 ]

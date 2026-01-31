@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>{{ page_title }}</h2>
+    
+    {% if messages %}
+    <div class="mb-4">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message|safe }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fas fa-file-upload"></i> Загрузка файла для анализа трафика по регионам и городам
+            </h5>
+        </div>
+        <div class="card-body">
+            <form method="post" enctype="multipart/form-data" id="uploadForm">
+                {% csrf_token %}
+                <input type="hidden" name="upload_token" value="{{ upload_token }}">
+                
+                <div class="mb-4">
+                    <label for="id_file" class="form-label fw-semibold">
+                        <i class="fas fa-file-excel"></i> Выберите файл
+                    </label>
+                
+                    <input type="file" class="form-control" name="file" id="id_file" 
+                           accept=".xlsx,.xls,.csv" required>
+                    <div class="form-text">
+                        Поддерживаются файлы Excel (.xlsx, .xls) и CSV (.csv), до 50 МБ
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary btn-lg" id="submitBtn">
+                        <i class="fas fa-chart-line"></i> Запустить анализ
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('uploadForm').addEventListener('submit', function(e) {
+    const submitBtn = document.getElementById('submitBtn');
+    const fileInput = document.getElementById('id_file');
+    
+    if (fileInput.files.length === 0) {
+        e.preventDefault();
+        alert('Пожалуйста, выберите файл для загрузки');
+        return;
+    }
+    
+    // Показываем индикатор загрузки
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = 
+        '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Обработка...';
+    
+    // Проверка размера файла
+    const file = fileInput.files[0];
+    const maxSize = 50 * 1024 * 1024; // 50 MB
+    
+    if (file.size > maxSize) {
+        e.preventDefault();
+        alert('Файл слишком большой. Максимальный размер: 50 МБ');
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fas fa-chart-line"></i> Запустить анализ';
+        return;
+    }
+});
+</script>
+
+<style>
+.card {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    max-width: 600px;
+    margin: 0 auto;
+}
+.card-header {
+    border-bottom: 2px solid rgba(0,0,0,0.1);
+}
+.btn-lg {
+    padding: 0.75rem 1.5rem;
+    font-size: 1.1rem;
+    width: 100%;
+}
+</style>
+{% endblock %}

@@ -106,6 +106,13 @@ class Form8Report(models.Model):
     clean_sales_ours = models.DecimalField(
         "Чистые продажи Наши", max_digits=12, decimal_places=2, null=True, blank=True
     )
+    clean_transfer_without_logistics = models.DecimalField(
+        "Чистое Перечисление без Логистики",
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
     orders = models.IntegerField("Заказы", null=True, blank=True)
 
     # Средние (>0)
