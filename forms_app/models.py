@@ -267,10 +267,10 @@ class Form16Article(models.Model):
 
     # ОДНО объявление поля position
     position = models.PositiveIntegerField(
-        verbose_name="Позиция (1-30)",
+        verbose_name="Позиция (1-50)",
         validators=[
-            MinValueValidator(1, message="Позиция должна быть от 1 до 30"),
-            MaxValueValidator(30, message="Позиция должна быть от 1 до 30"),
+            MinValueValidator(1, message="Позиция должна быть от 1 до 50"),
+            MaxValueValidator(50, message="Позиция должна быть от 1 до 50"),
         ],
     )
 

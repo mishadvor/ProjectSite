@@ -26,7 +26,11 @@ def form16_main(request):
         user=request.user, is_active=True
     ).count()
 
-    context = {"articles_count": articles_count, "has_articles": articles_count > 0}
+    context = {
+        "articles_count": articles_count,
+        "has_articles": articles_count > 0,
+        "max_positions": 50,
+    }
     return render(request, "forms_app/form16_main.html", context)
 
 
@@ -43,7 +47,7 @@ def form16_edit_table(request):
         try:
             with transaction.atomic():
                 # Обрабатываем все 15 позиций
-                for position in range(1, 31):
+                for position in range(1, 51):
                     article_wb = request.POST.get(f"article_wb_{position}", "").strip()
                     our_article = request.POST.get(
                         f"our_article_{position}", ""
@@ -86,7 +90,7 @@ def form16_edit_table(request):
 
     # Создаем список данных для каждой позиции
     table_data = []
-    for position in range(1, 31):
+    for position in range(1, 51):
         if position in existing_articles:
             article = existing_articles[position]
             table_data.append(
