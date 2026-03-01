@@ -309,6 +309,76 @@ def form16_generate_report(request):
             # === ИСПРАВЛЕНИЕ 1: Добавляем пустую колонку "Отгрузка ФБО" ===
             df_result["Отгрузка ФБО"] = ""
 
+            # === НОВОЕ: Добавляем колонку "Наши остатки" из базы SQL (Форма 6) ===
+            # Получаем все записи остатков пользователя из StockRecord
+            from forms_app.models import StockRecord
+
+            stock_records = StockRecord.objects.filter(user=request.user)
+
+            # Создаем словарь для быстрого поиска остатков по ключу "артикул_размер"
+            # Также создаем отдельный словарь для поиска по артикулу без учета размера (на случай если размер не совпадает)
+            stock_dict = {}
+            stock_by_article_only = {}
+
+            for record in stock_records:
+                # Ключ с учетом размера (приводим к строке для надежности)
+                article_key = (
+                    str(record.article_full_name).strip()
+                    if record.article_full_name
+                    else ""
+                )
+                size_key = str(record.size).strip() if record.size else ""
+
+                # Составляем ключ для точного совпадения по артикулу и размеру
+                if article_key and size_key:
+                    composite_key = f"{article_key}_{size_key}"
+                    stock_dict[composite_key] = record.quantity
+
+                # Также сохраняем максимальное количество по артикулу (на случай если размер не совпадает)
+                if article_key:
+                    if article_key not in stock_by_article_only:
+                        stock_by_article_only[article_key] = 0
+                    # Суммируем все остатки по артикулу (на случай если несколько размеров)
+                    stock_by_article_only[article_key] += record.quantity or 0
+
+            # Функция для получения остатков
+            def get_our_stock(row):
+                article_vendor = (
+                    str(row.get("Артикул продавца", "")).strip()
+                    if "Артикул продавца" in row
+                    else ""
+                )
+                size = str(row.get("Размер", "")).strip() if "Размер" in row else ""
+
+                if not article_vendor:
+                    return 0
+
+                # Сначала ищем точное совпадение по артикулу и размеру
+                composite_key = f"{article_vendor}_{size}"
+                if composite_key in stock_dict:
+                    return stock_dict[composite_key]
+
+                # Если точного совпадения нет, ищем по артикулу без учета размера
+                # и возвращаем общее количество по этому артикулу
+                if article_vendor in stock_by_article_only:
+                    return stock_by_article_only[article_vendor]
+
+                # Если ничего не найдено
+                return 0
+
+            # Добавляем колонку "Наши остатки" после "Отгрузка ФБО"
+            # Сначала определяем текущий порядок колонок
+            if "Отгрузка ФБО" in df_result.columns:
+                fbo_idx = df_result.columns.get_loc("Отгрузка ФБО")
+                # Вставляем колонку "Наши остатки" после "Отгрузка ФБО"
+                df_result.insert(fbo_idx + 1, "Наши остатки", 0)
+            else:
+                # Если нет колонки "Отгрузка ФБО", добавляем в конец
+                df_result["Наши остатки"] = 0
+
+            # Заполняем значения остатков
+            df_result["Наши остатки"] = df_result.apply(get_our_stock, axis=1)
+
             # Переупорядочиваем колонки: новая колонка в конце
             columns_order = [
                 "Артикул продавца",
@@ -321,6 +391,7 @@ def form16_generate_report(request):
                 "Процент выкупа",
                 "Остатки на текущий день, шт",
                 "Отгрузка ФБО",
+                "Наши остатки",
             ]
 
             # Оставляем только существующие колонки в нужном порядке
@@ -368,7 +439,6 @@ def form16_generate_report(request):
             headers = list(df_result.columns)
             ws.append(headers)
             HEADER_ROW = ws.max_row  # Это строка с заголовками таблицы!
-            print(f"Заголовки таблицы на строке: {HEADER_ROW}")
 
             # 7. ДАННЫЕ ТАБЛИЦЫ
             for _, row in df_result.iterrows():
@@ -376,7 +446,6 @@ def form16_generate_report(request):
 
             # Начало данных (первая строка после заголовков)
             DATA_START_ROW = HEADER_ROW + 1
-            print(f"Данные начинаются со строки: {DATA_START_ROW}")
 
             # === ФОРМАТИРОВАНИЕ ===
 
@@ -406,8 +475,6 @@ def form16_generate_report(request):
                 top=Side(style="thin"),
                 bottom=Side(style="thin"),
             )
-
-            print(f"Форматируем заголовки таблицы на строке {HEADER_ROW}: {headers}")
 
             for col in range(1, len(headers) + 1):
                 cell = ws.cell(row=HEADER_ROW, column=col)
@@ -472,8 +539,6 @@ def form16_generate_report(request):
             color_index = 0
             article_colors = {}
 
-            print(f"Форматируем данные с строки {DATA_START_ROW} до {ws.max_row}")
-
             for row in range(DATA_START_ROW, ws.max_row + 1):
                 article = ws.cell(
                     row=row, column=2
@@ -490,10 +555,10 @@ def form16_generate_report(request):
 
                     fill_color = article_colors.get(current_article, colors[0])
 
-                    # Форматируем всю строку данных ВКЛЮЧАЯ колонку "Отгрузка ФБО"
+                    # Форматируем всю строку данных ВКЛЮЧАЯ колонку "Отгрузка ФБО" и "Наши остатки"
                     for col in range(
                         1, len(headers) + 1
-                    ):  # Это ВКЛЮЧАЕТ последнюю колонку
+                    ):  # Это ВКЛЮЧАЕТ последние колонки
                         cell = ws.cell(row=row, column=col)
                         cell.fill = fill_color
                         cell.border = Border(
@@ -503,10 +568,14 @@ def form16_generate_report(request):
                             bottom=Side(style="thin"),
                         )
 
-                        # Выравнивание
-                        if (
-                            col >= 5 and col <= 8
-                        ):  # Числовые колонки (Заказали, Выкупили, Процент, Остатки)
+                        # Выравнивание для числовых колонок
+                        if col in [
+                            6,
+                            7,
+                            8,
+                            9,
+                            11,
+                        ]:  # Индексы числовых колонок (Заказали, Выкупили, Процент, Остатки ВБ, Наши остатки)
                             try:
                                 if cell.value is not None and str(cell.value).strip():
                                     cell.alignment = Alignment(
@@ -521,7 +590,7 @@ def form16_generate_report(request):
                                 horizontal="left", vertical="center"
                             )
 
-            # 4. Устанавливаем ширину для всех колонок (включая "Отгрузка ФБО")
+            # 4. Устанавливаем ширину для всех колонок (включая новые)
             for col_idx in range(1, len(headers) + 1):
                 max_length = 0
                 column_letter = get_column_letter(col_idx)
@@ -543,11 +612,12 @@ def form16_generate_report(request):
                 adjusted_width = min(max_length + 2, 50)
                 ws.column_dimensions[column_letter].width = adjusted_width
 
-            # 5. Особенная ширина для колонки "Отгрузка ФБО" (немного шире для удобства ввода)
-            last_col_letter = get_column_letter(len(headers))
-            ws.column_dimensions[last_col_letter].width = (
-                18  # Немного шире для удобства
-            )
+            # 5. Особенная ширина для колонок "Отгрузка ФБО" и "Наши остатки"
+            if len(headers) >= 10:
+                last_col_letter = get_column_letter(len(headers))
+                prev_col_letter = get_column_letter(len(headers) - 1)
+                ws.column_dimensions[prev_col_letter].width = 18  # Отгрузка ФБО
+                ws.column_dimensions[last_col_letter].width = 15  # Наши остатки
 
             # Сохраняем в буфер
             buffer = io.BytesIO()
