@@ -184,45 +184,62 @@ def form16_generate_report(request):
             # Очищаем наши артикулы
             articles_clean = [str(article).strip() for article in articles]
 
-            # Получаем все уникальные артикулы из файла
-            all_articles_in_file = df["Артикул WB_clean"].unique().tolist()
+            # === ИЗМЕНЕНИЕ: Извлекаем первые 4 символа из артикулов для поиска ===
+            # Для артикулов из нашей базы (Форма 16)
+            articles_prefixes = []
+            for article in articles_clean:
+                if len(article) >= 4:
+                    articles_prefixes.append(article[:4])  # Берем первые 4 символа
+                else:
+                    articles_prefixes.append(
+                        article
+                    )  # Если короче 4 символов, берем весь
+
+            # Для артикулов из файла WB
+            df["Артикул WB_prefix"] = df["Артикул WB_clean"].apply(
+                lambda x: x[:4] if len(x) >= 4 else x
+            )
+
+            # Получаем все уникальные префиксы из файла
+            all_prefixes_in_file = df["Артикул WB_prefix"].unique().tolist()
 
             # Диагностика
             diagnostic_info = {
                 "file_name": file.name,
                 "sheet_name": target_sheet,
                 "total_rows_in_file": len(df),
-                "unique_articles_in_file": len(all_articles_in_file),
-                "our_articles_count": len(articles_clean),
+                "unique_articles_in_file": len(all_prefixes_in_file),
+                "our_articles_count": len(articles_prefixes),
                 "found_articles": [],
                 "not_found_articles": [],
-                "file_articles_sample": all_articles_in_file[:20],
+                "file_articles_sample": all_prefixes_in_file[:20],
             }
 
-            # Проверяем каждый артикул
-            for article in articles_clean:
-                if article in all_articles_in_file:
-                    diagnostic_info["found_articles"].append(article)
+            # Проверяем каждый префикс артикула
+            for i, article_prefix in enumerate(articles_prefixes):
+                original_article = articles_clean[i]
+                if article_prefix in all_prefixes_in_file:
+                    diagnostic_info["found_articles"].append(original_article)
                 else:
-                    diagnostic_info["not_found_articles"].append(article)
+                    diagnostic_info["not_found_articles"].append(original_article)
 
             # Если найдено мало артикулов - предупредить
             found_count = len(diagnostic_info["found_articles"])
 
             if found_count == 0:
-                error_msg = f"❌ Ни один артикул не найден в файле!\n\n"
-                error_msg += f"Искали: {articles_clean}\n\n"
-                error_msg += f"Артикулы в файле (первые 30):\n"
-                for i, art in enumerate(all_articles_in_file[:30], 1):
+                error_msg = (
+                    f"❌ Ни один артикул не найден в файле по первым 4 символам!\n\n"
+                )
+                error_msg += f"Искали префиксы: {articles_prefixes}\n\n"
+                error_msg += f"Префиксы в файле (первые 30):\n"
+                for i, art in enumerate(all_prefixes_in_file[:30], 1):
                     error_msg += f"{i}. {art}\n"
 
                 messages.error(request, error_msg)
                 return redirect("forms_app:form16_generate_report")
 
-            # Фильтруем найденные артикулы
-            df_filtered = df[
-                df["Артикул WB_clean"].isin(diagnostic_info["found_articles"])
-            ].copy()
+            # Фильтруем найденные артикулы по префиксам
+            df_filtered = df[df["Артикул WB_prefix"].isin(articles_prefixes)].copy()
 
             # Создаем порядок сортировки (по нашему списку артикулов)
             article_order = {article: i for i, article in enumerate(articles_clean)}
@@ -309,40 +326,49 @@ def form16_generate_report(request):
             # === ИСПРАВЛЕНИЕ 1: Добавляем пустую колонку "Отгрузка ФБО" ===
             df_result["Отгрузка ФБО"] = ""
 
-            # === НОВОЕ: Добавляем колонку "Наши остатки" из базы SQL (Форма 6) ===
+            # === НОВОЕ: Добавляем колонку "Наши остатки" из базы SQL (Форма 6) с поиском по первым 4 символам ===
             # Получаем все записи остатков пользователя из StockRecord
             from forms_app.models import StockRecord
 
             stock_records = StockRecord.objects.filter(user=request.user)
 
-            # Создаем словарь для быстрого поиска остатков по ключу "артикул_размер"
-            # Также создаем отдельный словарь для поиска по артикулу без учета размера (на случай если размер не совпадает)
-            stock_dict = {}
-            stock_by_article_only = {}
+            # Создаем словари для быстрого поиска остатков
+            # 1. По префиксу артикула и размеру
+            # 2. Только по префиксу артикула
+            stock_by_prefix_and_size = {}
+            stock_by_prefix_only = {}
 
             for record in stock_records:
-                # Ключ с учетом размера (приводим к строке для надежности)
-                article_key = (
+                # Полный артикул поставщика из нашей базы
+                full_article = (
                     str(record.article_full_name).strip()
                     if record.article_full_name
                     else ""
                 )
                 size_key = str(record.size).strip() if record.size else ""
 
-                # Составляем ключ для точного совпадения по артикулу и размеру
-                if article_key and size_key:
-                    composite_key = f"{article_key}_{size_key}"
-                    stock_dict[composite_key] = record.quantity
+                # Извлекаем префикс (первые 4 символа) из артикула поставщика
+                article_prefix = (
+                    full_article[:4] if len(full_article) >= 4 else full_article
+                )
 
-                # Также сохраняем максимальное количество по артикулу (на случай если размер не совпадает)
-                if article_key:
-                    if article_key not in stock_by_article_only:
-                        stock_by_article_only[article_key] = 0
-                    # Суммируем все остатки по артикулу (на случай если несколько размеров)
-                    stock_by_article_only[article_key] += record.quantity or 0
+                # Составляем ключ для точного совпадения по префиксу и размеру
+                if article_prefix and size_key:
+                    composite_key = f"{article_prefix}_{size_key}"
+                    if composite_key not in stock_by_prefix_and_size:
+                        stock_by_prefix_and_size[composite_key] = 0
+                    stock_by_prefix_and_size[composite_key] += record.quantity or 0
 
-            # Функция для получения остатков
-            def get_our_stock(row):
+                # Также сохраняем сумму по префиксу (на случай если размер не совпадает)
+                if article_prefix:
+                    if article_prefix not in stock_by_prefix_only:
+                        stock_by_prefix_only[article_prefix] = 0
+                    # Суммируем все остатки по префиксу
+                    stock_by_prefix_only[article_prefix] += record.quantity or 0
+
+            # Функция для получения остатков по префиксу
+            def get_our_stock_by_prefix(row):
+                # Получаем артикул продавца из строки (из файла WB)
                 article_vendor = (
                     str(row.get("Артикул продавца", "")).strip()
                     if "Артикул продавца" in row
@@ -353,15 +379,19 @@ def form16_generate_report(request):
                 if not article_vendor:
                     return 0
 
-                # Сначала ищем точное совпадение по артикулу и размеру
-                composite_key = f"{article_vendor}_{size}"
-                if composite_key in stock_dict:
-                    return stock_dict[composite_key]
+                # Извлекаем префикс (первые 4 символа) из артикула продавца из файла WB
+                article_prefix = (
+                    article_vendor[:4] if len(article_vendor) >= 4 else article_vendor
+                )
 
-                # Если точного совпадения нет, ищем по артикулу без учета размера
-                # и возвращаем общее количество по этому артикулу
-                if article_vendor in stock_by_article_only:
-                    return stock_by_article_only[article_vendor]
+                # Сначала ищем точное совпадение по префиксу и размеру
+                composite_key = f"{article_prefix}_{size}"
+                if composite_key in stock_by_prefix_and_size:
+                    return stock_by_prefix_and_size[composite_key]
+
+                # Если точного совпадения нет, ищем по префиксу без учета размера
+                if article_prefix in stock_by_prefix_only:
+                    return stock_by_prefix_only[article_prefix]
 
                 # Если ничего не найдено
                 return 0
@@ -377,7 +407,7 @@ def form16_generate_report(request):
                 df_result["Наши остатки"] = 0
 
             # Заполняем значения остатков
-            df_result["Наши остатки"] = df_result.apply(get_our_stock, axis=1)
+            df_result["Наши остатки"] = df_result.apply(get_our_stock_by_prefix, axis=1)
 
             # Переупорядочиваем колонки: новая колонка в конце
             columns_order = [
