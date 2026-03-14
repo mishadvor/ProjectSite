@@ -93,6 +93,22 @@
         </form>
       </div>
     </div>
+    <!-- ВРЕМЕННАЯ ОТЛАДКА -->
+    <div style="background: yellow; padding: 10px;">
+      <strong>Отладка:</strong>
+      <p>Всего записей в queryset: {{ records.count }}</p>
+      <p>Первые 5 ID: 
+        {% for r in records|slice:":5" %}
+          {{ r.id }},
+        {% endfor %}
+      </p>
+      <p>Последние 5 ID:
+        {% for r in records|slice:"-5:" %}
+          {{ r.id }},
+        {% endfor %}
+      </p>
+    </div>
+
 
     <!-- Таблица записей -->
     {% if records %}
@@ -100,6 +116,7 @@
       <table class="table table-hover table-bordered">
         <thead class="table-dark">
           <tr>
+            <th>#</th>
             <th>WB артикул</th>
             <th>Артикул продавца</th>
             <th>Себестоимость, ₽</th>
@@ -109,6 +126,7 @@
         <tbody>
           {% for r in records %}
             <tr>
+              <td>{{ forloop.counter }}</td>
               <td><code>{{ r.wb_article }}</code></td>
               <td>{{ r.seller_article|default:"—" }}</td>
               <td>{{ r.cost }}</td>
