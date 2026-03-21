@@ -505,6 +505,28 @@ def form18_list(request):
                     ).round(1),
                 )
 
+                # Рентабельность Общих продаж
+                def calculate_rentability(row):
+                    payment = row["Чистое Перечисление без Логистики"]
+                    profit = row["Прибыль"]
+
+                    if payment == 0:
+                        return profit
+
+                    # Рассчитываем рентабельность
+                    result = profit / payment * 100
+
+                    # Если оба числа отрицательные, результат будет положительным,
+                    # но это неправильно, так как это убыток
+                    if profit < 0:
+                        result = -abs(result)
+
+                    return round(result, 1)
+
+                third_merged["% Рентабельности(Приб/ЧП_без_Л)"] = third_merged.apply(
+                    calculate_rentability, axis=1
+                ).fillna(0)
+
                 # Порядок колонок
                 desired_columns_order = [
                     "Код номенклатуры",
@@ -526,6 +548,7 @@ def form18_list(request):
                     "СПП Средняя",
                     "% СПП",
                     "Логистика/1 Продажа",
+                    "% Рентабельности(Приб/ЧП_без_Л)",
                     "План на неделю",
                     "План по доходу",
                     "Сумма Продаж Наша Цена",
