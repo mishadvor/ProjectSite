@@ -46,7 +46,7 @@ def form16_edit_table(request):
     if request.method == "POST":
         try:
             with transaction.atomic():
-                # Обрабатываем все 15 позиций
+                # Обрабатываем все 50 позиций
                 for position in range(1, 51):
                     article_wb = request.POST.get(f"article_wb_{position}", "").strip()
                     our_article = request.POST.get(
@@ -184,62 +184,34 @@ def form16_generate_report(request):
             # Очищаем наши артикулы
             articles_clean = [str(article).strip() for article in articles]
 
-            # === ИЗМЕНЕНИЕ: Извлекаем первые 4 символа из артикулов для поиска ===
-            # Для артикулов из нашей базы (Форма 16)
-            articles_prefixes = []
+            # === Поиск артикулов в файле по ПОЛНОМУ совпадению Артикул WB ===
+            # Получаем все уникальные артикулы из файла
+            all_articles_in_file = df["Артикул WB_clean"].unique().tolist()
+
+            # Проверяем каждый полный артикул
+            found_articles = []
+            not_found_articles = []
+
             for article in articles_clean:
-                if len(article) >= 4:
-                    articles_prefixes.append(article[:4])  # Берем первые 4 символа
+                if article in all_articles_in_file:
+                    found_articles.append(article)
                 else:
-                    articles_prefixes.append(
-                        article
-                    )  # Если короче 4 символов, берем весь
+                    not_found_articles.append(article)
 
-            # Для артикулов из файла WB
-            df["Артикул WB_prefix"] = df["Артикул WB_clean"].apply(
-                lambda x: x[:4] if len(x) >= 4 else x
-            )
-
-            # Получаем все уникальные префиксы из файла
-            all_prefixes_in_file = df["Артикул WB_prefix"].unique().tolist()
-
-            # Диагностика
-            diagnostic_info = {
-                "file_name": file.name,
-                "sheet_name": target_sheet,
-                "total_rows_in_file": len(df),
-                "unique_articles_in_file": len(all_prefixes_in_file),
-                "our_articles_count": len(articles_prefixes),
-                "found_articles": [],
-                "not_found_articles": [],
-                "file_articles_sample": all_prefixes_in_file[:20],
-            }
-
-            # Проверяем каждый префикс артикула
-            for i, article_prefix in enumerate(articles_prefixes):
-                original_article = articles_clean[i]
-                if article_prefix in all_prefixes_in_file:
-                    diagnostic_info["found_articles"].append(original_article)
-                else:
-                    diagnostic_info["not_found_articles"].append(original_article)
-
-            # Если найдено мало артикулов - предупредить
-            found_count = len(diagnostic_info["found_articles"])
+            found_count = len(found_articles)
 
             if found_count == 0:
-                error_msg = (
-                    f"❌ Ни один артикул не найден в файле по первым 4 символам!\n\n"
-                )
-                error_msg += f"Искали префиксы: {articles_prefixes}\n\n"
-                error_msg += f"Префиксы в файле (первые 30):\n"
-                for i, art in enumerate(all_prefixes_in_file[:30], 1):
+                error_msg = f"❌ Ни один артикул не найден в файле!\n\n"
+                error_msg += f"Искали артикулы: {articles_clean}\n\n"
+                error_msg += f"Артикулы в файле (первые 30):\n"
+                for i, art in enumerate(all_articles_in_file[:30], 1):
                     error_msg += f"{i}. {art}\n"
 
                 messages.error(request, error_msg)
                 return redirect("forms_app:form16_generate_report")
 
-            # Фильтруем найденные артикулы по префиксам
-            df_filtered = df[df["Артикул WB_prefix"].isin(articles_prefixes)].copy()
+            # Фильтруем найденные артикулы по полному совпадению
+            df_filtered = df[df["Артикул WB_clean"].isin(articles_clean)].copy()
 
             # Создаем порядок сортировки (по нашему списку артикулов)
             article_order = {article: i for i, article in enumerate(articles_clean)}
@@ -289,57 +261,37 @@ def form16_generate_report(request):
 
             df_result = df_sorted[available_columns].copy()
 
-            # Добавляем комментарии из нашей базы данных
-            df_result = df_sorted[available_columns].copy()
-
             # Удаляем дубликаты
             df_result = df_result.drop_duplicates()
 
-            # === ДОБАВЛЯЕМ КОЛОНКУ С КОММЕНТАРИЯМИ ===
-            # Создаем словарь комментариев по артикулам из нашей базы
+            # === Комментарии по ПОЛНОМУ Артикул WB ===
+            # Создаем словарь комментариев по артикулам WB из нашей базы
             comments_dict = {}
             for article in Form16Article.objects.filter(
                 user=request.user, is_active=True
             ):
-                if article.comments:  # Только если есть комментарии
+                if article.comments:
                     comments_dict[str(article.article_wb).strip()] = article.comments
 
-            # Добавляем колонку "Комментарии" после "Доступность"
-            # Находим индекс колонки "Доступность"
-            if "Доступность" in df_result.columns:
-                availability_idx = df_result.columns.get_loc("Доступность")
-                # Вставляем колонку "Комментарии" после "Доступность"
-                df_result.insert(availability_idx + 1, "Комментарии", "")
-            else:
-                # Если нет колонки "Доступность", добавляем в конец
-                df_result["Комментарии"] = ""
-
-            # Заполняем комментарии из нашей базы
+            # Функция для получения комментариев
             def get_comments(row):
                 article_wb = (
                     str(row["Артикул WB"]).strip() if "Артикул WB" in row else ""
                 )
                 return comments_dict.get(article_wb, "")
 
-            df_result["Комментарии"] = df_result.apply(get_comments, axis=1)
-
-            # === ИСПРАВЛЕНИЕ 1: Добавляем пустую колонку "Отгрузка ФБО" ===
-            df_result["Отгрузка ФБО"] = ""
-
-            # === НОВОЕ: Добавляем колонку "Наши остатки" из базы SQL (Форма 6) с поиском по первым 4 символам ===
+            # === Остатки по первым 4 символам Артикул продавца ===
             # Получаем все записи остатков пользователя из StockRecord
             from forms_app.models import StockRecord
 
             stock_records = StockRecord.objects.filter(user=request.user)
 
-            # Создаем словари для быстрого поиска остатков
-            # 1. По префиксу артикула и размеру
-            # 2. Только по префиксу артикула
+            # Создаем словари для быстрого поиска остатков по первым 4 символам
             stock_by_prefix_and_size = {}
             stock_by_prefix_only = {}
 
             for record in stock_records:
-                # Полный артикул поставщика из нашей базы
+                # Полный артикул продавца из нашей базы (article_full_name)
                 full_article = (
                     str(record.article_full_name).strip()
                     if record.article_full_name
@@ -347,7 +299,7 @@ def form16_generate_report(request):
                 )
                 size_key = str(record.size).strip() if record.size else ""
 
-                # Извлекаем префикс (первые 4 символа) из артикула поставщика
+                # Извлекаем префикс (первые 4 символа) из артикула продавца
                 article_prefix = (
                     full_article[:4] if len(full_article) >= 4 else full_article
                 )
@@ -363,10 +315,9 @@ def form16_generate_report(request):
                 if article_prefix:
                     if article_prefix not in stock_by_prefix_only:
                         stock_by_prefix_only[article_prefix] = 0
-                    # Суммируем все остатки по префиксу
                     stock_by_prefix_only[article_prefix] += record.quantity or 0
 
-            # Функция для получения остатков по префиксу
+            # Функция для получения остатков по префиксу (первые 4 символа Артикул продавца)
             def get_our_stock_by_prefix(row):
                 # Получаем артикул продавца из строки (из файла WB)
                 article_vendor = (
@@ -396,20 +347,30 @@ def form16_generate_report(request):
                 # Если ничего не найдено
                 return 0
 
+            # Добавляем колонку "Комментарии" после "Доступность"
+            if "Доступность" in df_result.columns:
+                availability_idx = df_result.columns.get_loc("Доступность")
+                df_result.insert(availability_idx + 1, "Комментарии", "")
+            else:
+                df_result["Комментарии"] = ""
+
+            # Заполняем комментарии
+            df_result["Комментарии"] = df_result.apply(get_comments, axis=1)
+
+            # Добавляем пустую колонку "Отгрузка ФБО"
+            df_result["Отгрузка ФБО"] = ""
+
             # Добавляем колонку "Наши остатки" после "Отгрузка ФБО"
-            # Сначала определяем текущий порядок колонок
             if "Отгрузка ФБО" in df_result.columns:
                 fbo_idx = df_result.columns.get_loc("Отгрузка ФБО")
-                # Вставляем колонку "Наши остатки" после "Отгрузка ФБО"
                 df_result.insert(fbo_idx + 1, "Наши остатки", 0)
             else:
-                # Если нет колонки "Отгрузка ФБО", добавляем в конец
                 df_result["Наши остатки"] = 0
 
             # Заполняем значения остатков
             df_result["Наши остатки"] = df_result.apply(get_our_stock_by_prefix, axis=1)
 
-            # Переупорядочиваем колонки: новая колонка в конце
+            # Переупорядочиваем колонки
             columns_order = [
                 "Артикул продавца",
                 "Артикул WB",
@@ -433,44 +394,12 @@ def form16_generate_report(request):
             ws = wb.active
             ws.title = f"ФОРМИРОВАНИЕ_ФБО"
 
-            # === РАСЧЕТ СТРОК ДЛЯ ФОРМАТИРОВАНИЯ ===
-
-            # 1. Заголовок отчета (1 строка)
-            ws.append(["ОТЧЕТ 15 ЛОКО ПОРАЗМЕРНЫЙ ПО ОСТАТКАМ (Форма 16)"])
-            title_row = 1
-
-            # 2. Информация (2 строки)
-            ws.append(
-                [f"Дата формирования: {pd.Timestamp.now().strftime('%d.%m.%Y %H:%M')}"]
-            )
-            ws.append([f"Пользователь: {request.user.username}"])
-            ws.append([])  # Пустая строка
-
-            # 3. Статистика
-            ws.append(["СТАТИСТИКА:"])
-            ws.append([f"Файл: {file.name}"])
-            ws.append([f"Страница: {target_sheet}"])
-            ws.append([f"Искали артикулов: {diagnostic_info['our_articles_count']}"])
-            ws.append([f"Найдено артикулов: {found_count}"])
-            ws.append([f"Всего строк: {len(df_result)}"])
-            ws.append([])  # Пустая строка
-
-            # 4. Предупреждения о ненайденных артикулах
-            if diagnostic_info["not_found_articles"]:
-                ws.append(["ВНИМАНИЕ: Следующие артикулы не найдены в файле:"])
-                for art in diagnostic_info["not_found_articles"]:
-                    ws.append([f"• {art}"])
-                ws.append([])  # Пустая строка
-
-            # 5. Еще одна пустая строка перед таблицей
-            ws.append([])
-
-            # 6. ЗАГОЛОВКИ ТАБЛИЦЫ - запоминаем номер этой строки!
+            # === ЗАГОЛОВКИ ТАБЛИЦЫ ===
             headers = list(df_result.columns)
             ws.append(headers)
-            HEADER_ROW = ws.max_row  # Это строка с заголовками таблицы!
+            HEADER_ROW = ws.max_row  # Запоминаем строку с заголовками
 
-            # 7. ДАННЫЕ ТАБЛИЦЫ
+            # === ДАННЫЕ ТАБЛИЦЫ ===
             for _, row in df_result.iterrows():
                 ws.append(row.tolist())
 
@@ -479,22 +408,7 @@ def form16_generate_report(request):
 
             # === ФОРМАТИРОВАНИЕ ===
 
-            # 1. Заголовок отчета (строка 1)
-            ws.merge_cells(
-                start_row=1, start_column=1, end_row=1, end_column=len(headers)
-            )
-            title_fill = PatternFill(
-                start_color="366092", end_color="366092", fill_type="solid"
-            )
-            title_font = Font(color="FFFFFF", bold=True, size=14)
-
-            ws.cell(row=title_row, column=1).fill = title_fill
-            ws.cell(row=title_row, column=1).font = title_font
-            ws.cell(row=title_row, column=1).alignment = Alignment(
-                horizontal="center", vertical="center"
-            )
-
-            # 2. Заголовки таблицы - ФОРМАТИРУЕМ ИМЕННО HEADER_ROW
+            # 1. Заголовки таблицы
             header_fill = PatternFill(
                 start_color="4F81BD", end_color="4F81BD", fill_type="solid"
             )
@@ -515,7 +429,7 @@ def form16_generate_report(request):
                     horizontal="center", vertical="center", wrap_text=True
                 )
 
-            # 3. Данные таблицы (цветовое кодирование по артикулам)
+            # 2. Данные таблицы (цветовое кодирование по артикулам)
             colors = [
                 PatternFill(
                     start_color="DAE8FC", end_color="DAE8FC", fill_type="solid"
@@ -585,10 +499,8 @@ def form16_generate_report(request):
 
                     fill_color = article_colors.get(current_article, colors[0])
 
-                    # Форматируем всю строку данных ВКЛЮЧАЯ колонку "Отгрузка ФБО" и "Наши остатки"
-                    for col in range(
-                        1, len(headers) + 1
-                    ):  # Это ВКЛЮЧАЕТ последние колонки
+                    # Форматируем всю строку данных
+                    for col in range(1, len(headers) + 1):
                         cell = ws.cell(row=row, column=col)
                         cell.fill = fill_color
                         cell.border = Border(
@@ -605,7 +517,7 @@ def form16_generate_report(request):
                             8,
                             9,
                             11,
-                        ]:  # Индексы числовых колонок (Заказали, Выкупили, Процент, Остатки ВБ, Наши остатки)
+                        ]:  # Индексы числовых колонок
                             try:
                                 if cell.value is not None and str(cell.value).strip():
                                     cell.alignment = Alignment(
@@ -620,7 +532,7 @@ def form16_generate_report(request):
                                 horizontal="left", vertical="center"
                             )
 
-            # 4. Устанавливаем ширину для всех колонок (включая новые)
+            # 3. Устанавливаем ширину для всех колонок
             for col_idx in range(1, len(headers) + 1):
                 max_length = 0
                 column_letter = get_column_letter(col_idx)
@@ -642,7 +554,7 @@ def form16_generate_report(request):
                 adjusted_width = min(max_length + 2, 50)
                 ws.column_dimensions[column_letter].width = adjusted_width
 
-            # 5. Особенная ширина для колонок "Отгрузка ФБО" и "Наши остатки"
+            # 4. Особенная ширина для колонок "Отгрузка ФБО" и "Наши остатки"
             if len(headers) >= 10:
                 last_col_letter = get_column_letter(len(headers))
                 prev_col_letter = get_column_letter(len(headers) - 1)
