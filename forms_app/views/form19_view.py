@@ -1319,7 +1319,7 @@ def form19_view(request):
                 df = pd.read_csv(uploaded_file, encoding="utf-8")
             else:
                 try:
-                    df = pd.read_excel(uploaded_file, sheet_name="Заказы", header=1)
+                    df = pd.read_excel(uploaded_file, sheet_name="Все заказы", header=1)
                 except:
                     df = pd.read_excel(uploaded_file)
 
