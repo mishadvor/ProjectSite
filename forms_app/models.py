@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
+from django.conf import settings
 
 
 class UserReport(models.Model):
@@ -365,3 +366,137 @@ class ArticleCost(models.Model):
 
     def __str__(self):
         return f"{self.wb_article} → {self.cost} руб"
+
+
+# Добавьте в forms_app/models.py
+
+
+class Form20Data(models.Model):
+    """Ежедневные данные (аналог Формы 4, но ежедневно)"""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, verbose_name="Пользователь"
+    )
+    code = models.CharField(
+        max_length=50, db_index=True, verbose_name="Код номенклатуры"
+    )
+    article = models.CharField(
+        max_length=200, blank=True, null=True, verbose_name="Артикул поставщика"
+    )
+    date = models.DateField(db_index=True, verbose_name="Дата отчета")
+
+    # Финансовые показатели
+    clear_sales_our = models.DecimalField(
+        max_digits=15,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name="Чистые продажи Наши",
+    )
+    clear_sales_vb = models.DecimalField(
+        max_digits=15,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name="Чистая реализация ВБ",
+    )
+    clear_transfer = models.DecimalField(
+        max_digits=15,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name="Чистое Перечисление",
+    )
+    clear_transfer_without_log = models.DecimalField(
+        max_digits=15,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name="Чистое Перечисление без Логистики",
+    )
+
+    # Средние цены
+    our_price_mid = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name="Наша цена Средняя",
+    )
+    vb_selling_mid = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name="Реализация ВБ Средняя",
+    )
+    transfer_mid = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name="К перечислению Среднее",
+    )
+    transfer_without_log_mid = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name="К Перечислению без Логистики Средняя",
+    )
+
+    # Продажи и прибыль
+    qentity_sale = models.IntegerField(
+        null=True, blank=True, verbose_name="Чистые продажи, шт"
+    )
+    sebes_sale = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name="Себес Продаж (600р)",
+    )
+    profit_1 = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name="Прибыль на 1 Юбку",
+    )
+    percent_sell = models.DecimalField(
+        max_digits=5, decimal_places=2, null=True, blank=True, verbose_name="%Выкупа"
+    )
+    profit = models.DecimalField(
+        max_digits=15, decimal_places=2, null=True, blank=True, verbose_name="Прибыль"
+    )
+    orders = models.IntegerField(null=True, blank=True, verbose_name="Заказы")
+
+    # Проценты
+    percent_log_price = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name="% Лог/Наша Цена",
+    )
+    spp_percent = models.DecimalField(
+        max_digits=5, decimal_places=2, null=True, blank=True, verbose_name="% СПП"
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата создания")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Дата обновления")
+
+    class Meta:
+        verbose_name = "Форма 20 (Ежедневные данные)"
+        verbose_name_plural = "Форма 20 (Ежедневные данные)"
+        unique_together = [
+            ["user", "code", "date"]
+        ]  # Уникальность: пользователь + код + дата
+        indexes = [
+            models.Index(fields=["user", "code", "date"]),
+            models.Index(fields=["date"]),
+        ]
+        ordering = ["-date", "code"]
+
+    def __str__(self):
+        return f"{self.code} - {self.date} ({self.user.username})"

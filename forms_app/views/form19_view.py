@@ -1396,7 +1396,7 @@ def form19_view(request):
             # Создаем имя файла для скачивания
             original_name = uploaded_file.name.rsplit(".", 1)[0]
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"анализ_трафика_результаты_{original_name}_{timestamp}.xlsx"
+            filename = f"Form19_анализ_трафика_{original_name}_{timestamp}.xlsx"
 
             # Создаем HttpResponse с правильными заголовками
             response = HttpResponse(

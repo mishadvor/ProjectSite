@@ -236,3 +236,56 @@ class ArticleCostForm(forms.ModelForm):
                 attrs={"class": "form-control", "step": "0.01", "min": "0"}
             ),
         }
+
+
+# Добавьте в forms_app/forms.py
+
+from .models import Form20Data
+
+
+class Form20DataForm(forms.ModelForm):
+    """Форма для редактирования записей Формы 20"""
+
+    class Meta:
+        model = Form20Data
+        fields = "__all__"
+        exclude = ["user", "created_at", "updated_at"]
+        widgets = {
+            "date": forms.DateInput(attrs={"type": "date"}),
+            "code": forms.TextInput(attrs={"class": "form-control"}),
+            "article": forms.TextInput(attrs={"class": "form-control"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Добавляем классы для всех полей
+        for field_name, field in self.fields.items():
+            if field_name not in ["date", "code", "article"]:
+                field.widget.attrs.update({"class": "form-control", "step": "any"})
+
+    class Meta:
+        verbose_name = "Форма 20: Ежедневные данные"
+        verbose_name_plural = "Форма 20: Ежедневные данные"
+        ordering = ["-date", "code"]
+        # 🔥 Ключевое: одна запись = один пользователь + один код + одна дата
+        unique_together = ["user", "code", "date"]
+
+
+# forms_app/forms/form21_forms.py
+from django import forms
+
+
+class Form21UploadForm(forms.Form):
+    excel_file = forms.FileField(
+        label="Excel файл с отчётом Озон",
+        help_text="Загрузите файл формата .xlsx или .xls",
+        widget=forms.FileInput(attrs={"class": "form-control", "accept": ".xlsx,.xls"}),
+    )
+
+    period = forms.CharField(
+        label="Период (опционально)",
+        required=False,
+        widget=forms.TextInput(
+            attrs={"class": "form-control", "placeholder": "например: Январь 2026"}
+        ),
+    )

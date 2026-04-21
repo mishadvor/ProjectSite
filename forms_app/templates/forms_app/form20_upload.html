@@ -1,0 +1,32 @@
+{% extends "forms_app/base_form.html" %}
+{% block title %}Загрузка ежедневных данных (Форма 20){% endblock %}
+
+{% block content %}
+<h2>📊 Загрузка ежедневных данных (Форма 20)</h2>
+<p style="color: #666; margin-bottom: 20px;">
+    Загрузите Excel-файлы (.xlsx) с ежедневными данными. 
+    Формат файлов должен содержать колонку "Код номенклатуры".
+</p>
+
+<form method="post" enctype="multipart/form-data" style="margin-bottom: 20px;">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" class="btn" style="background: #ff9800;">📤 Загрузить файлы</button>
+</form>
+
+<a href="{% url 'forms_app:form20_list' %}" class="btn">← Назад к списку</a>
+
+{% if messages %}
+    {% for message in messages %}
+        <div class="alert {% if message.tags == 'error' %}alert-error{% else %}alert-{{ message.tags }}{% endif %}" style="margin-top: 20px;">
+            {{ message }}
+        </div>
+    {% endfor %}
+{% endif %}
+
+<style>
+    .alert-success { background: #d4edda; color: #155724; padding: 10px; border-radius: 5px; margin-top: 10px; }
+    .alert-warning { background: #fff3cd; color: #856404; padding: 10px; border-radius: 5px; margin-top: 10px; }
+    .alert-error { background: #f8d7da; color: #721c24; padding: 10px; border-radius: 5px; margin-top: 10px; }
+</style>
+{% endblock %}

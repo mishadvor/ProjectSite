@@ -1,0 +1,143 @@
+{% extends 'base.html' %}
+{% load static humanize %}
+
+{% block title %}{{ page_title }} — Генератор отчётов{% endblock %}
+
+{% block extra_head %}
+<style>
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 15px;
+    margin-bottom: 25px;
+  }
+  .metric-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.08);
+    text-align: center;
+    transition: transform 0.2s, box-shadow 0.2s;
+    border-left: 5px solid #007bff;
+  }
+  .metric-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
+  .metric-card.green  { border-left-color: #28a745; }
+  .metric-card.purple { border-left-color: #6f42c1; }
+  .metric-card.orange { border-left-color: #fd7e14; }
+  .metric-card.teal   { border-left-color: #20c997; }
+
+  .metric-icon { font-size: 2rem; margin-bottom: 8px; opacity: 0.85; }
+  .metric-value { font-size: 1.9rem; font-weight: 700; color: #212529; margin: 5px 0; line-height: 1.2; }
+  .metric-label { color: #6c757d; font-size: 0.95rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  .dashboard-section { background: white; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 3px 12px rgba(0,0,0,0.08); }
+  .section-title { font-size: 1.15rem; font-weight: 600; margin: 0 0 15px 0; color: #333; display: flex; align-items: center; gap: 8px; padding-bottom: 10px; border-bottom: 1px solid #eee; }
+  
+  .charts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; }
+  .chart-box { background: #f8f9fa; border-radius: 10px; padding: 15px; text-align: center; border: 1px solid #e9ecef; }
+  .chart-box img { max-width: 100%; height: auto; border-radius: 8px; }
+  .chart-placeholder { color: #6c757d; padding: 30px 20px; text-align: center; }
+
+  .quick-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+  .quick-btn {
+    padding: 10px 18px; background: #fff; border: 1px solid #dee2e6; border-radius: 8px;
+    color: #495057; text-decoration: none; font-size: 0.9rem; font-weight: 500;
+    transition: all 0.2s; display: flex; align-items: center; gap: 8px;
+  }
+  .quick-btn:hover { background: #007bff; color: white; border-color: #007bff; transform: translateY(-2px); }
+
+  @media (max-width: 768px) { .metrics-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 480px) { .metrics-grid { grid-template-columns: 1fr; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-3 px-md-4 py-3">
+  
+  <!-- 📌 Заголовок -->
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <h2 class="mb-0 fw-bold">{{ page_title }} <small class="text-muted fs-6">{{ date_label }}</small></h2>
+    <a href="{% url 'forms_app:dashboard' %}" class="btn btn-sm btn-outline-primary">
+      <i class="fas fa-sync-alt"></i> Обновить
+    </a>
+  </div>
+
+  <!-- 🔑 МЕТРИКИ (Форма 14) -->
+  <div class="metrics-grid">
+    <div class="metric-card">
+      <div class="metric-icon" style="color: #007bff;"><i class="fas fa-shopping-cart"></i></div>
+      <div class="metric-value">{{ metrics.orders|default:0|intcomma }}</div>
+      <div class="metric-label">Заказы</div>
+    </div>
+
+    <div class="metric-card orange">
+      <div class="metric-icon" style="color: #fd7e14;"><i class="fas fa-ruble-sign"></i></div>
+      <div class="metric-value">{{ metrics.order_amount|default:0|intcomma }} ₽</div>
+      <div class="metric-label">Сумма заказов</div>
+    </div>
+
+    <div class="metric-card green">
+      <div class="metric-icon" style="color: #28a745;"><i class="fas fa-check-circle"></i></div>
+      <div class="metric-value">{{ metrics.sold|default:0|intcomma }}</div>
+      <div class="metric-label">Выкуплено</div>
+    </div>
+
+    <div class="metric-card purple">
+      <div class="metric-icon" style="color: #6f42c1;"><i class="fas fa-hand-holding-usd"></i></div>
+      <div class="metric-value">{{ metrics.transfer|default:0|intcomma }} ₽</div>
+      <div class="metric-label">К перечислению</div>
+    </div>
+
+    <div class="metric-card teal">
+      <div class="metric-icon" style="color: #20c997;"><i class="fas fa-boxes"></i></div>
+      <div class="metric-value">{{ metrics.stock|default:0|intcomma }}</div>
+      <div class="metric-label">Остаток</div>
+    </div>
+  </div>
+
+  <!-- 📊 ГРАФИКИ -->
+  <div class="dashboard-section">
+    <div class="section-title">
+      <i class="fas fa-chart-area"></i> Динамика за последние 7 дней
+    </div>
+    <div class="charts-grid">
+      {% if charts.trend_7d %}
+      <div class="chart-box">
+        <img src="data:image/png;base64,{{ charts.trend_7d }}" alt="Заказы и Выкупы">
+        <div class="d-flex justify-content-center align-items-center gap-3 mt-3 text-muted" style="font-size: 0.85rem;">
+        
+        </div>
+      </div>
+      {% else %}
+      <div class="chart-placeholder">
+        <i class="fas fa-chart-line fa-2x mb-2"></i><br>
+        Нет данных за 7 дней.<br>
+        <small><a href="{% url 'forms_app:form14_upload' %}">Загрузить отчёт в Форму 14</a></small>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- ⚡ БЫСТРЫЕ ДЕЙСТВИЯ -->
+  <div class="dashboard-section">
+    <div class="section-title">
+      <i class="fas fa-bolt"></i> Быстрый доступ к Форме 14
+    </div>
+    <div class="quick-actions">
+      <a href="{% url 'forms_app:form14_list' %}" class="quick-btn">
+        <i class="fas fa-list"></i> Таблица данных
+      </a>
+      <a href="{% url 'forms_app:form14_upload' %}" class="quick-btn">
+        <i class="fas fa-upload"></i> Загрузить файл
+      </a>
+      <a href="{% url 'forms_app:form14_chart' chart_type='transfer' %}" class="quick-btn">
+        <i class="fas fa-chart-bar"></i> График перечислений
+      </a>
+      <a href="{% url 'forms_app:form14_chart' chart_type='orders' %}" class="quick-btn">
+        <i class="fas fa-chart-line"></i> График заказов
+      </a>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

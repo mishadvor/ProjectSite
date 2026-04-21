@@ -1,0 +1,80 @@
+{% extends "forms_app/base_form.html" %}
+{% block title %}Общий график {{ form_name }}{% endblock %}
+
+{% block content %}
+<h2>📈 {{ form_name }} - Общий график по всем артикулам</h2>
+<h3 style="color: #555;">Показатель: {{ label }}</h3>
+
+<form method="GET" style="margin-bottom: 20px; padding: 15px; background: #f1f3f5; border-radius: 8px;">
+    <label for="start_date"><strong>Начало:</strong> <input type="date" name="start_date" value="{{ start_date }}"></label>
+    <label for="end_date" style="margin-left: 10px;"><strong>Конец:</strong> <input type="date" name="end_date" value="{{ end_date }}"></label>
+    <button type="submit" style="margin-left: 10px; padding: 5px 15px;">Применить</button>
+    <a href="{% url 'forms_app:form20_aggregated_chart' %}" style="margin-left: 10px;">Сбросить</a>
+</form>
+
+<div style="margin-bottom: 15px;">
+    <a href="{% url 'forms_app:form20_aggregated_chart' %}" class="btn">📈 Прибыль</a>
+    <a href="{% url 'forms_app:form20_aggregated_chart' %}?chart_type=sales" class="btn">💰 Продажи</a>
+    <a href="{% url 'forms_app:form20_aggregated_chart' %}?chart_type=orders" class="btn">📦 Заказы</a>
+    <a href="{% url 'forms_app:form20_aggregated_chart' %}?chart_type=qentity_sale" class="btn">📊 Продажи, шт</a>
+</div>
+
+{% if dates %}
+<div style="height: 450px; position: relative;">
+    <canvas id="chartCanvas"></canvas>
+</div>
+
+<div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin-top: 20px;">
+    <p><strong>📊 Статистика:</strong></p>
+    <p>Всего записей: {{ dates|length }} дней</p>
+    <p>Общая сумма: {{ total_sum|floatformat:2 }} ₽</p>
+    <p>Среднее в день: {{ avg_per_day|floatformat:2 }} ₽</p>
+    <p>Медианное значение: {{ median_value|floatformat:2 }}</p>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const ctx = document.getElementById('chartCanvas').getContext('2d');
+new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: {{ dates|safe }},
+        datasets: [{
+            label: '{{ label }}',
+            data: {{ data|safe }},
+            borderColor: '{{ color }}',
+            backgroundColor: '{{ color }}'.replace(')', ', 0.1)'),
+            borderWidth: 2,
+            fill: true,
+            tension: 0.1
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: { legend: { position: 'top' } },
+        scales: { y: { beginAtZero: false, title: { display: true, text: '{{ y_title }}' } } }
+    }
+});
+</script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const today = new Date().toISOString().split("T")[0];
+    const prev30 = new Date();
+    prev30.setDate(prev30.getDate() - 30);
+    const start = document.querySelector('input[name="start_date"]');
+    const end = document.querySelector('input[name="end_date"]');
+    if (start && !start.value) start.value = prev30.toISOString().split("T")[0];
+    if (end && !end.value) end.value = today;
+});
+</script>
+
+<div style="margin-top: 30px">
+    <a href="{% url 'forms_app:form20_list' %}" class="btn">← Назад к списку</a>
+</div>
+{% else %}
+<p>Нет данных для отображения. Загрузите файлы через форму загрузки.</p>
+<a href="{% url 'forms_app:form20_upload' %}" class="btn">📤 Загрузить данные</a>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,218 @@
+{% extends "forms_app/base_form.html" %}
+{% block title %}{{ form_name }}: {{ code }}{% endblock %}
+
+{% block content %}
+<h2>
+  📅 {{ form_name }} — {{ code }} 
+  <small style="color:#666">| {{ article|default:"—" }}</small>
+</h2>
+
+<!-- 🔥 Кнопки навигации - ИСПРАВЛЕННЫЕ URL -->
+<div style="margin: 20px 0; display: flex; gap: 10px; flex-wrap: wrap;">
+  
+  <!-- Прибыль (по умолчанию) - БЕЗ chart_type → form20_chart -->
+  <a href="{% url 'forms_app:form20_chart' code=code %}" 
+     class="btn {% if not chart_type or chart_type == 'profit' %}active{% endif %}">
+    📈 Прибыль
+  </a>
+  
+  <!-- Продажи - С chart_type → form20_chart_type -->
+  <a href="{% url 'forms_app:form20_chart_type' code=code chart_type='sales' %}" 
+     class="btn {% if chart_type == 'sales' %}active{% endif %}">
+    🛒 Продажи
+  </a>
+  
+  <!-- Заказы - С chart_type → form20_chart_type (ИСПРАВЛЕНО!) -->
+  <a href="{% url 'forms_app:form20_chart_type' code=code chart_type='orders' %}" 
+     class="btn {% if chart_type == 'orders' %}active{% endif %}">
+    📦 Заказы
+  </a>
+  
+  <!-- % Выкупа -->
+  <a href="{% url 'forms_app:form20_chart_type' code=code chart_type='percent' %}" 
+     class="btn {% if chart_type == 'percent' %}active{% endif %}">
+    🎯 % Выкупа
+  </a>
+  
+  <!-- Цена Наша -->
+  <a href="{% url 'forms_app:form20_chart_type' code=code chart_type='price' %}" 
+     class="btn {% if chart_type == 'price' %}active{% endif %}">
+    🏷️ Цена
+  </a>
+  
+  <!-- Продажи, шт -->
+  <a href="{% url 'forms_app:form20_chart_type' code=code chart_type='qentity_sale' %}" 
+     class="btn {% if chart_type == 'qentity_sale' %}active{% endif %}">
+    📊 Шт
+  </a>
+  
+  <!-- Разделитель -->
+  <span style="margin: 0 5px; color: #ccc;">|</span>
+  
+  <!-- Редактирование и назад -->
+  <a href="{% url 'forms_app:form20_edit' pk=records.0.record.pk %}" 
+     class="btn" style="background:#6c757d; color: white;">
+    ✏️ Редактировать
+  </a>
+  <a href="{% url 'forms_app:form20_list' %}" 
+     class="btn" style="background:#6c757d; color: white;">
+    ← Все артикулы
+  </a>
+</div>
+
+<!-- 🔥 Таблица ежедневных данных с изменениями -->
+<div style="overflow-x: auto; margin: 20px 0;">
+  <table class="table table-striped table-hover" style="min-width: 1200px; font-size: 0.9em;">
+    <thead class="table-dark">
+      <tr>
+        <th>📅 Дата</th>
+        <th>💰 Прибыль</th>
+        <th>📈 Δ к вчера</th>
+        <th>🛒 Продажи Наши</th>
+        <th>📦 Заказы</th>
+        <th>% Выкупа</th>
+        <th>🏷️ Цена Наша</th>
+        <th>🚚 % Лог/Цена</th>
+        <th>Действия</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in records %}
+      {% with r=item.record ch=item.changes %}
+      <tr>
+        <td><strong>{{ r.date|date:"d.m.Y" }}</strong></td>
+        
+        <!-- Прибыль -->
+        <td>
+          {{ r.profit|floatformat:2|default:"—" }} ₽
+          {% if r.profit is not None %}
+            <br><small style="color:{% if r.profit >= 0 %}#198754{% else %}#dc3545{% endif %}">
+              {% if r.profit >= 0 %}▲{% else %}▼{% endif %}
+            </small>
+          {% endif %}
+        </td>
+        
+        <!-- Изменение прибыли -->
+        <td>
+          {% if ch.profit %}
+            <span style="color:{% if ch.trend == 'up' %}#198754{% elif ch.trend == 'down' %}#dc3545{% else %}#6c757d{% endif %}; font-weight: 500;">
+              {{ ch.fmt }} ({{ ch.pct_fmt }})
+            </span>
+          {% else %}
+            <span style="color:#adb5bd">—</span>
+          {% endif %}
+        </td>
+        
+        <!-- Продажи Наши -->
+        <td>{{ r.clear_sales_our|floatformat:2|default:"—" }} ₽</td>
+        
+        <!-- Заказы -->
+        <td>{{ r.orders|default:"—" }}</td>
+        
+        <!-- % Выкупа -->
+        <td>{{ r.percent_sell|floatformat:1|default:"—" }}%</td>
+        
+        <!-- Цена Наша -->
+        <td>{{ r.our_price_mid|floatformat:2|default:"—" }} ₽</td>
+        
+        <!-- % Логистики -->
+        <td>{{ r.percent_log_price|floatformat:1|default:"—" }}%</td>
+        
+        <!-- Действия -->
+        <td>
+          <a href="{% url 'forms_app:form20_edit' pk=r.pk %}" 
+             class="btn btn-sm" style="padding: 2px 8px; background:#0d6efd; color: white;">
+            ✏️
+          </a>
+        </td>
+      </tr>
+      {% endwith %}
+      {% empty %}
+      <tr><td colspan="9" class="text-center text-muted">Нет данных для отображения</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Подсказка по цветам -->
+<div style="background: #f8f9fa; padding: 10px 15px; border-radius: 5px; font-size: 0.85em; color: #666;">
+  <strong>📌 Легенда:</strong> 
+  <span style="color:#198754">▲ Рост</span> | 
+  <span style="color:#dc3545">▼ Падение</span> | 
+  <span style="color:#6c757d">— Нет изменений/данных</span>
+</div>
+
+<!-- График мини-превью (опционально) -->
+{% if records|length >= 2 %}
+<div style="margin-top: 30px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+  <h5>📊 Быстрый просмотр динамики прибыли</h5>
+  <canvas id="miniChart" height="100"></canvas>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('miniChart');
+    
+    // Собираем данные из Django-контекста
+    const labels = [{% for item in records %}"{{ item.record.date|date:'d.m' }}"{% if not forloop.last %},{% endif %}{% endfor %}];
+    const profitData = [{% for item in records %}{{ item.record.profit|default:0|floatformat:0 }}{% if not forloop.last %},{% endif %}{% endfor %}];
+    
+    new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Прибыль, ₽',
+          data: profitData,
+          borderColor: 'rgb(75, 192, 192)',
+          backgroundColor: 'rgba(75, 192, 192, 0.1)',
+          borderWidth: 2,
+          tension: 0.1,
+          fill: true,
+          pointRadius: 3,
+          pointHoverRadius: 5
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { 
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                return context.parsed.y.toLocaleString('ru-RU') + ' ₽';
+              }
+            }
+          }
+        },
+        scales: {
+          y: { 
+            beginAtZero: false, 
+            ticks: { 
+              callback: function(value) { 
+                return value.toLocaleString('ru-RU') + ' ₽'; 
+              } 
+            } 
+          },
+          x: {
+            ticks: { maxRotation: 45, minRotation: 45 }
+          }
+        }
+      }
+    });
+  });
+  </script>
+</div>
+{% endif %}
+
+<!-- Кнопка экспорта и очистки -->
+<div style="margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
+  <a href="{% url 'forms_app:form20_export' %}" class="btn" style="background:#198754; color: white;">
+    📥 Экспорт в Excel
+  </a>
+  <a href="{% url 'forms_app:form20_clear_by_date' %}" class="btn" style="background:#dc3545; color: white;">
+    🗑️ Удалить по дате
+  </a>
+</div>
+
+{% endblock %}

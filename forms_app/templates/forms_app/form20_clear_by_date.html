@@ -1,0 +1,89 @@
+{% extends "forms_app/base_form.html" %}
+{% block title %}{{ form_name }}: Удаление по дате{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  
+  <!-- Заголовок -->
+  <div class="text-center mb-4">
+    <h2>
+      <i class="fas fa-calendar-minus text-warning"></i> {{ form_name }}: Удаление за дату
+    </h2>
+    <p class="text-muted">Выберите дату, за которую нужно удалить ежедневные записи</p>
+  </div>
+
+  <!-- Форма выбора даты -->
+  <div class="card mb-4">
+    <div class="card-header bg-warning text-dark">
+      <i class="fas fa-filter"></i> Выбор даты
+    </div>
+    <div class="card-body">
+      <form method="POST">
+        {% csrf_token %}
+        
+        <div class="mb-3">
+          <label for="date" class="form-label fw-bold">
+            <i class="fas fa-calendar-day"></i> Дата для удаления:
+          </label>
+          
+          {% if available_dates %}
+          <select name="date" id="date" class="form-select form-select-lg" required>
+            <option value="" selected disabled>— Выберите дату —</option>
+            {% for date_str in available_dates %}
+            <option value="{{ date_str }}">{{ date_str }}</option>
+            {% endfor %}
+          </select>
+          <div class="form-text">
+            Доступно дат: <strong>{{ dates_count }}</strong>
+          </div>
+          {% else %}
+          <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i> Нет данных для удаления. 
+            <a href="{% url 'forms_app:form20_upload' %}">Загрузите файлы</a> сначала.
+          </div>
+          {% endif %}
+        </div>
+
+        <!-- Кнопки -->
+        <div class="d-flex gap-2 flex-wrap">
+          <a href="{% url 'forms_app:form20_list' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Отмена
+          </a>
+          
+          {% if available_dates %}
+          <button type="submit" class="btn btn-danger" 
+                  onclick="return confirm('Удалить все записи за выбранную дату?\nЭто действие нельзя отменить.')">
+            <i class="fas fa-trash"></i> Удалить записи за эту дату
+          </button>
+          {% endif %}
+        </div>
+        
+      </form>
+    </div>
+  </div>
+
+  <!-- Статистика (если есть даты) -->
+  {% if available_dates %}
+  <div class="card bg-light">
+    <div class="card-body">
+      <h6 class="card-title"><i class="fas fa-chart-bar"></i> Доступные даты в базе:</h6>
+      <div style="max-height: 200px; overflow-y: auto;" class="small">
+        {% for date_str in available_dates %}
+        <span class="badge bg-secondary me-1 mb-1">{{ date_str }}</span>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Подсказка -->
+  <div class="alert alert-info mt-3">
+    <i class="fas fa-lightbulb"></i> 
+    <strong>Совет:</strong> Перед массовым удалением рекомендуется 
+    <a href="{% url 'forms_app:form20_export' %}" class="alert-link">экспортировать данные в Excel</a> 
+    для резервной копии.
+  </div>
+
+</div>
+
+{% endblock %}

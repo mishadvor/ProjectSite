@@ -1,0 +1,89 @@
+{% extends "forms_app/base_form.html" %}
+{% block title %}{{ form_name }}: Подтверждение удаления{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  
+  <!-- Заголовок -->
+  <div class="text-center mb-4">
+    <h2 class="text-danger">
+      <i class="fas fa-exclamation-triangle"></i> {{ form_name }}: Удаление данных
+    </h2>
+    <p class="text-muted">Вы уверены, что хотите удалить все ежедневные записи?</p>
+  </div>
+
+  <!-- Карточка подтверждения -->
+  <div class="card border-danger mb-4">
+    <div class="card-header bg-danger text-white">
+      <i class="fas fa-trash-alt"></i> Внимание!
+    </div>
+    <div class="card-body">
+      <h5 class="card-title text-danger">Это действие нельзя отменить</h5>
+      <p class="card-text">
+        Вы собираетесь удалить <strong>{{ count }} записей</strong> из Формы 20 
+        (ежедневные данные по артикулам).
+      </p>
+      
+      {% if warning_text %}
+      <div class="alert alert-warning">
+        <i class="fas fa-info-circle"></i> {{ warning_text }}
+      </div>
+      {% endif %}
+      
+      <ul class="list-unstyled small text-muted">
+        <li><i class="fas fa-check text-success"></i> Удаление затронет только <strong>ваши данные</strong></li>
+        <li><i class="fas fa-check text-success"></i> Данные Формы 4 (еженедельные) <strong>не будут затронуты</strong></li>
+        <li><i class="fas fa-times text-danger"></i> Восстановить удалённые записи будет <strong>невозможно</strong></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Кнопки действий -->
+  <div class="d-flex justify-content-center gap-3 flex-wrap">
+    
+    <!-- Отмена -->
+    <a href="{% url 'forms_app:form20_list' %}" class="btn btn-secondary btn-lg">
+      <i class="fas fa-arrow-left"></i> Отмена, вернуться к списку
+    </a>
+    
+    <!-- Подтверждение удаления -->
+    <form method="POST" style="display: inline;">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-danger btn-lg">
+        <i class="fas fa-trash"></i> Да, удалить все {{ count }} записей
+      </button>
+    </form>
+    
+  </div>
+
+  <!-- Подсказка -->
+  <div class="text-center mt-4">
+    <small class="text-muted">
+      <i class="fas fa-lightbulb"></i> 
+      Хотите удалить данные только за определённую дату? 
+      <a href="{% url 'forms_app:form20_clear_by_date' %}">Используйте удаление по дате</a>
+    </small>
+  </div>
+
+</div>
+
+<!-- Подтверждение перед отправкой формы (дополнительная защита) -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const deleteForm = document.querySelector('form[method="POST"]');
+  if (deleteForm) {
+    deleteForm.addEventListener('submit', function(e) {
+      const confirmed = confirm(
+        '⚠️ Вы действительно хотите удалить ВСЕ данные Формы 20?\n\n' +
+        'Это действие НЕЛЬЗЯ отменить!\n' +
+        'Нажмите ОК для подтверждения или Отмена для возврата.'
+      );
+      if (!confirmed) {
+        e.preventDefault();
+      }
+    });
+  }
+});
+</script>
+
+{% endblock %}

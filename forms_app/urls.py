@@ -113,10 +113,30 @@ from .views.form19_view import (
     form19_view,
 )
 
+from .views.form20_view import (
+    upload_file20,
+    form20_list,
+    form20_detail,
+    form20_edit,
+    form20_chart,
+    export_form20_excel,
+    clear_form20_data,
+    clear_form20_by_date,
+    form20_stats_api,
+    form20_compare_dates,
+)
+
+# Дашборд
+from .views.dashboard_view import dashboard
+
+# Форма 21 Озон продажи
+from .views.form21_view import form21
 
 app_name = "forms_app"
 
 urlpatterns = [
+    # === ДАШБОРД — отдельная страница ===
+    path("dashboard/", dashboard, name="dashboard"),  # ← доступ по /forms/dashboard/
     # --- Основные формы ---
     path("form1/", form1, name="form1"),
     path("form2/", form2, name="form2"),
@@ -227,4 +247,29 @@ urlpatterns = [
     path("form18/delete/<int:pk>/", form18_delete, name="form18_delete"),
     # --- Форма 19 ---
     path("form19/", form19_view, name="form19_view"),
+    # --- Форма 20 (Ежедневные данные) ---
+    # 1️⃣ Статические пути (без параметров) — любые, но лучше в начале группы
+    path("form20/upload/", upload_file20, name="form20_upload"),
+    path("form20/export/", export_form20_excel, name="form20_export"),
+    path("form20/clear/", clear_form20_data, name="form20_clear"),
+    path("form20/clear-by-date/", clear_form20_by_date, name="form20_clear_by_date"),
+    # 2️⃣ Пути с <int:pk> — более специфичные, чем <str:code>
+    path("form20/edit/<int:pk>/", form20_edit, name="form20_edit"),
+    # 3️⃣ Пути с <str:code> + ДОПОЛНИТЕЛЬНЫЕ сегменты (самые специфичные параметризованные)
+    path(
+        "form20/<str:code>/chart/<str:chart_type>/",
+        form20_chart,
+        name="form20_chart_type",
+    ),
+    path("form20/<str:code>/chart/", form20_chart, name="form20_chart"),
+    path("form20/<str:code>/stats/", form20_stats_api, name="form20_stats_api"),
+    path(
+        "form20/<str:code>/compare/", form20_compare_dates, name="form20_compare_dates"
+    ),
+    # 4️⃣ Общий путь с <str:code> — ТОЛЬКО В КОНЦЕ параметризованных!
+    path("form20/<str:code>/", form20_detail, name="form20_detail"),
+    # 5️⃣ Корневой путь списка (точный матч "form20/", безопасен в любом месте)
+    path("form20/", form20_list, name="form20_list"),
+    # --- Форма 21 (Озон продажи) - простая версия ---
+    path("form21/", form21, name="form21"),
 ]

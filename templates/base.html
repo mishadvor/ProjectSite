@@ -2,522 +2,471 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="ru">
-  <head>
-    <meta charset="UTF-8" />
-    <title>{% block title %}Генератор финансовых отчётов{% endblock %}</title>
-
+<head>
+    <meta charset="UTF-8">
     <!-- Favicon -->
-    <link
-      rel="shortcut icon"
-      href="{% static 'images/favicon.ico' %}"
-      type="image/x-icon"
-    />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-    <!-- Подключаем Google Fonts -->
-    <link
-      href="https://fonts.googleapis.com/css2?family=Roboto&display=swap"
-      rel="stylesheet"
-    />
-
-    <!-- Подключаем Font Awesome для иконок -->
-    <link
-      rel="stylesheet"
-      href="  https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css  "
-    />
-
+    <link rel="shortcut icon" href="{% static 'images/favicon.ico' %}" type="image/x-icon"/>
+    <title>{% block title %}Генератор финансовых отчётов{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- Bootstrap 5 + Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
+    
     <style>
-      body {
-        font-family: "Roboto", sans-serif;
-        margin: 0;
-        padding: 0;
-        background: #f4f4f4;
-        color: #333;
-      }
-
-      header {
-        background-color: #007bff;
-        color: white;
-        padding: 20px 0;
-        text-align: center;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-      }
-
-      .header-title {
-        cursor: pointer;
-        display: inline-block;
-        transition: transform 0.3s;
-      }
-
-      .header-title:hover {
-        transform: scale(1.03);
-      }
-
-      nav {
-        margin-top: 10px;
-      }
-
-      main {
-        max-width: 960px;
-        margin: 30px auto;
-        padding: 0 20px;
-      }
-
-      footer {
-        text-align: center;
-        padding: 20px;
-        font-size: 0.9em;
-        color: #ccc;
-        background-color: #222;
-        margin-top: 50px;
-      }
-
-      /* Общие стили для кнопок */
-      .btn {
-        display: inline-block;
-        padding: 10px 20px;
-        background-color: #007bff;
-        color: white;
-        text-decoration: none;
-        border-radius: 5px;
-        transition: all 0.3s;
-        margin: 0 5px;
-      }
-
-      .btn:hover {
-        background-color: #0056b3;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-      }
-
-      /* Стили для кнопок форм */
-      .form-btn {
-        display: inline-block;
-        padding: 8px 15px;
-        color: white;
-        text-decoration: none;
-        border-radius: 6px;
-        transition: all 0.3s;
-        margin-bottom: 5px;
-        min-width: 90px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-      }
-
-      .form-btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-      }
-
-      /* Цвета для разных форм */
-      .form-btn-1 {
-        background: #4caf50;
-      } /* Зеленый */
-      .form-btn-2 {
-        background: #2196f3;
-      } /* Синий */
-      .form-btn-3 {
-        background: #9c27b0;
-      } /* Фиолетовый */
-      .form-btn-4 {
-        background: #ff9800;
-      } /* Оранжевый */
-      .form-btn-5 {
-        background: #f44336;
-      } /* Красный */
-
-      .form-btn-6 {
-        background: #ff5722; /* ярко-оранжевый цвет */
-      }
-      .form-btn-6:hover {
-        background: #e64a19;
-      }
-
-      .form-btn-7 {
-        background: #00bcd4; /* Бирюзовый для календарных данных */
-      }
-      .form-btn-7:hover {
-        background: #008ba3;
-      }
-
-      .form-btn-8 {
-        background: #8bc34a; /* Зеленый для графиков */
-      }
-      .form-btn-8:hover {
-        background: #689f38;
-      }
-
-      .form-btn-9 {
-        background: #e91e63; /* Розовый для Формы 9 */
-      }
-      .form-btn-9:hover {
-        background: #c2185b;
-      }
-
-      .form-btn-10 {
-        background: #ffeb3b; /* Желтый для Формы 10 */
-        color: black; /* Черный текст для лучшей читаемости */
-      }
-      .form-btn-10:hover {
-        background: #fdd835;
-      }
-
-      .form-btn-11 {
-        background: #3f51b5; /* Индиго для Формы 11 */
-      }
-      .form-btn-11:hover {
-        background: #303f9f;
-      }
-
-      .form-btn-12 {
-        background: #607d8b; /* Серо-голубой (Material Design Grey) */
-      }
-      .form-btn-12:hover {
-        background: #455a64;
-      }
-
-      .form-btn-13 {
-        background: #795548; /* Коричневый для Формы 13 */
-      }
-      .form-btn-13:hover {
-        background: #5d4037;
-      }
-
-      .form-btn-14 {
-        background: #009688; /* Бирюзовый для Формы 14 */
-      }
-      .form-btn-14:hover {
-        background: #00796b;
-      }
-
-      .form-btn-15 {
-        background: #17a2b8; /* Бирюзовый для Формы 15 */
-      }
-      .form-btn-15:hover {
-        background: #138496;
-      }
-
-      .form-btn-16 {
-        background: #9C27B0; /* Фиолетовый для Формы 16 */
-      }
-      .form-btn-16:hover {
-        background: #7B1FA2;
-      }
-      .form-btn-17 {
-        background: #00796b; /* Тёмно-бирюзовый (Material Teal 800) — не используется ранее */
-      }
-      .form-btn-17:hover {
-        background: #004d40; /* Ещё темнее при наведении */
-      }
-      .form-btn-18 {
-        background: #673ab7; /* Глубокий фиолетовый (Material Deep Purple 500) */
-      }
-      .form-btn-18:hover {
-        background: #512da8; /* Темнее при наведении */
-      }  
-
-
-      /* Контейнер форм */
-      .forms-container {
-        display: flex;
-        justify-content: center;
-        gap: 15px;
-        flex-wrap: wrap;
-        margin-bottom: 15px;
-      }
-
-      .form-item {
-        text-align: center;
-        min-width: 100px;
-      }
-
-      .form-label {
-        font-size: 0.9em;
-        color: #f0f0f0;
-      }
-
-      /* Адаптивность */
-      @media (max-width: 600px) {
-        .forms-container {
-          gap: 10px;
+        :root {
+            --sidebar-width: 260px;
+            --sidebar-collapsed-width: 70px;
+            --header-height: 60px;
         }
-        .form-btn {
-          padding: 6px 10px;
-          font-size: 0.9em;
-          min-width: 80px;
+        
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            background: #f4f4f4;
+            overflow-x: hidden;
         }
-      }
-
-      /* === СЕТКА: ЧЕТЫРЕ РЯДА === */
-      .forms-grid {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-        align-items: center;
-      }
-
-      .forms-row {
-        display: flex;
-        justify-content: center;
-        gap: 15px;
-        flex-wrap: wrap;
-      }
-
-      /* Чтобы кнопки не переносились случайно */
-      .forms-row .form-item {
-        flex: 0 0 auto; /* Запрещаем сжиматься/растягиваться */
-      }
-
-      /* Адаптивность: на узких экранах — уменьшаем отступы */
-      @media (max-width: 768px) {
-        .forms-row {
-          gap: 10px;
+        
+        /* === SIDEBAR === */
+        #sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            width: var(--sidebar-width);
+            background: linear-gradient(180deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            transition: all 0.3s ease;
+            z-index: 1000;
+            overflow-y: auto;
+            overflow-x: hidden;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
         }
-        .form-btn {
-          padding: 6px 10px;
-          font-size: 0.9em;
+        
+        #sidebar.collapsed {
+            width: var(--sidebar-collapsed-width);
         }
-      }
+        
+        #sidebar .sidebar-header {
+            padding: 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        #sidebar .sidebar-header .logo-text {
+            font-size: 1.1rem;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+        
+        #sidebar.collapsed .sidebar-header .logo-text,
+        #sidebar.collapsed .nav-text,
+        #sidebar.collapsed .form-label {
+            display: none;
+        }
+        
+        #sidebar .nav-link {
+            color: rgba(255,255,255,0.85);
+            padding: 10px 15px;
+            margin: 2px 10px;
+            border-radius: 8px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            white-space: nowrap;
+        }
+        
+        #sidebar .nav-link:hover,
+        #sidebar .nav-link.active {
+            background: rgba(255,255,255,0.15);
+            color: white;
+            transform: translateX(3px);
+        }
+        
+        #sidebar .nav-link i {
+            font-size: 1.1rem;
+            min-width: 20px;
+            text-align: center;
+        }
+        
+        /* Группы меню */
+        .sidebar-group {
+            margin: 10px 0;
+        }
+        
+        .sidebar-group-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: rgba(255,255,255,0.5);
+            padding: 10px 25px 5px;
+            white-space: nowrap;
+        }
+        
+        #sidebar.collapsed .sidebar-group-title {
+            display: none;
+        }
+        
+        /* Аккордеон для групп */
+        .sidebar-group .collapse {
+            padding-left: 10px;
+        }
+        
+        /* === MAIN CONTENT === */
+        #content {
+            margin-left: var(--sidebar-width);
+            transition: all 0.3s ease;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        #sidebar.collapsed + #content {
+            margin-left: var(--sidebar-collapsed-width);
+        }
+        
+        /* === TOP BAR === */
+        .top-bar {
+            height: var(--header-height);
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+        }
+        
+        .top-bar .toggle-btn {
+            background: none;
+            border: none;
+            font-size: 1.3rem;
+            color: #333;
+            cursor: pointer;
+            padding: 5px 10px;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+        
+        .top-bar .toggle-btn:hover {
+            background: #f0f0f0;
+        }
+        
+        /* === ЦВЕТА КНОПОК ФОРМ (сохраняем ваши) === */
+        .form-color-1 { background: #4caf50 !important; }
+        .form-color-2 { background: #2196f3 !important; }
+        .form-color-3 { background: #9c27b0 !important; }
+        .form-color-4 { background: #ff9800 !important; }
+        .form-color-5 { background: #f44336 !important; }
+        .form-color-6 { background: #ff5722 !important; }
+        .form-color-7 { background: #00bcd4 !important; }
+        .form-color-8 { background: #8bc34a !important; }
+        .form-color-9 { background: #e91e63 !important; }
+        .form-color-10 { background: #ffeb3b !important; color: #333 !important; }
+        .form-color-11 { background: #3f51b5 !important; }
+        .form-color-12 { background: #607d8b !important; }
+        .form-color-13 { background: #795548 !important; }
+        .form-color-14 { background: #009688 !important; }
+        .form-color-15 { background: #17a2b8 !important; }
+        .form-color-16 { background: #9C27B0 !important; }
+        .form-color-17 { background: #00796b !important; }
+        .form-color-18 { background: #673ab7 !important; }
+        
+        /* === MAIN AREA === */
+        main {
+            flex: 1;
+            padding: 25px;
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+        }
+        
+        /* === FOOTER === */
+        footer {
+            text-align: center;
+            padding: 15px;
+            font-size: 0.85rem;
+            color: #888;
+            background: white;
+            border-top: 1px solid #eee;
+        }
+        
+        /* === АДАПТИВНОСТЬ === */
+        @media (max-width: 768px) {
+            #sidebar {
+                transform: translateX(-100%);
+                width: var(--sidebar-width);
+            }
+            
+            #sidebar.mobile-open {
+                transform: translateX(0);
+            }
+            
+            #content {
+                margin-left: 0 !important;
+            }
+            
+            .overlay {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0,0,0,0.4);
+                z-index: 998;
+            }
+            
+            .overlay.active {
+                display: block;
+            }
+        }
+        
+        /* Скроллбар для сайдбара */
+        #sidebar::-webkit-scrollbar {
+            width: 4px;
+        }
+        #sidebar::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.05);
+        }
+        #sidebar::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.3);
+            border-radius: 2px;
+        }
     </style>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
+    
     {% block extra_head %}{% endblock %}
-  </head>
-  <body>
-    <header>
-      <h1
-        class="header-title"
-        onclick="window.location.href='{% url 'home:home' %}'"
-      >
-        📊 Генератор финансовых отчётов
-      </h1>
-      <nav>
-        <!-- Блок с формами -->
-        <div class="forms-grid">
-          <!-- Верхний ряд (Формы 1-5) -->
-          <div class="forms-row">
-            <!-- Форма 1 -->
-            <div class="form-item">
-              <a href="{% url 'forms_app:form1' %}" class="form-btn form-btn-1">
-                <i class="fas fa-file-invoice"></i> Форма 1
-              </a>
-              <div class="form-label">Общая сумма</div>
-            </div>
+</head>
+<body>
 
-            <!-- Форма 2 -->
-            <div class="form-item">
-              <a href="{% url 'forms_app:form2' %}" class="form-btn form-btn-2">
-                <i class="fas fa-barcode"></i> Форма 2
-              </a>
-              <div class="form-label">Артикулы общая</div>
-            </div>
+<!-- === SIDEBAR === -->
+<nav id="sidebar">
+    <div class="sidebar-header">
+        <span class="logo-text">📊 Фин. отчёты</span>
+        <button class="toggle-btn d-lg-none" id="sidebarClose">
+            <i class="bi bi-x-lg"></i>
+        </button>
+    </div>
+    
+    <div class="p-3">
+        <!-- Дашборд -->
+        <a href="{% url 'forms_app:dashboard' %}" class="nav-link active mb-3" 
+           style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+            <i class="bi bi-speedometer2"></i>
+            <span class="nav-text">Дашборд</span>
+        </a>
+        
+        <!-- Список форм (плоский, без групп) -->
+        <a href="{% url 'forms_app:form1' %}" class="nav-link form-color-1">
+            <i class="bi bi-calculator"></i><span class="nav-text">Форма 1</span>
+        </a>
+        
+        {% comment %}
+        <a href="{% url 'forms_app:form2' %}" class="nav-link form-color-2">
+            <i class="bi bi-barcode"></i><span class="nav-text">Форма 2</span>
+        </a>
+        {% endcomment %}
+        
+        <a href="{% url 'forms_app:form3' %}" class="nav-link form-color-3">
+            <i class="bi bi-geo-alt"></i><span class="nav-text">Форма 3</span>
+        </a>
+        
+        <a href="{% url 'forms_app:form4_upload' %}" class="nav-link form-color-4">
+            <i class="bi bi-upload"></i><span class="nav-text">Форма 4</span>
+        </a>
+        
+        {% comment %}
+        <a href="{% url 'forms_app:form5' %}" class="nav-link form-color-5">
+            <i class="bi bi-box-seam"></i><span class="nav-text">Форма 5</span>
+        </a>
+        {% endcomment %}
+        
+        <a href="{% url 'forms_app:form6' %}" class="nav-link form-color-6">
+            <i class="bi bi-boxes"></i><span class="nav-text">Форма 6</span>
+        </a>
+        
+        {% comment %}
+        <a href="{% url 'forms_app:form7_upload' %}" class="nav-link form-color-7">
+            <i class="bi bi-calendar-week"></i><span class="nav-text">Форма 7</span>
+        </a>
+        <a href="{% url 'forms_app:form7_graph' %}" class="nav-link form-color-8">
+            <i class="bi bi-graph-up"></i><span class="nav-text">График прибыли</span>
+        </a>
+        {% endcomment %}
+        
+        <a href="{% url 'forms_app:form8_upload' %}" class="nav-link form-color-8">
+            <i class="bi bi-pie-chart"></i><span class="nav-text">Форма 8</span>
+        </a>
+        
+        {% comment %}
+        <a href="{% url 'forms_app:form9_view' %}" class="nav-link form-color-9">
+            <i class="bi bi-arrow-repeat"></i><span class="nav-text">Форма 9</span>
+        </a>
+        {% endcomment %}
+        
+        <a href="{% url 'forms_app:form10_view' %}" class="nav-link form-color-10">
+            <i class="bi bi-lightning"></i><span class="nav-text">Форма 10</span>
+        </a>
+        
+        {% comment %}
+        <a href="{% url 'forms_app:form11_view' %}" class="nav-link form-color-11">
+            <i class="bi bi-box-open"></i><span class="nav-text">Форма 11</span>
+        </a>
+        {% endcomment %}
+        
+        <a href="{% url 'forms_app:form12_upload' %}" class="nav-link form-color-12">
+            <i class="bi bi-bar-chart-line"></i><span class="nav-text">Форма 12</span>
+        </a>
+        
+        {% comment %}
+        <a href="{% url 'forms_app:form13_simple' %}" class="nav-link form-color-13">
+            <i class="bi bi-check2-square"></i><span class="nav-text">Форма 13</span>
+        </a>
+        {% endcomment %}
+        
+        <a href="{% url 'forms_app:form14_list' %}" class="nav-link form-color-14">
+            <i class="bi bi-graph-up-arrow"></i><span class="nav-text">Форма 14</span>
+        </a>
+        
+        {% comment %}
+        <a href="{% url 'forms_app:form15_view' %}" class="nav-link form-color-15">
+            <i class="bi bi-scissors"></i><span class="nav-text">Форма 15</span>
+        </a>
+        {% endcomment %}
+        
+        <a href="{% url 'forms_app:form16_main' %}" class="nav-link form-color-16">
+            <i class="bi bi-table"></i><span class="nav-text">Форма 16</span>
+        </a>
+        
+        {% comment %}
+        <a href="{% url 'forms_app:form17_view' %}" class="nav-link form-color-17">
+            <i class="bi bi-bar-chart-steps"></i><span class="nav-text">Форма 17</span>
+        </a>
+        {% endcomment %}
+        
+        <a href="{% url 'forms_app:form18_list' %}" class="nav-link form-color-2">
+            <i class="bi bi-tags"></i><span class="nav-text">Форма 18</span>
+        </a>
+        
+        <a href="{% url 'forms_app:form19_view' %}" class="nav-link form-color-6">
+            <i class="bi bi-traffic-light"></i><span class="nav-text">Форма 19</span>
+        </a>
+        
+        
+        <a href="{% url 'forms_app:form20_upload' %}" class="nav-link form-color-6">
+            <i class="bi bi-calendar-day"></i><span class="nav-text">Форма 20</span>
+        </a>
 
-            <!-- Форма 3 -->
-            <div class="form-item">
-              <a href="{% url 'forms_app:form3' %}" class="form-btn form-btn-3">
-                <i class="fas fa-map-marked-alt"></i> Форма 3
-              </a>
-              <div class="form-label">Регионы</div>
-            </div>
-
-            <!-- Форма 4 -->
-            <div class="form-item">
-              <a
-                href="{% url 'forms_app:form4_upload' %}"
-                class="form-btn form-btn-4"
-              >
-                <i class="fas fa-file-upload"></i> Форма 4
-              </a>
-              <div class="form-label">Каждый Артикул</div>
-            </div>
-
-            <!-- Форма 5 -->
-            <div class="form-item">
-              <a href="{% url 'forms_app:form5' %}" class="form-btn form-btn-5">
-                <i class="fas fa-warehouse"></i> Форма 5
-              </a>
-              <div class="form-label">Склад старый</div>
-            </div>
-          </div>
-          <!-- Закрытие верхнего ряда -->
-
-          <!-- Второй ряд (Формы 6-9) -->
-          <div class="forms-row">
-            <!-- Форма 6 -->
-            <div class="form-item">
-              <a href="{% url 'forms_app:form6' %}" class="form-btn form-btn-6">
-                <i class="fas fa-exclamation-triangle"></i> Форма 6
-              </a>
-              <div class="form-label">Склад Новый</div>
-            </div>
-
-            <!-- Форма 7 -->
-            <div class="form-item">
-              <a
-                href="{% url 'forms_app:form7_upload' %}"
-                class="form-btn form-btn-7"
-              >
-                <i class="fas fa-calendar-alt"></i> Форма 7
-              </a>
-              <div class="form-label">Формы 2 по датам</div>
-            </div>
-
-            <!-- График Прибыли -->
-            <div class="form-item">
-              <a
-                href="{% url 'forms_app:form7_graph' %}"
-                class="form-btn form-btn-8"
-              >
-                <i class="fas fa-chart-line"></i> График Прибыли
-              </a>
-              <div class="form-label">Прибыль по датам</div>
-            </div>
-
-            <!-- Форма 8 -->
-            <div class="form-item">
-              <a
-                href="{% url 'forms_app:form8_upload' %}"
-                class="form-btn form-btn-8"
-              >
-                <i class="fas fa-chart-pie"></i> Форма 8
-              </a>
-              <div class="form-label">Недельные графики</div>
-            </div>
-
-            <!-- Форма 9 -->
-            <div class="form-item">
-              <a
-                href="{% url 'forms_app:form9_view' %}"
-                class="form-btn form-btn-9"
-              >
-                <i class="fas fa-sync-alt"></i> Форма 9
-              </a>
-              <div class="form-label">Оборачиваемость</div>
-            </div>
-          </div>
-          <!-- Закрытие второго ряда -->
-
-          <!-- Третий ряд (Формы 10-14) -->
-          <div class="forms-row">
-            <!-- Форма 10 -->
-            <div class="form-item">
-              <a href="{% url 'forms_app:form10_view' %}" class="form-btn form-btn-10">
-                <i class="fas fa-bolt"></i> Форма 10
-              </a>
-              <div class="form-label">Экспресс анализ продаж</div>
-            </div>
-
-            <!-- Форма 11 -->
-            <div class="form-item">
-              <a href="{% url 'forms_app:form11_view' %}" class="form-btn form-btn-11">
-                <i class="fas fa-box-open"></i> Форма 11
-              </a>
-              <div class="form-label">Формирование ФБО</div>
-            </div>
-
-            <!-- Форма 12 -->
-            <div class="form-item">
-              <a href="{% url 'forms_app:form12_upload' %}" class="form-btn form-btn-12">
-                <i class="fas fa-chart-bar"></i> Форма 12
-              </a>
-              <div class="form-label">Ежедневная статистика</div>
-            </div>
-
-            <!-- Форма 13 -->
-            <div class="form-item">
-              <a href="{% url 'forms_app:form13_simple' %}" class="form-btn form-btn-13">
-                <i class="fas fa-clipboard-check"></i> Форма 13
-              </a>
-              <div class="form-label">Признаки доступности</div>
-            </div>
-
-            <!-- Форма 14 -->
-            <div class="form-item">
-              <a href="{% url 'forms_app:form14_list' %}" class="form-btn form-btn-14">
-                <i class="fas fa-chart-line"></i> Форма 14
-              </a>
-              <div class="form-label">Общие графики по кабинету</div>
-            </div>
-          </div>
-          <!-- Закрытие третьего ряда -->
-
-          <!-- Четвертый ряд (Формы 15-16) -->
-          <div class="forms-row">
-            <!-- Форма 15 -->
-            <div class="form-item">
-              <a href="{% url 'forms_app:form15_view' %}" class="form-btn form-btn-15">
-                <i class="fas fa-cut"></i> Форма 15
-              </a>
-              <div class="form-label">Раскрой ткани</div>
-            </div>
-
-            <!-- Форма 16 -->
-            <div class="form-item">
-              <a href="{% url 'forms_app:form16_main' %}" class="form-btn form-btn-16">
-                <i class="fas fa-table"></i> Форма 16
-              </a>
-              <div class="form-label">Сбор ФБО</div>
-            </div>
-            <!-- Форма 17 -->
-            <div class="form-item">
-              <a href="{% url 'forms_app:form17_view' %}" class="form-btn form-btn-17">
-                <i class="fas fa-chart-line"></i> Форма 17
-              </a>
-              <div class="form-label">Построение графика</div>
-            </div>
-            <!-- Форма 18 -->
-            <div class="form-item">
-              <a href="{% url 'forms_app:form18_list' %}" class="form-btn form-btn-2">
-                <i class="fas fa-tags"></i> Форма 18
-              </a>
-              <div class="form-label">Ф2 Разная Себестоимость</div>
-            </div>
-            <!-- Форма 19 -->
-            <div class="form-item">
-              <a href="{% url 'forms_app:form19_view' %}" class="form-btn" style="background: #FF5722; color: white;">
-                  <i class="fas fa-truck"></i> Форма 19
-              </a>
-              <div class="form-label">Анализ трафика</div>
-          </div>
-          </div>
-          <!-- Закрытие четвертого ряда -->
-        </div>
-        <!-- Закрытие forms-grid -->
-
-        <!-- Остальные кнопки (Теория, Профиль и т.д.) -->
-        <div style="text-align: center; margin-top: 15px">
-          <a href="{% url 'theory:theory_index' %}" class="btn">
-            <i class="fas fa-book"></i> Теория
-          </a>
-
-          {% if user.is_authenticated %}
-          <a href="{% url 'accounts:profile' %}" class="btn">
-            <i class="fas fa-user"></i> Профиль
-          </a>
-          <a href="{% url 'accounts:logout' %}" class="btn">
-            <i class="fas fa-sign-out-alt"></i> Выход
-          </a>
-          {% else %}
-          <a href="{% url 'accounts:login' %}" class="btn">
-            <i class="fas fa-sign-in-alt"></i> Войти
-          </a>
-          <a href="{% url 'accounts:register' %}" class="btn">
-            <i class="fas fa-user-plus"></i> Регистрация
-          </a>
-          {% endif %}
-        </div>
-
-        <!-- Блок с именем пользователя -->
-        {% if request.user.is_authenticated %}
-        <div style="text-align: center; margin-top: 10px; color: #f8f9fa">
-          <i class="fas fa-user-circle"></i> {{ request.user.username }}
+        <a href="{% url 'forms_app:form21' %}" class="nav-link" style="background: #17a2b8; color: white;">
+            <i class="bi bi-bar-chart"></i><span class="nav-text">Форма 21</span>
+        </a>
+        
+        
+        <!-- Разделитель -->
+        <hr class="my-3" style="border-color: rgba(255,255,255,0.2);">
+        
+        <!-- Доп. ссылки -->
+        <a href="{% url 'theory:theory_index' %}" class="nav-link">
+            <i class="bi bi-book"></i><span class="nav-text">Теория</span>
+        </a>
+        
+        {% if user.is_authenticated %}
+        <a href="{% url 'accounts:profile' %}" class="nav-link">
+            <i class="bi bi-person"></i><span class="nav-text">Профиль</span>
+        </a>
+        <a href="{% url 'accounts:logout' %}" class="nav-link text-danger">
+            <i class="bi bi-box-arrow-right"></i><span class="nav-text">Выход</span>
+        </a>
+        {% else %}
+        <a href="{% url 'accounts:login' %}" class="nav-link">
+            <i class="bi bi-box-arrow-in-right"></i><span class="nav-text">Войти</span>
+        </a>
+        {% endif %}
+        
+        <!-- Имя пользователя -->
+        {% if user.is_authenticated %}
+        <div class="mt-3 px-3 py-2 rounded" style="background: rgba(255,255,255,0.1);">
+            <i class="bi bi-person-circle"></i>
+            <span class="nav-text ms-2">{{ user.username }}</span>
         </div>
         {% endif %}
-      </nav>
-    </header>
+    </div>
+</nav>
+    
+    <!-- Оверлей для мобильных -->
+    <div class="overlay" id="overlay"></div>
 
-    <main>{% block content %} {% endblock %}</main>
+    <!-- === ОСНОВНОЙ КОНТЕНТ === -->
+    <div id="content">
+        <!-- Верхняя панель -->
+        <div class="top-bar">
+            <button class="toggle-btn" id="sidebarToggle">
+                <i class="bi bi-list"></i>
+            </button>
+            <div>
+                {% block top_actions %}{% endblock %}
+            </div>
+        </div>
+        
+        <!-- Контент страницы -->
+        <main>
+            {% block content %}{% endblock %}
+        </main>
+        
+        <!-- Футер -->
+        <footer>
+            &copy; 2026 — Генератор финансовых отчётов
+        </footer>
+    </div>
 
-    <footer>&copy; 2025 — Генератор отчетов</footer>
-  </body>
+    <!-- Скрипты -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Управление сайдбаром
+        document.addEventListener('DOMContentLoaded', function() {
+            const sidebar = document.getElementById('sidebar');
+            const toggleBtn = document.getElementById('sidebarToggle');
+            const closeBtn = document.getElementById('sidebarClose');
+            const overlay = document.getElementById('overlay');
+            
+            // Переключение на десктопе (сворачивание)
+            toggleBtn.addEventListener('click', function() {
+                if (window.innerWidth > 768) {
+                    sidebar.classList.toggle('collapsed');
+                } else {
+                    sidebar.classList.add('mobile-open');
+                    overlay.classList.add('active');
+                }
+            });
+            
+            // Закрытие на мобильных
+            closeBtn?.addEventListener('click', function() {
+                sidebar.classList.remove('mobile-open');
+                overlay.classList.remove('active');
+            });
+            
+            overlay.addEventListener('click', function() {
+                sidebar.classList.remove('mobile-open');
+                overlay.classList.remove('active');
+            });
+            
+            // Активная ссылка
+            const currentPath = window.location.pathname;
+            document.querySelectorAll('#sidebar .nav-link').forEach(link => {
+                if (link.getAttribute('href') === currentPath) {
+                    link.classList.add('active');
+                }
+            });
+        });
+    </script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
 </html>

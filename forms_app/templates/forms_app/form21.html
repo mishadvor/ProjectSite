@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Форма 21 - Анализ продаж Озон{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm mt-4">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">
+                        <i class="bi bi-file-excel"></i> Форма 21: Анализ продаж Озон
+                    </h3>
+                </div>
+                <div class="card-body">
+                    {% if error %}
+                        <div class="alert alert-danger">
+                            <i class="bi bi-exclamation-triangle"></i> {{ error }}
+                        </div>
+                    {% endif %}
+                    
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i>
+                        <strong>Инструкция:</strong>
+                        <ul class="mb-0 mt-2">
+                            <li>Скачайте файл с вкладки: "Финансы" - "Экономика магазина" - Кнопка "Скачать отчет" - "По начислениям".</li>
+                            <li>Загрузите Excel-файл с отчётом.</li>
+                            <li>Расчет будет за тот период, который вы выберете при формировании файла.</li>
+                            <li></li>
+                            
+                        </ul>
+                    </div>
+                    
+                    <div class="alert alert-secondary">
+                        <i class="bi bi-file-spreadsheet"></i>
+                        <strong>Что вы получите в результате:</strong>
+                        <ul class="mb-0 mt-2">
+                            <li>Финансовую сводку (выручка, логистика, реклама и т.д.)</li>
+                            <li>Статистику по группам артикулов (по префиксам).</li>
+                            <li>Детальный разбор по каждому артикулу (по размерам)</li>
+                            <li>Процент выкупа группы и кадого размера</li>
+                            <li>Распределение рекламных расходов</li>
+                        </ul>
+                    </div>
+                    
+                    <!-- ФОРМА ДЛЯ ЗАГРУЗКИ ФАЙЛА -->
+                    <form method="post" enctype="multipart/form-data" class="mt-4">
+                        {% csrf_token %}
+                        
+                        <div class="mb-4">
+                            <label for="excel_file" class="form-label fw-bold">
+                                <i class="bi bi-cloud-upload"></i> Выберите Excel файл
+                            </label>
+                            <input type="file" 
+                                   name="excel_file" 
+                                   id="excel_file" 
+                                   class="form-control" 
+                                   accept=".xlsx,.xls"
+                                   required>
+                            <div class="form-text">Поддерживаются форматы: .xlsx, .xls</div>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="bi bi-gear"></i> Анализировать и скачать результат
+                            </button>
+                        </div>
+                    </form>
+                    
+                    <hr class="my-4">
+                    
+                    <div class="alert alert-success">
+                        <i class="bi bi-check-circle"></i>
+                        <strong>Требования к файлу:</strong>
+                        <ul class="mb-0 mt-2">
+                            <li>Файл должен содержать колонки: <code>Артикул</code>, <code>Тип начисления</code>, <code>Сумма итого, руб.</code></li>
+                            <li>Первая строка (период) будет автоматически пропущена</li>
+                            <li>Поддерживаются форматы: .xlsx, .xls</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    // Отображение имени выбранного файла
+    document.getElementById('excel_file').addEventListener('change', function(e) {
+        const fileName = e.target.files[0]?.name;
+        const label = document.querySelector('label[for="excel_file"]');
+        if (fileName) {
+            label.innerHTML = `<i class="bi bi-check-circle"></i> Выбран файл: ${fileName}`;
+        } else {
+            label.innerHTML = `<i class="bi bi-cloud-upload"></i> Выберите Excel файл`;
+        }
+    });
+</script>
+{% endblock %}
+{% endblock %}

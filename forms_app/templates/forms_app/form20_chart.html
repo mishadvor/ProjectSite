@@ -1,0 +1,139 @@
+{% extends "forms_app/base_form.html" %}
+{% block title %}График: {{ code }}{% endblock %}
+
+{% block content %}
+<h2>📈 {{ form_name }} - График: {{ code }} | 
+    <span style="font-size: 0.9em; color: #555">{{ article|default:"—" }}</span> | 
+    {{ label }}
+</h2>
+
+<!-- Форма выбора диапазона дат -->
+<form method="GET" style="margin-bottom: 20px; padding: 15px; background: #f1f3f5; border-radius: 8px;">
+    <label for="start_date" style="margin-right: 10px;">
+        <strong>Начало:</strong>
+        <input type="date" id="start_date" name="start_date" value="{{ start_date }}" style="padding: 5px; border-radius: 4px;">
+    </label>
+    <label for="end_date" style="margin-right: 10px;">
+        <strong>Конец:</strong>
+        <input type="date" id="end_date" name="end_date" value="{{ end_date }}" style="padding: 5px; border-radius: 4px;">
+    </label>
+    <button type="submit" style="padding: 6px 12px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
+        📅 Применить
+    </button>
+    <a href="{% url 'forms_app:form20_chart' code=code %}" style="margin-left: 10px; color: #666;">Сбросить</a>
+</form>
+
+{% if dates %}
+<div style="height: 400px; position: relative; margin: 20px 0">
+    <canvas id="chartCanvas"></canvas>
+</div>
+
+<div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+    <p><strong>Количество записей:</strong> {{ dates|length }}</p>
+    {% if chart_type == 'profit' %}
+    <div style="background: {% if total_profit >= 0 %}#d4edda{% else %}#f8d7da{% endif %}; padding: 10px; border-radius: 5px; margin: 10px 0;">
+        <p style="margin: 0; font-weight: bold;">
+            💰 Сумма прибыли за период: 
+            <span style="color: {% if total_profit >= 0 %}#155724{% else %}#721c24{% endif %};">
+                {{ total_profit|floatformat:2 }} ₽
+            </span>
+        </p>
+        {% if dates|length > 0 %}
+        <p style="margin: 5px 0 0 0; font-size: 0.9em; color: #666;">
+            Средняя прибыль в день: {{ avg_profit_per_day|floatformat:2 }} ₽
+        </p>
+        {% endif %}
+    </div>
+    {% endif %}
+    <p><strong>Медианное значение:</strong> {{ median_value|floatformat:1 }}</p>
+</div>
+
+<!-- Кнопки выбора типа графика -->
+<div style="margin-bottom: 20px;">
+    <div style="margin-bottom: 10px;">
+        <a href="{% url 'forms_app:form20_chart' code=code %}" class="btn {% if chart_type == 'profit' %}active{% endif %}" style="background: {% if chart_type == 'profit' %}#75c0c0{% else %}#007bff{% endif %};">📈 Прибыль</a>
+        <a href="{% url 'forms_app:form20_chart_type' code=code chart_type='sales' %}" class="btn {% if chart_type == 'sales' %}active{% endif %}" style="background: {% if chart_type == 'sales' %}#54a2db{% else %}#007bff{% endif %};">💰 Продажи</a>
+        <a href="{% url 'forms_app:form20_chart_type' code=code chart_type='orders' %}" class="btn {% if chart_type == 'orders' %}active{% endif %}" style="background: {% if chart_type == 'orders' %}#a97cff{% else %}#007bff{% endif %};">📦 Заказы</a>
+        <a href="{% url 'forms_app:form20_chart_type' code=code chart_type='percent' %}" class="btn {% if chart_type == 'percent' %}active{% endif %}" style="background: {% if chart_type == 'percent' %}#ffbf64{% else %}#007bff{% endif %};">% Выкупа</a>
+        <a href="{% url 'forms_app:form20_chart_type' code=code chart_type='price' %}" class="btn {% if chart_type == 'price' %}active{% endif %}" style="background: {% if chart_type == 'price' %}#ffbf64{% else %}#007bff{% endif %};">🏷️ Цена</a>
+    </div>
+    <div style="margin-top: 10px;">
+        <a href="{% url 'forms_app:form20_chart_type' code=code chart_type='log_price_percent' %}" class="btn {% if chart_type == 'log_price_percent' %}active{% endif %}">🚚% Лог/Цена</a>
+        <a href="{% url 'forms_app:form20_chart_type' code=code chart_type='qentity_sale' %}" class="btn {% if chart_type == 'qentity_sale' %}active{% endif %}">📊 Продажи, шт</a>
+        <a href="{% url 'forms_app:form20_chart_type' code=code chart_type='spp_percent' %}" class="btn {% if chart_type == 'spp_percent' %}active{% endif %}">📊 % СПП</a>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('chartCanvas').getContext('2d');
+    const labels = {{ dates|safe }};
+    const chartData = {{ data|safe }};
+    const chartType = '{{ chart_type }}';
+    
+    function getYAxisTitle(chartType) {
+        switch(chartType) {
+            case 'percent': case 'log_price_percent': case 'spp_percent': return '%';
+            case 'orders': case 'qentity_sale': return 'шт';
+            default: return 'руб';
+        }
+    }
+    
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: '{{ label }}',
+                data: chartData,
+                borderColor: '{{ color }}',
+                backgroundColor: '{{ color }}'.replace(')', ', 0.1)'),
+                borderWidth: 2,
+                tension: 0.1,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'top' }, tooltip: { mode: 'index', intersect: false } },
+            scales: {
+                y: {
+                    beginAtZero: false,
+                    ticks: {
+                        callback: function(value) {
+                            if (chartType === 'percent' || chartType === 'log_price_percent' || chartType === 'spp_percent') return value + '%';
+                            if (chartType === 'orders' || chartType === 'qentity_sale') return value;
+                            return value.toLocaleString() + ' ₽';
+                        }
+                    },
+                    title: { display: true, text: getYAxisTitle(chartType) }
+                }
+            }
+        }
+    });
+});
+</script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const today = new Date().toISOString().split("T")[0];
+    const prev30 = new Date();
+    prev30.setDate(prev30.getDate() - 30);
+    const start = document.getElementById("start_date");
+    const end = document.getElementById("end_date");
+    if (!start.value) start.value = prev30.toISOString().split("T")[0];
+    if (!end.value) end.value = today;
+});
+</script>
+
+<div style="margin-top: 30px">
+    <a href="{% url 'forms_app:form20_detail' code=code %}" class="btn">← Назад к данным</a>
+    <a href="{% url 'forms_app:form20_list' %}" class="btn">📋 Все артикулы</a>
+</div>
+{% else %}
+<p style="color: #888;">📊 Нет данных для построения графика.</p>
+<a href="{% url 'forms_app:form20_detail' code=code %}" class="btn">← Назад</a>
+{% endif %}
+{% endblock %}
