@@ -16,6 +16,7 @@ urlpatterns = [
         name="login",
     ),
     path("accounts/", include("accounts.urls", namespace="accounts")),
+    path("access/", include("access_codes.urls")),
     path(
         "forms/", include("forms_app.urls")
     ),  # Использует app_name из forms_app/urls.py

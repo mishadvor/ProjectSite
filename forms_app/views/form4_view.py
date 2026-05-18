@@ -135,7 +135,7 @@ def upload_file(request):
                         percent_sell=safe_float(row.get("%Выкупа")),
                         profit=safe_float(row.get("Прибыль")),
                         orders=safe_int(row.get("Заказы")),
-                        percent_log_price=safe_float(row.get("% Лог/Наша Цена")),
+                        percent_log_price=safe_float(row.get("% Лог/Реализация ВБ")),
                         spp_percent=safe_float(row.get("% СПП")),
                     )
                 )
@@ -287,7 +287,7 @@ def export_form4_excel(request):
                 "%Выкупа": item.percent_sell,
                 "Прибыль": item.profit,
                 "Заказы": item.orders,
-                "% Лог/Наша Цена": item.percent_log_price,
+                "% Лог/Реализация ВБ": item.percent_log_price,
                 "% СПП": item.spp_percent,
             }
         )
@@ -407,7 +407,7 @@ def form4_chart(request, code, chart_type=None):
             float(r.percent_log_price if r.percent_log_price is not None else 0)
             for r in records
         ]
-        label = "% Лог/Наша Цена"
+        label = "% Лог/Реализация ВБ"
         color = "rgb(255, 205, 86)"
     elif chart_type == "qentity_sale":
         data_values = [r.qentity_sale or 0 for r in records]

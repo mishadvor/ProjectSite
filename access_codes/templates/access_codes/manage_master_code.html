@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+
+{% block title %}Управление мастер-кодом{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="bi bi-key"></i> 
+                        Управление мастер-кодом доступа
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i>
+                        <strong>Как это работает:</strong><br>
+                        Установите один код, который будут использовать ВСЕ пользователи для доступа к сайту.
+                        Вы сами решаете, кому дать этот код.
+                    </div>
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label class="form-label">
+                                <i class="bi bi-qr-code"></i> 
+                                Мастер-код доступа
+                            </label>
+                            <input type="text" 
+                                   name="code" 
+                                   class="form-control form-control-lg text-center font-monospace"
+                                   value="{{ master_code.code }}"
+                                   required
+                                   pattern="[A-Z0-9]{4,20}"
+                                   title="Только заглавные буквы и цифры, от 4 до 20 символов">
+                            <div class="form-text">
+                                Код может содержать заглавные буквы и цифры (например: SECRET2024)
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" 
+                                   name="is_active" 
+                                   class="form-check-input" 
+                                   id="is_active"
+                                   {% if master_code.is_active %}checked{% endif %}>
+                            <label class="form-check-label" for="is_active">
+                                <i class="bi bi-check-circle"></i> 
+                                Код активен (пользователи могут использовать его для входа)
+                            </label>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-save"></i> Сохранить код
+                            </button>
+                            <a href="{% url 'forms_app:dashboard' %}" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i> Назад
+                            </a>
+                        </div>
+                    </form>
+                    
+                    <hr class="my-4">
+                    
+                    <div class="card bg-light">
+                        <div class="card-body">
+                            <h6 class="card-title">
+                                <i class="bi bi-shield-lock"></i> 
+                                Инструкция:
+                            </h6>
+                            <ol class="small mb-0">
+                                <li>Установите свой код (например: "MYSITE2025")</li>
+                                <li>Сообщите этот код только тем, кому нужен доступ</li>
+                                <li>Пользователь вводит логин/пароль → затем этот код</li>
+                                <li>Чтобы заблокировать доступ всем - выключите "Код активен"</li>
+                                <li>Или просто смените код</li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

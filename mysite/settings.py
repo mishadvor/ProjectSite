@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     "ckeditor_uploader",
     "accounts",
     "django_extensions",
+    "access_codes",
 ]
 
 MIDDLEWARE = [
@@ -58,7 +59,13 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "access_codes.middleware.TwoFactorMiddleware",
 ]
+
+TWO_FACTOR_AUTH = {
+    "SESSION_KEY": "2fa_verified",
+    "CODE_EXPIRY_MINUTES": 30,
+}
 
 ROOT_URLCONF = "mysite.urls"
 
