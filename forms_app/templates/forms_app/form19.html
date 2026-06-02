@@ -23,6 +23,7 @@
             </h5>
         </div>
         <div class="card-body">
+            <!-- Используем стандартную отправку без iframe -->
             <form method="post" enctype="multipart/form-data" id="uploadForm">
                 {% csrf_token %}
                 <input type="hidden" name="upload_token" value="{{ upload_token }}">
@@ -53,17 +54,13 @@
 document.getElementById('uploadForm').addEventListener('submit', function(e) {
     const submitBtn = document.getElementById('submitBtn');
     const fileInput = document.getElementById('id_file');
+    const form = this;
     
     if (fileInput.files.length === 0) {
         e.preventDefault();
         alert('Пожалуйста, выберите файл для загрузки');
         return;
     }
-    
-    // Показываем индикатор загрузки
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = 
-        '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Обработка...';
     
     // Проверка размера файла
     const file = fileInput.files[0];
@@ -72,9 +69,54 @@ document.getElementById('uploadForm').addEventListener('submit', function(e) {
     if (file.size > maxSize) {
         e.preventDefault();
         alert('Файл слишком большой. Максимальный размер: 50 МБ');
+        return;
+    }
+    
+    // Показываем индикатор загрузки
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = 
+        '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Обработка файла...';
+    
+    // Важно: НЕ вызываем e.preventDefault(), позволяем форме отправиться нормально
+    // Браузер сам обработает ответ и покажет диалог скачивания
+    
+    // Устанавливаем таймаут для восстановления кнопки (на случай ошибки)
+    // Если через 30 секунд ничего не произошло - восстанавливаем кнопку
+    setTimeout(function() {
+        if (submitBtn.disabled) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-chart-line"></i> Запустить анализ';
+            // Проверяем, не был ли файл уже скачан
+            // Для этого можно добавить проверку наличия сообщения об ошибке
+            const errorMessages = document.querySelectorAll('.alert-danger');
+            if (errorMessages.length === 0) {
+                console.log('Обработка занимает больше времени, чем ожидалось...');
+            }
+        }
+    }, 30000); // 30 секунд таймаут
+});
+
+// Восстанавливаем кнопку при загрузке страницы (если возврат с ошибкой)
+window.addEventListener('pageshow', function() {
+    const submitBtn = document.getElementById('submitBtn');
+    if (submitBtn && submitBtn.disabled) {
         submitBtn.disabled = false;
         submitBtn.innerHTML = '<i class="fas fa-chart-line"></i> Запустить анализ';
-        return;
+    }
+});
+
+// Отслеживаем, когда страница покидается (файл скачан)
+let formSubmitted = false;
+document.getElementById('uploadForm').addEventListener('submit', function() {
+    formSubmitted = true;
+});
+
+// Восстанавливаем кнопку, если пользователь вернулся на страницу через назад
+window.addEventListener('popstate', function() {
+    const submitBtn = document.getElementById('submitBtn');
+    if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fas fa-chart-line"></i> Запустить анализ';
     }
 });
 </script>
@@ -92,6 +134,9 @@ document.getElementById('uploadForm').addEventListener('submit', function(e) {
     padding: 0.75rem 1.5rem;
     font-size: 1.1rem;
     width: 100%;
+}
+.spinner-border {
+    margin-right: 8px;
 }
 </style>
 {% endblock %}
