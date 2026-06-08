@@ -58,7 +58,7 @@
         <a href="{% url 'forms_app:form20_chart_type' code=code chart_type='price' %}" class="btn {% if chart_type == 'price' %}active{% endif %}" style="background: {% if chart_type == 'price' %}#ffbf64{% else %}#007bff{% endif %};">🏷️ Цена</a>
     </div>
     <div style="margin-top: 10px;">
-        <a href="{% url 'forms_app:form20_chart_type' code=code chart_type='log_price_percent' %}" class="btn {% if chart_type == 'log_price_percent' %}active{% endif %}">🚚% Лог/Цена</a>
+        <a href="{% url 'forms_app:form20_chart_type' code=code chart_type='log_price_percent' %}" class="btn {% if chart_type == 'log_price_percent' %}active{% endif %}">🚚% Лог/Реализация ВБ</a>
         <a href="{% url 'forms_app:form20_chart_type' code=code chart_type='qentity_sale' %}" class="btn {% if chart_type == 'qentity_sale' %}active{% endif %}">📊 Продажи, шт</a>
         <a href="{% url 'forms_app:form20_chart_type' code=code chart_type='spp_percent' %}" class="btn {% if chart_type == 'spp_percent' %}active{% endif %}">📊 % СПП</a>
     </div>

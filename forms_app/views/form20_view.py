@@ -3,6 +3,7 @@
 Форма 20: Ежедневные данные по артикулам
 Отличие от Формы 4: не суммирует, а показывает ежедневные изменения по каждому артикулу
 """
+
 import re
 import pandas as pd
 from datetime import datetime, timedelta
@@ -128,7 +129,7 @@ def upload_file20(request):
                         percent_sell=safe_float(row.get("%Выкупа")),
                         profit=safe_float(row.get("Прибыль")),
                         orders=safe_int(row.get("Заказы")),
-                        percent_log_price=safe_float(row.get("% Лог/Наша Цена")),
+                        percent_log_price=safe_float(row.get("% Лог/Реализация ВБ")),
                         spp_percent=safe_float(row.get("% СПП")),
                     )
                 )
