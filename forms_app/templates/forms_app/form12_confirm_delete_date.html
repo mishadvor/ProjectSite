@@ -5,7 +5,7 @@
 {% block content %}
 <div class="container mt-4">
     <div class="row justify-content-center">
-        <div class="col-md-8">
+        <div class="col-md-9">
             <div class="card border-danger">
                 <div class="card-header bg-danger text-white">
                     <h4 class="mb-0">🗑️ Подтверждение удаления</h4>
@@ -13,11 +13,26 @@
                 <div class="card-body">
                     <div class="alert alert-danger">
                         <h5 class="alert-heading">⛔ Вы уверены?</h5>
+                        {% if is_range %}
+                        <p class="mb-2">Вы собираетесь удалить все данные за период с <strong>{{ date_from_display }}</strong> по <strong>{{ date_to_display }}</strong></p>
+                        {% else %}
                         <p class="mb-2">Вы собираетесь удалить все данные за <strong>{{ delete_date_display }}</strong></p>
+                        {% endif %}
                     </div>
 
+                    {% if dates_in_range %}
                     <div class="mb-4">
-                        <h6>Будет удалено:</h6>
+                        <h6>📅 Удаляемые даты:</h6>
+                        <div class="bg-light p-2 rounded" style="max-height: 100px; overflow-y: auto;">
+                            {% for date in dates_in_range %}
+                            <span class="badge bg-info me-1 mb-1">{{ date|date:"d.m.Y" }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="mb-4">
+                        <h6>📊 Статистика удаления:</h6>
                         <ul class="list-group">
                             <li class="list-group-item d-flex justify-content-between align-items-center">
                                 Количество записей
@@ -27,12 +42,21 @@
                                 Затронуто артикулов
                                 <span class="badge bg-warning rounded-pill">{{ articles_count }}</span>
                             </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                {% if is_range %}
+                                Период удаления
+                                <span class="badge bg-secondary">{{ date_from_display }} — {{ date_to_display }}</span>
+                                {% else %}
+                                Дата удаления
+                                <span class="badge bg-secondary">{{ delete_date_display }}</span>
+                                {% endif %}
+                            </li>
                         </ul>
                     </div>
 
                     {% if affected_articles %}
                     <div class="mb-4">
-                        <h6>Затронутые артикулы:</h6>
+                        <h6>📦 Затронутые артикулы:</h6>
                         <div class="bg-light p-3 rounded" style="max-height: 200px; overflow-y: auto;">
                             {% for article in affected_articles %}
                             <span class="badge bg-secondary me-1 mb-1">{{ article.wb_article }}</span>
@@ -43,14 +67,20 @@
 
                     <form method="post">
                         {% csrf_token %}
-                        <input type="hidden" name="date" value="{{ delete_date|date:'Y-m-d' }}">
+                        <input type="hidden" name="date_from" value="{{ date_from|date:'Y-m-d' }}">
+                        <input type="hidden" name="date_to" value="{{ date_to|date:'Y-m-d' }}">
                         
                         <div class="d-flex gap-2 justify-content-end">
                             <a href="{% url 'forms_app:form12_delete_by_date' %}" class="btn btn-secondary">
                                 ← Отмена
                             </a>
                             <button type="submit" name="confirm" value="1" class="btn btn-danger">
-                                🗑️ Да, удалить данные за {{ delete_date_display }}
+                                🗑️ Да, удалить данные за 
+                                {% if is_range %}
+                                {{ date_from_display }} — {{ date_to_display }}
+                                {% else %}
+                                {{ delete_date_display }}
+                                {% endif %}
                             </button>
                         </div>
                     </form>

@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-9">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-exclamation-triangle"></i> Подтверждение удаления диапазона
+                    </h4>
+                </div>
+                
+                <div class="card-body">
+                    <div class="alert alert-danger">
+                        <h4 class="alert-heading">⛔ Вы уверены?</h4>
+                        <p class="mb-2">
+                            Вы собираетесь удалить все данные за период с 
+                            <strong>{{ date_from_display }}</strong> по <strong>{{ date_to_display }}</strong>
+                        </p>
+                        <hr>
+                        <p class="mb-0">Это действие нельзя отменить!</p>
+                    </div>
+
+                    {% if dates_in_range %}
+                    <div class="mb-4">
+                        <h6><i class="fas fa-calendar-alt"></i> Удаляемые даты:</h6>
+                        <div class="bg-light p-2 rounded" style="max-height: 150px; overflow-y: auto;">
+                            {% for date in dates_in_range|slice:":20" %}
+                            <span class="badge bg-info me-1 mb-1" style="font-size: 0.9rem; padding: 5px 12px;">
+                                {{ date|date:"d.m.Y" }}
+                            </span>
+                            {% endfor %}
+                            {% if dates_in_range|length > 20 %}
+                            <span class="badge bg-secondary">... и еще {{ dates_in_range|length|add:"-20" }} дат</span>
+                            {% endif %}
+                        </div>
+                        <div class="form-text mt-1">
+                            <i class="fas fa-info-circle"></i> Всего дат в периоде: {{ dates_in_range|length }}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="mb-4">
+                        <h6><i class="fas fa-chart-bar"></i> Статистика удаления:</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <h6 class="text-muted">Количество записей</h6>
+                                        <h3 class="text-danger">{{ records_count }}</h3>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card bg-light">
+                                    <div class="card-body text-center">
+                                        <h6 class="text-muted">Период удаления</h6>
+                                        <h5 class="text-warning">
+                                            {{ date_from_display }}
+                                            <i class="fas fa-arrow-right mx-1"></i>
+                                            {{ date_to_display }}
+                                        </h5>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="date_from" value="{{ date_from|date:'Y-m-d' }}">
+                        <input type="hidden" name="date_to" value="{{ date_to|date:'Y-m-d' }}">
+                        <input type="hidden" name="confirm" value="1">
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'forms_app:form14_delete_by_date' %}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Отмена
+                            </a>
+                            <button type="submit" class="btn btn-danger btn-lg">
+                                <i class="fas fa-trash"></i> 
+                                Да, удалить данные за {{ date_from_display }} — {{ date_to_display }}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                
+                <div class="card-footer text-muted">
+                    <small>
+                        <i class="fas fa-info-circle"></i> 
+                        Будет удалено {{ records_count }} записей за {{ dates_in_range|length }} дней.
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

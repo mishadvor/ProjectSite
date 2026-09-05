@@ -2,54 +2,144 @@
 {% extends "base.html" %}
 {% load static %}
 
+{% block extra_css %}
+<style>
+    .date-range-container {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    .date-input-group {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        flex-wrap: wrap;
+    }
+    .date-input-group .form-group {
+        flex: 1;
+        min-width: 200px;
+    }
+    .date-separator {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #6c757d;
+    }
+    .quick-buttons {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 10px;
+    }
+    .quick-buttons .btn {
+        font-size: 0.85rem;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container mt-4">
     <div class="row justify-content-center">
-        <div class="col-md-8">
+        <div class="col-md-10">
             <div class="card border-warning">
                 <div class="card-header bg-warning text-dark">
-                    <h4 class="mb-0">🗑️ Удаление данных по дате</h4>
+                    <h4 class="mb-0">🗑️ Удаление данных по диапазону дат</h4>
                 </div>
                 <div class="card-body">
                     <div class="alert alert-warning">
                         <h5 class="alert-heading">⚠️ Внимание!</h5>
                         <p class="mb-0">
-                            Вы можете удалить все данные за определенную дату. Это действие нельзя отменить.
+                            Вы можете удалить все данные за выбранный период. Это действие нельзя отменить.
                         </p>
                     </div>
 
                     <form method="post">
                         {% csrf_token %}
                         
-                        <div class="mb-4">
-                            <label for="date-select" class="form-label fw-bold">
-                                Выберите дату для удаления:
-                            </label>
+                        <div class="date-range-container">
+                            <div class="date-input-group">
+                                <div class="form-group">
+                                    <label for="date_from" class="form-label fw-bold">
+                                        📅 Дата начала:
+                                    </label>
+                                    <input type="date" 
+                                           class="form-control form-control-lg" 
+                                           id="date_from" 
+                                           name="date_from"
+                                           min="{{ min_date|date:'Y-m-d' }}" 
+                                           max="{{ max_date|date:'Y-m-d' }}"
+                                           required>
+                                    <div class="form-text">
+                                        Первая дата в периоде
+                                    </div>
+                                </div>
+                                
+                                <div class="date-separator">➡️</div>
+                                
+                                <div class="form-group">
+                                    <label for="date_to" class="form-label fw-bold">
+                                        📅 Дата окончания:
+                                    </label>
+                                    <input type="date" 
+                                           class="form-control form-control-lg" 
+                                           id="date_to" 
+                                           name="date_to"
+                                           min="{{ min_date|date:'Y-m-d' }}" 
+                                           max="{{ max_date|date:'Y-m-d' }}"
+                                           required>
+                                    <div class="form-text">
+                                        Последняя дата в периоде
+                                    </div>
+                                </div>
+                            </div>
                             
-                            {% if available_dates %}
-                            <select class="form-select form-select-lg" id="date-select" name="date" required>
-                                <option value="">-- Выберите дату --</option>
-                                {% for date in available_dates %}
-                                <option value="{{ date|date:'Y-m-d' }}">
-                                    {{ date|date:"d.m.Y" }} ({{ date|date:"l" }})
-                                </option>
-                                {% endfor %}
-                            </select>
-                            <div class="form-text">
-                                Доступно дат: {{ available_dates|length }}
+                            <div class="mt-3">
+                                <label class="form-label fw-bold">⚡ Быстрый выбор периода:</label>
+                                <div class="quick-buttons">
+                                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="setDateRange(7)">
+                                        Последние 7 дней
+                                    </button>
+                                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="setDateRange(14)">
+                                        Последние 14 дней
+                                    </button>
+                                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="setDateRange(30)">
+                                        Последние 30 дней
+                                    </button>
+                                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="setDateRange(60)">
+                                        Последние 60 дней
+                                    </button>
+                                    <button type="button" class="btn btn-outline-success btn-sm" onclick="setDateRange(90)">
+                                        Последние 90 дней
+                                    </button>
+                                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="setDateRangeAll()">
+                                        Весь период
+                                    </button>
+                                </div>
                             </div>
-                            {% else %}
-                            <div class="alert alert-info">
-                                ℹ️ Нет доступных дат для удаления
-                            </div>
-                            {% endif %}
                         </div>
+
+                        {% if available_dates %}
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">📊 Доступные даты в базе:</label>
+                            <div class="bg-light p-2 rounded" style="max-height: 100px; overflow-y: auto;">
+                                {% for date in available_dates|slice:":20" %}
+                                <span class="badge bg-secondary me-1 mb-1">{{ date|date:"d.m.Y" }}</span>
+                                {% endfor %}
+                                {% if available_dates|length > 20 %}
+                                <span class="badge bg-info">... и еще {{ available_dates|length|add:"-20" }} дат</span>
+                                {% endif %}
+                            </div>
+                            <div class="form-text">
+                                Всего доступно дат: {{ available_dates|length }}
+                            </div>
+                        </div>
+                        {% endif %}
 
                         <div class="d-flex gap-2 justify-content-end">
                             <a href="{% url 'forms_app:form12_list' %}" class="btn btn-secondary">
                                 ← Назад к списку
                             </a>
-                            {% if available_dates %}
+                            {% if records_count > 0 %}
                             <button type="submit" class="btn btn-warning">
                                 🔍 Показать данные для удаления
                             </button>
@@ -59,9 +149,50 @@
                 </div>
                 <div class="card-footer text-muted">
                     Всего записей в базе: {{ records_count }}
+                    {% if min_date and max_date %}
+                    <span class="ms-3">📅 Диапазон данных: {{ min_date|date:"d.m.Y" }} — {{ max_date|date:"d.m.Y" }}</span>
+                    {% endif %}
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+    function setDateRange(days) {
+        const today = new Date();
+        const fromDate = new Date(today);
+        fromDate.setDate(today.getDate() - days);
+        
+        // Форматируем даты для input type="date" (YYYY-MM-DD)
+        const formatDate = (date) => {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        };
+        
+        document.getElementById('date_from').value = formatDate(fromDate);
+        document.getElementById('date_to').value = formatDate(today);
+    }
+    
+    function setDateRangeAll() {
+        const minDate = document.getElementById('date_from').min;
+        const maxDate = document.getElementById('date_to').max;
+        if (minDate) document.getElementById('date_from').value = minDate;
+        if (maxDate) document.getElementById('date_to').value = maxDate;
+    }
+    
+    // Валидация дат на клиенте
+    document.querySelector('form').addEventListener('submit', function(e) {
+        const dateFrom = document.getElementById('date_from').value;
+        const dateTo = document.getElementById('date_to').value;
+        
+        if (dateFrom && dateTo && dateFrom > dateTo) {
+            e.preventDefault();
+            alert('❌ Начальная дата не может быть позже конечной!');
+            return false;
+        }
+    });
+</script>
 {% endblock %}

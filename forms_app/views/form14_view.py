@@ -11,6 +11,7 @@ from forms_app.forms import UploadFileForm14
 from forms_app.models import Form14Data
 from openpyxl.styles import Alignment, Font, NamedStyle
 from openpyxl.utils import get_column_letter
+from django.db.models import Min, Max
 
 
 @login_required
@@ -287,38 +288,103 @@ def clear_form14_data(request):
 
 @login_required
 def form14_delete_by_date(request):
-    """Удаление данных за определенную дату"""
+    """Удаление данных за определенную дату или диапазон дат"""
     if request.method == "POST":
-        date_str = request.POST.get("date")
-        if not date_str:
-            messages.error(request, "❌ Не указана дата для удаления.")
+        date_from_str = request.POST.get("date_from")
+        date_to_str = request.POST.get("date_to")
+        single_date_str = request.POST.get("date")  # Для обратной совместимости
+
+        # Проверяем, какой режим используется
+        if single_date_str and not date_from_str:
+            # Старый режим - удаление по одной дате
+            try:
+                delete_date = datetime.strptime(single_date_str, "%Y-%m-%d").date()
+            except ValueError:
+                messages.error(
+                    request, "❌ Неверный формат даты. Используйте ГГГГ-ММ-ДД."
+                )
+                return redirect("forms_app:form14_list")
+
+            deleted_count = Form14Data.objects.filter(
+                user=request.user, date=delete_date
+            ).delete()[0]
+
+            if deleted_count:
+                messages.success(
+                    request, f"✅ Удалены данные за {delete_date.strftime('%d.%m.%Y')}"
+                )
+            else:
+                messages.warning(
+                    request,
+                    f"ℹ️ Нет данных для удаления за {delete_date.strftime('%d.%m.%Y')}",
+                )
+            return redirect("forms_app:form14_list")
+
+        # Новый режим - удаление диапазона
+        if not date_from_str or not date_to_str:
+            messages.error(
+                request, "❌ Укажите начальную и конечную дату для удаления."
+            )
             return redirect("forms_app:form14_list")
 
         try:
-            delete_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+            date_from = datetime.strptime(date_from_str, "%Y-%m-%d").date()
+            date_to = datetime.strptime(date_to_str, "%Y-%m-%d").date()
         except ValueError:
             messages.error(request, "❌ Неверный формат даты. Используйте ГГГГ-ММ-ДД.")
             return redirect("forms_app:form14_list")
 
-        # Удаляем запись за указанную дату
-        deleted_count = Form14Data.objects.filter(
-            user=request.user, date=delete_date
-        ).delete()[0]
+        if date_from > date_to:
+            messages.error(request, "❌ Начальная дата не может быть позже конечной.")
+            return redirect("forms_app:form14_list")
 
-        if deleted_count:
+        # Подтверждение удаления
+        if "confirm" in request.POST:
+            # Выполняем удаление
+            deleted_count = Form14Data.objects.filter(
+                user=request.user, date__gte=date_from, date__lte=date_to
+            ).delete()[0]
+
             messages.success(
                 request,
-                f"✅ Удалены данные за {delete_date.strftime('%d.%m.%Y')}",
+                f"✅ Удалено {deleted_count} записей за период с {date_from.strftime('%d.%m.%Y')} по {date_to.strftime('%d.%m.%Y')}",
             )
+            return redirect("forms_app:form14_list")
         else:
-            messages.warning(
-                request,
-                f"ℹ️ Нет данных для удаления за {delete_date.strftime('%d.%m.%Y')}",
+            # Показываем страницу подтверждения
+            records_to_delete = Form14Data.objects.filter(
+                user=request.user, date__gte=date_from, date__lte=date_to
             )
 
-        return redirect("forms_app:form14_list")
+            deleted_count = records_to_delete.count()
 
-    # GET запрос - показываем форму выбора даты
+            if deleted_count == 0:
+                messages.warning(
+                    request,
+                    f"ℹ️ Нет данных для удаления за период с {date_from.strftime('%d.%m.%Y')} по {date_to.strftime('%d.%m.%Y')}",
+                )
+                return redirect("forms_app:form14_list")
+
+            dates_in_range = (
+                records_to_delete.values_list("date", flat=True)
+                .distinct()
+                .order_by("date")
+            )
+
+            return render(
+                request,
+                "forms_app/form14_confirm_delete_range.html",  # Новый шаблон для подтверждения диапазона
+                {
+                    "date_from": date_from,
+                    "date_to": date_to,
+                    "date_from_display": date_from.strftime("%d.%m.%Y"),
+                    "date_to_display": date_to.strftime("%d.%m.%Y"),
+                    "records_count": deleted_count,
+                    "dates_in_range": dates_in_range,
+                },
+            )
+
+    # GET запрос - показываем форму выбора даты/диапазона
     available_dates = (
         Form14Data.objects.filter(user=request.user)
         .values_list("date", flat=True)
@@ -326,12 +392,18 @@ def form14_delete_by_date(request):
         .order_by("-date")
     )
 
+    date_range = Form14Data.objects.filter(user=request.user).aggregate(
+        min_date=Min("date"), max_date=Max("date")
+    )
+
     return render(
         request,
-        "forms_app/form14_delete_by_date.html",
+        "forms_app/form14_delete_by_date.html",  # Обновленный шаблон
         {
             "available_dates": available_dates,
             "records_count": Form14Data.objects.filter(user=request.user).count(),
+            "min_date": date_range.get("min_date"),
+            "max_date": date_range.get("max_date"),
         },
     )
 

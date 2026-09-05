@@ -1,76 +1,281 @@
 {% extends 'base.html' %}
 
+{% block extra_css %}
+<style>
+    .nav-tabs .nav-link.active {
+        font-weight: bold;
+    }
+    .nav-tabs .nav-link.text-danger.active {
+        color: #dc3545 !important;
+        border-color: #dc3545 #dc3545 #fff;
+    }
+    .date-range-container {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 15px;
+        margin-top: 10px;
+    }
+    .date-input-group {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        flex-wrap: wrap;
+    }
+    .date-input-group .form-group {
+        flex: 1;
+        min-width: 200px;
+    }
+    .date-separator {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #6c757d;
+    }
+    .quick-buttons {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 10px;
+    }
+    .quick-buttons .btn {
+        font-size: 0.85rem;
+    }
+    .badge-date {
+        font-size: 0.8rem;
+        padding: 5px 10px;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container mt-4">
     <div class="card">
-        <div class="card-header bg-warning text-dark">
-            <h2 class="mb-0">
-                <i class="fas fa-calendar-times"></i> Удаление данных за определенную дату
-            </h2>
+        <div class="card-header bg-danger text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-calendar-times"></i> Удаление данных Формы 14
+            </h5>
         </div>
         
         <div class="card-body">
-            <div class="alert alert-info">
-                <p class="mb-0">
-                    Выберите дату для удаления. Будет удалена только запись за выбранную дату.
-                </p>
+            <ul class="nav nav-tabs mb-3" id="deleteTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="single-tab" data-bs-toggle="tab" 
+                            data-bs-target="#single" type="button" role="tab">
+                        <i class="fas fa-calendar-day"></i> Одна дата
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link text-danger" id="range-tab" data-bs-toggle="tab" 
+                            data-bs-target="#range" type="button" role="tab">
+                        <i class="fas fa-calendar-range"></i> Диапазон дат
+                    </button>
+                </li>
+            </ul>
+            
+            <div class="tab-content">
+                <!-- Вкладка: Удаление одной даты (существующая функциональность) -->
+                <div class="tab-pane fade show active" id="single" role="tabpanel">
+                    {% if available_dates %}
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="date" class="form-label">Выберите дату для удаления:</label>
+                            <select class="form-select" id="date" name="date" required>
+                                <option value="">-- Выберите дату --</option>
+                                {% for date in available_dates %}
+                                <option value="{{ date|date:'Y-m-d' }}">
+                                    {{ date|date:"d.m.Y" }} ({{ date|date:"l" }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'forms_app:form14_list' %}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Отмена
+                            </a>
+                            <button type="submit" class="btn btn-danger">
+                                <i class="fas fa-trash"></i> Удалить данные за выбранную дату
+                            </button>
+                        </div>
+                    </form>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                        <h5>Нет данных для удаления</h5>
+                        <p class="text-muted">В базе данных нет записей формы 14</p>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Вкладка: Удаление диапазона дат (НОВАЯ ФУНКЦИОНАЛЬНОСТЬ) -->
+                <div class="tab-pane fade" id="range" role="tabpanel">
+                    {% if available_dates %}
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="date-range-container">
+                            <div class="date-input-group">
+                                <div class="form-group">
+                                    <label for="date_from" class="form-label fw-bold">
+                                        <i class="fas fa-calendar-day"></i> Дата начала:
+                                    </label>
+                                    <input type="date" 
+                                           class="form-control" 
+                                           id="date_from" 
+                                           name="date_from"
+                                           min="{{ min_date|date:'Y-m-d' }}" 
+                                           max="{{ max_date|date:'Y-m-d' }}"
+                                           required>
+                                    <div class="form-text">
+                                        Первая дата в периоде
+                                    </div>
+                                </div>
+                                
+                                <div class="date-separator">➡️</div>
+                                
+                                <div class="form-group">
+                                    <label for="date_to" class="form-label fw-bold">
+                                        <i class="fas fa-calendar-day"></i> Дата окончания:
+                                    </label>
+                                    <input type="date" 
+                                           class="form-control" 
+                                           id="date_to" 
+                                           name="date_to"
+                                           min="{{ min_date|date:'Y-m-d' }}" 
+                                           max="{{ max_date|date:'Y-m-d' }}"
+                                           required>
+                                    <div class="form-text">
+                                        Последняя дата в периоде
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-3">
+                                <label class="form-label fw-bold">⚡ Быстрый выбор периода:</label>
+                                <div class="quick-buttons">
+                                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="setDateRange(7)">
+                                        📅 Неделя
+                                    </button>
+                                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="setDateRange(14)">
+                                        📅 14 дней
+                                    </button>
+                                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="setDateRange(30)">
+                                        📅 Месяц
+                                    </button>
+                                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="setDateRange(60)">
+                                        📅 2 месяца
+                                    </button>
+                                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="setDateRangeAll()">
+                                        📅 Весь период
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4 d-flex justify-content-between">
+                            <a href="{% url 'forms_app:form14_list' %}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Отмена
+                            </a>
+                            <button type="submit" class="btn btn-danger">
+                                <i class="fas fa-trash"></i> Удалить данные за диапазон
+                            </button>
+                        </div>
+                    </form>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                        <h5>Нет данных для удаления</h5>
+                        <p class="text-muted">В базе данных нет записей формы 14</p>
+                    </div>
+                    {% endif %}
+                </div>
             </div>
             
+            <!-- Информация о доступных датах -->
             {% if available_dates %}
-            <form method="post">
-                {% csrf_token %}
-                
-                <div class="mb-4">
-                    <label for="date" class="form-label">Выберите дату:</label>
-                    <select class="form-select" id="date" name="date" required>
-                        <option value="">-- Выберите дату --</option>
-                        {% for date in available_dates %}
-                        <option value="{{ date|date:'Y-m-d' }}">
-                            {{ date|date:"d.m.Y" }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                
-                <div class="d-flex justify-content-between">
-                    <a href="{% url 'forms_app:form14_list' %}" class="btn btn-secondary">
-                        <i class="fas fa-arrow-left"></i> Отмена
-                    </a>
-                    <button type="submit" class="btn btn-danger">
-                        <i class="fas fa-trash"></i> Удалить данные за выбранную дату
-                    </button>
-                </div>
-            </form>
-            
             <div class="card mt-4">
                 <div class="card-body">
-                    <h3>Доступные даты ({{ available_dates|length }}):</h3>
-                    <p class="mb-0">
-                        {% for date in available_dates %}
-                        <span class="badge bg-light text-dark me-1 mb-1">
+                    <h6><i class="fas fa-database"></i> Доступные даты ({{ available_dates|length }}):</h6>
+                    <div style="max-height: 100px; overflow-y: auto;">
+                        {% for date in available_dates|slice:":30" %}
+                        <span class="badge bg-light text-dark me-1 mb-1 badge-date">
                             {{ date|date:"d.m.Y" }}
                         </span>
                         {% endfor %}
-                    </p>
+                        {% if available_dates|length > 30 %}
+                        <span class="badge bg-info text-dark badge-date">
+                            ... и еще {{ available_dates|length|add:"-30" }} дат
+                        </span>
+                        {% endif %}
+                    </div>
+                    {% if min_date and max_date %}
+                    <div class="form-text mt-2">
+                        <i class="fas fa-calendar-range"></i> 
+                        Диапазон данных: {{ min_date|date:"d.m.Y" }} — {{ max_date|date:"d.m.Y" }}
+                    </div>
+                    {% endif %}
                 </div>
-            </div>
-            {% else %}
-            <div class="text-center py-4">
-                <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
-                <h5>Нет данных для удаления</h5>
-                <p class="text-muted">В базе данных нет записей формы 14</p>
-                <a href="{% url 'forms_app:form14_list' %}" class="btn btn-primary">
-                    <i class="fas fa-arrow-left"></i> Вернуться к списку
-                </a>
             </div>
             {% endif %}
         </div>
         
         <div class="card-footer text-muted">
             <small>
-                <i class="fas fa-info-circle"></i> Всего записей в базе: {{ records_count }}
+                <i class="fas fa-info-circle"></i> 
+                Всего записей в базе: {{ records_count }} |
+                <span class="text-danger">⚠️ Удаление данных невозможно отменить!</span>
             </small>
         </div>
     </div>
 </div>
+
+<script>
+    function setDateRange(days) {
+        const today = new Date();
+        const fromDate = new Date(today);
+        fromDate.setDate(today.getDate() - days);
+        
+        const formatDate = (date) => {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        };
+        
+        document.getElementById('date_from').value = formatDate(fromDate);
+        document.getElementById('date_to').value = formatDate(today);
+    }
+    
+    function setDateRangeAll() {
+        const minDate = document.getElementById('date_from').min;
+        const maxDate = document.getElementById('date_to').max;
+        if (minDate) document.getElementById('date_from').value = minDate;
+        if (maxDate) document.getElementById('date_to').value = maxDate;
+    }
+    
+    // Валидация формы диапазона
+    document.querySelector('#range form').addEventListener('submit', function(e) {
+        const dateFrom = document.getElementById('date_from').value;
+        const dateTo = document.getElementById('date_to').value;
+        
+        if (!dateFrom || !dateTo) {
+            e.preventDefault();
+            alert('❌ Пожалуйста, выберите начальную и конечную дату!');
+            return false;
+        }
+        
+        if (dateFrom > dateTo) {
+            e.preventDefault();
+            alert('❌ Начальная дата не может быть позже конечной!');
+            return false;
+        }
+        
+        return confirm(
+            '⚠️ Вы уверены, что хотите удалить данные за период с ' + 
+            document.getElementById('date_from').value + ' по ' + document.getElementById('date_to').value + '?\n\n' +
+            'Это действие нельзя отменить!'
+        );
+    });
+</script>
 {% endblock %}
