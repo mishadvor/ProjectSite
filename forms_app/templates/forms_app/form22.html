@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Форма 22 - Анализ продаж и остатков{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h2 class="mb-4">
+        <i class="bi bi-graph-up-arrow text-primary"></i>
+        Форма 22 - Анализ продаж и остатков
+    </h2>
+    
+    <!-- Кнопки переключения между шагами -->
+    <div style="display: flex; justify-content: center; gap: 15px; margin-bottom: 25px; flex-wrap: wrap;">
+        <a href="{% url 'forms_app:form22' %}?step=1" 
+           class="btn {% if step == '1' %}btn-success{% else %}btn-secondary{% endif %}"
+           style="min-width: 200px; padding: 10px 20px; font-weight: 600; border-radius: 25px;
+                  {% if step == '1' %}box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);{% endif %}">
+            <i class="bi bi-arrow-right-circle me-2"></i>
+            1. Суммирование заказов
+        </a>
+        <a href="{% url 'forms_app:form22' %}?step=2" 
+           class="btn {% if step == '2' %}btn-success{% else %}btn-secondary{% endif %}"
+           style="min-width: 200px; padding: 10px 20px; font-weight: 600; border-radius: 25px;
+                  {% if step == '2' %}box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);{% endif %}">
+            <i class="bi bi-arrow-right-circle me-2"></i>
+            2. Совмещение с остатками
+        </a>
+    </div>
+    
+    <!-- Отображение ошибок -->
+    {% if error %}
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+        {{ error }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endif %}
+    
+    {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+    {% endif %}
+    
+    {% if step == '1' %}
+    <!-- ШАГ 1 -->
+    <div class="info-box" style="background: #e8f5e9; border-left: 4px solid #28a745; padding: 15px 20px; border-radius: 5px; margin-bottom: 20px;">
+        <i class="bi bi-info-circle-fill me-2" style="color: #28a745;"></i>
+        <strong>Шаг 1:</strong> Загрузите три Excel файла с заказами.
+        В каждом файле должны быть колонки: 
+        <span class="badge bg-success">Артикул продавца</span>
+        <span class="badge bg-success">Размер</span>
+        <span class="badge bg-success">шт.</span>
+        <br>
+        <small class="text-muted mt-1 d-block">
+            <i class="bi bi-arrow-right"></i> После обработки автоматически скачается файл 
+            <strong>Form22_Step2_Result.xlsx</strong> с двумя страницами: 
+            "По размерам" и "По артикулам"
+        </small>
+    </div>
+    
+    <form method="post" enctype="multipart/form-data" action="{% url 'forms_app:form22_step1' %}">
+        {% csrf_token %}
+        
+        <div class="upload-area" style="border: 2px dashed #28a745; border-radius: 10px; padding: 40px; text-align: center; transition: all 0.3s; background: #f8fff8;">
+            <i class="bi bi-cloud-upload" style="font-size: 3rem; color: #28a745;"></i>
+            <h5 class="mt-3">Перетащите файлы сюда или нажмите для выбора</h5>
+            <p class="text-muted">Поддерживаются файлы .xlsx</p>
+            
+            {{ step1_form.file }}
+        </div>
+        
+        <div id="fileList1" class="file-list mt-3" style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;"></div>
+        
+        <div class="text-center mt-4">
+            <button type="submit" class="btn btn-success" style="min-width: 250px; padding: 14px 35px; font-weight: 600; border-radius: 30px; box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);">
+                <i class="bi bi-play-circle me-2"></i>
+                Выполнить суммирование
+            </button>
+        </div>
+    </form>
+    
+    {% elif step == '2' %}
+    <!-- ШАГ 2 -->
+    <div class="info-box" style="background: #e8f5e9; border-left: 4px solid #28a745; padding: 15px 20px; border-radius: 5px; margin-bottom: 20px;">
+        <i class="bi bi-info-circle-fill me-2" style="color: #28a745;"></i>
+        <strong>Шаг 2:</strong> Загрузите два файла:
+        <ul class="mb-0 mt-1">
+            <li><strong>Файл с заказами</strong> (должен содержать <code>Form22_Step2_Result.xlsx</code> в названии) - используется страница "По размерам"</li>
+            <li><strong>Файл с остатками</strong> (должен содержать <code>output_stock_form6</code> в названии)</li>
+        </ul>
+        <small class="text-muted mt-1 d-block">
+            <i class="bi bi-arrow-right"></i> После обработки автоматически скачается файл 
+            <strong>stock_orders_merge_result.xlsx</strong>
+        </small>
+    </div>
+    
+    <form method="post" enctype="multipart/form-data" action="{% url 'forms_app:form22_step2' %}">
+        {% csrf_token %}
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="upload-area" style="border: 2px dashed #28a745; border-radius: 10px; padding: 30px; text-align: center; transition: all 0.3s; background: #f8fff8;">
+                    <i class="bi bi-file-earmark-spreadsheet" style="font-size: 2.5rem; color: #28a745;"></i>
+                    <h6 class="mt-2">Файл с заказами</h6>
+                    <p class="text-muted small">Form22_Step2_Result.xlsx</p>
+                    {{ step2_form.orders_file }}
+                </div>
+                <div id="fileList2_orders" class="file-list mt-2" style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;"></div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="upload-area" style="border: 2px dashed #28a745; border-radius: 10px; padding: 30px; text-align: center; transition: all 0.3s; background: #f8fff8;">
+                    <i class="bi bi-box-seam" style="font-size: 2.5rem; color: #28a745;"></i>
+                    <h6 class="mt-2">Файл с остатками</h6>
+                    <p class="text-muted small">output_stock_form6.xlsx</p>
+                    {{ step2_form.stock_file }}
+                </div>
+                <div id="fileList2_stock" class="file-list mt-2" style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;"></div>
+            </div>
+        </div>
+        
+        <div class="text-center mt-4">
+            <button type="submit" class="btn btn-success" style="min-width: 250px; padding: 14px 35px; font-weight: 600; border-radius: 30px; box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);">
+                <i class="bi bi-play-circle me-2"></i>
+                Выполнить совмещение
+            </button>
+        </div>
+    </form>
+    {% endif %}
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Отображение выбранных файлов для Шага 1
+    const fileInput1 = document.querySelector('#step1Form input[type="file"]');
+    if (fileInput1) {
+        fileInput1.addEventListener('change', function() {
+            const list = document.getElementById('fileList1');
+            list.innerHTML = '';
+            if (this.files.length > 0) {
+                Array.from(this.files).forEach(file => {
+                    const tag = document.createElement('span');
+                    tag.className = 'file-tag';
+                    tag.style.cssText = 'background: #d4edda; color: #155724; padding: 5px 15px; border-radius: 20px; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 8px;';
+                    tag.innerHTML = `<i class="bi bi-file-earmark-excel"></i> ${file.name}`;
+                    list.appendChild(tag);
+                });
+            }
+        });
+    }
+    
+    // Отображение выбранных файлов для Шага 2 - Заказы
+    const ordersInput = document.querySelector('#step2Form input[name="orders_file"]');
+    if (ordersInput) {
+        ordersInput.addEventListener('change', function() {
+            const list = document.getElementById('fileList2_orders');
+            list.innerHTML = '';
+            if (this.files.length > 0) {
+                const tag = document.createElement('span');
+                tag.className = 'file-tag';
+                tag.style.cssText = 'background: #d4edda; color: #155724; padding: 5px 15px; border-radius: 20px; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 8px;';
+                tag.innerHTML = `<i class="bi bi-file-earmark-excel"></i> ${this.files[0].name}`;
+                list.appendChild(tag);
+            }
+        });
+    }
+    
+    // Отображение выбранных файлов для Шага 2 - Остатки
+    const stockInput = document.querySelector('#step2Form input[name="stock_file"]');
+    if (stockInput) {
+        stockInput.addEventListener('change', function() {
+            const list = document.getElementById('fileList2_stock');
+            list.innerHTML = '';
+            if (this.files.length > 0) {
+                const tag = document.createElement('span');
+                tag.className = 'file-tag';
+                tag.style.cssText = 'background: #d4edda; color: #155724; padding: 5px 15px; border-radius: 20px; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 8px;';
+                tag.innerHTML = `<i class="bi bi-file-earmark-excel"></i> ${this.files[0].name}`;
+                list.appendChild(tag);
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

@@ -132,6 +132,9 @@ from .views.dashboard_view import dashboard
 # Форма 21 Озон продажи
 from .views.form21_view import form21
 
+# --- Форма 22 ---
+from .views.form22_view import form22, form22_step1, form22_step2
+
 app_name = "forms_app"
 
 urlpatterns = [
@@ -272,4 +275,7 @@ urlpatterns = [
     path("form20/", form20_list, name="form20_list"),
     # --- Форма 21 (Озон продажи) - простая версия ---
     path("form21/", form21, name="form21"),
+    path("form22/", form22, name="form22"),
+    path("form22/step1/", form22_step1, name="form22_step1"),
+    path("form22/step2/", form22_step2, name="form22_step2"),
 ]

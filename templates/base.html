@@ -15,232 +15,297 @@
     <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
     
     <style>
-        :root {
-            --sidebar-width: 260px;
-            --sidebar-collapsed-width: 70px;
-            --header-height: 60px;
-        }
-        
-        body {
-            font-family: 'Roboto', sans-serif;
-            margin: 0;
-            background: #f4f4f4;
-            overflow-x: hidden;
-        }
-        
-        /* === SIDEBAR === */
+    :root {
+        --sidebar-width: 260px;
+        --sidebar-collapsed-width: 70px;
+        --header-height: 60px;
+    }
+    
+    body {
+        font-family: 'Roboto', sans-serif;
+        margin: 0;
+        background: #f4f4f4;
+        overflow-x: hidden;
+    }
+    
+    /* === SIDEBAR === */
+    #sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100vh;
+        width: var(--sidebar-width);
+        background: linear-gradient(180deg, #1e3c72 0%, #2a5298 100%);
+        color: white;
+        transition: all 0.3s ease;
+        z-index: 1000;
+        overflow-y: auto;
+        overflow-x: hidden;
+        box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+    }
+    
+    #sidebar.collapsed {
+        width: var(--sidebar-collapsed-width);
+    }
+    
+    #sidebar .sidebar-header {
+        padding: 15px;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    
+    #sidebar .sidebar-header .logo-text {
+        font-size: 1.1rem;
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        transition: opacity 0.3s ease;
+    }
+    
+    /* Скрываем текст в коллапсированном состоянии */
+    #sidebar.collapsed .sidebar-header .logo-text,
+    #sidebar.collapsed .nav-text,
+    #sidebar.collapsed .form-label {
+        display: none;
+    }
+    
+    #sidebar .nav-link {
+        color: rgba(255,255,255,0.85);
+        padding: 10px 15px;
+        margin: 2px 10px;
+        border-radius: 8px;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        white-space: nowrap;
+        text-decoration: none;
+        min-height: 44px; /* Фиксированная минимальная высота */
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    /* В коллапсированном состоянии центрируем иконки */
+    #sidebar.collapsed .nav-link {
+        justify-content: center;
+        padding: 10px 5px;
+        gap: 0;
+        min-height: 44px;
+    }
+    
+    /* Для иконок в коллапсированном состоянии */
+    #sidebar.collapsed .nav-link i {
+        font-size: 1.3rem; /* Увеличиваем иконки */
+        margin: 0;
+    }
+    
+    /* Скрываем текст при коллапсе */
+    #sidebar.collapsed .nav-link .nav-text {
+        display: none;
+    }
+    
+    #sidebar .nav-link:hover,
+    #sidebar .nav-link.active {
+        background: rgba(255,255,255,0.15);
+        color: white;
+        transform: translateX(3px);
+    }
+    
+    /* В коллапсированном состоянии убираем трансформацию при наведении */
+    #sidebar.collapsed .nav-link:hover {
+        transform: none;
+    }
+    
+    #sidebar .nav-link i {
+        font-size: 1.1rem;
+        min-width: 24px;
+        text-align: center;
+        flex-shrink: 0; /* Запрещаем сжатие иконки */
+    }
+    
+    /* Группы меню */
+    .sidebar-group {
+        margin: 10px 0;
+    }
+    
+    .sidebar-group-title {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: rgba(255,255,255,0.5);
+        padding: 10px 25px 5px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    #sidebar.collapsed .sidebar-group-title {
+        display: none;
+    }
+    
+    /* Аккордеон для групп */
+    .sidebar-group .collapse {
+        padding-left: 10px;
+    }
+    
+    /* Стиль для активной ссылки на дашборд */
+    #sidebar .nav-link.active {
+        background: rgba(255,255,255,0.2) !important;
+        font-weight: 600;
+    }
+    
+    /* === MAIN CONTENT === */
+    #content {
+        margin-left: var(--sidebar-width);
+        transition: all 0.3s ease;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    /* Когда сайдбар свернут, контент сдвигается */
+    #sidebar.collapsed + #content {
+        margin-left: var(--sidebar-collapsed-width);
+    }
+    
+    /* === TOP BAR === */
+    .top-bar {
+        height: var(--header-height);
+        background: white;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 20px;
+        position: sticky;
+        top: 0;
+        z-index: 999;
+    }
+    
+    .top-bar .toggle-btn {
+        background: none;
+        border: none;
+        font-size: 1.3rem;
+        color: #333;
+        cursor: pointer;
+        padding: 5px 10px;
+        border-radius: 6px;
+        transition: background 0.2s;
+    }
+    
+    .top-bar .toggle-btn:hover {
+        background: #f0f0f0;
+    }
+    
+    /* === ЦВЕТА КНОПОК ФОРМ (сохраняем ваши) === */
+    .form-color-1 { background: #4caf50 !important; }
+    .form-color-2 { background: #2196f3 !important; }
+    .form-color-3 { background: #9c27b0 !important; }
+    .form-color-4 { background: #ff9800 !important; }
+    .form-color-5 { background: #f44336 !important; }
+    .form-color-6 { background: #ff5722 !important; }
+    .form-color-7 { background: #00bcd4 !important; }
+    .form-color-8 { background: #8bc34a !important; }
+    .form-color-9 { background: #e91e63 !important; }
+    .form-color-10 { background: #ffeb3b !important; color: #333 !important; }
+    .form-color-11 { background: #3f51b5 !important; }
+    .form-color-12 { background: #607d8b !important; }
+    .form-color-13 { background: #795548 !important; }
+    .form-color-14 { background: #009688 !important; }
+    .form-color-15 { background: #17a2b8 !important; }
+    .form-color-16 { background: #9C27B0 !important; }
+    .form-color-17 { background: #00796b !important; }
+    .form-color-18 { background: #673ab7 !important; }
+    
+    /* === MAIN AREA === */
+    main {
+        flex: 1;
+        padding: 25px;
+        max-width: 1400px;
+        margin: 0 auto;
+        width: 100%;
+    }
+    
+    /* === FOOTER === */
+    footer {
+        text-align: center;
+        padding: 15px;
+        font-size: 0.85rem;
+        color: #888;
+        background: white;
+        border-top: 1px solid #eee;
+    }
+    
+    /* === АДАПТИВНОСТЬ === */
+    @media (max-width: 768px) {
         #sidebar {
+            transform: translateX(-100%);
+            width: var(--sidebar-width);
+        }
+        
+        #sidebar.mobile-open {
+            transform: translateX(0);
+        }
+        
+        #content {
+            margin-left: 0 !important;
+        }
+        
+        .overlay {
+            display: none;
             position: fixed;
             top: 0;
             left: 0;
-            height: 100vh;
-            width: var(--sidebar-width);
-            background: linear-gradient(180deg, #1e3c72 0%, #2a5298 100%);
-            color: white;
-            transition: all 0.3s ease;
-            z-index: 1000;
-            overflow-y: auto;
-            overflow-x: hidden;
-            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.4);
+            z-index: 998;
         }
         
-        #sidebar.collapsed {
-            width: var(--sidebar-collapsed-width);
+        .overlay.active {
+            display: block;
         }
         
-        #sidebar .sidebar-header {
-            padding: 15px;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
+        /* На мобильных скрываем текст и показываем только иконки */
+        #sidebar .nav-text {
+            display: inline-block;
         }
-        
-        #sidebar .sidebar-header .logo-text {
-            font-size: 1.1rem;
-            font-weight: 600;
-            white-space: nowrap;
-            overflow: hidden;
-        }
-        
-        #sidebar.collapsed .sidebar-header .logo-text,
-        #sidebar.collapsed .nav-text,
-        #sidebar.collapsed .form-label {
-            display: none;
-        }
-        
-        #sidebar .nav-link {
-            color: rgba(255,255,255,0.85);
-            padding: 10px 15px;
-            margin: 2px 10px;
-            border-radius: 8px;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            white-space: nowrap;
-        }
-        
-        #sidebar .nav-link:hover,
-        #sidebar .nav-link.active {
-            background: rgba(255,255,255,0.15);
-            color: white;
-            transform: translateX(3px);
-        }
-        
-        #sidebar .nav-link i {
-            font-size: 1.1rem;
-            min-width: 20px;
-            text-align: center;
-        }
-        
-        /* Группы меню */
-        .sidebar-group {
-            margin: 10px 0;
-        }
-        
-        .sidebar-group-title {
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: rgba(255,255,255,0.5);
-            padding: 10px 25px 5px;
-            white-space: nowrap;
-        }
-        
-        #sidebar.collapsed .sidebar-group-title {
-            display: none;
-        }
-        
-        /* Аккордеон для групп */
-        .sidebar-group .collapse {
-            padding-left: 10px;
-        }
-        
-        /* === MAIN CONTENT === */
-        #content {
-            margin-left: var(--sidebar-width);
-            transition: all 0.3s ease;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-        
-        #sidebar.collapsed + #content {
-            margin-left: var(--sidebar-collapsed-width);
-        }
-        
-        /* === TOP BAR === */
-        .top-bar {
-            height: var(--header-height);
-            background: white;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 20px;
-            position: sticky;
-            top: 0;
-            z-index: 999;
-        }
-        
-        .top-bar .toggle-btn {
-            background: none;
-            border: none;
-            font-size: 1.3rem;
-            color: #333;
-            cursor: pointer;
-            padding: 5px 10px;
-            border-radius: 6px;
-            transition: background 0.2s;
-        }
-        
-        .top-bar .toggle-btn:hover {
-            background: #f0f0f0;
-        }
-        
-        /* === ЦВЕТА КНОПОК ФОРМ (сохраняем ваши) === */
-        .form-color-1 { background: #4caf50 !important; }
-        .form-color-2 { background: #2196f3 !important; }
-        .form-color-3 { background: #9c27b0 !important; }
-        .form-color-4 { background: #ff9800 !important; }
-        .form-color-5 { background: #f44336 !important; }
-        .form-color-6 { background: #ff5722 !important; }
-        .form-color-7 { background: #00bcd4 !important; }
-        .form-color-8 { background: #8bc34a !important; }
-        .form-color-9 { background: #e91e63 !important; }
-        .form-color-10 { background: #ffeb3b !important; color: #333 !important; }
-        .form-color-11 { background: #3f51b5 !important; }
-        .form-color-12 { background: #607d8b !important; }
-        .form-color-13 { background: #795548 !important; }
-        .form-color-14 { background: #009688 !important; }
-        .form-color-15 { background: #17a2b8 !important; }
-        .form-color-16 { background: #9C27B0 !important; }
-        .form-color-17 { background: #00796b !important; }
-        .form-color-18 { background: #673ab7 !important; }
-        
-        /* === MAIN AREA === */
-        main {
-            flex: 1;
-            padding: 25px;
-            max-width: 1400px;
-            margin: 0 auto;
-            width: 100%;
-        }
-        
-        /* === FOOTER === */
-        footer {
-            text-align: center;
-            padding: 15px;
-            font-size: 0.85rem;
-            color: #888;
-            background: white;
-            border-top: 1px solid #eee;
-        }
-        
-        /* === АДАПТИВНОСТЬ === */
-        @media (max-width: 768px) {
-            #sidebar {
-                transform: translateX(-100%);
-                width: var(--sidebar-width);
-            }
-            
-            #sidebar.mobile-open {
-                transform: translateX(0);
-            }
-            
-            #content {
-                margin-left: 0 !important;
-            }
-            
-            .overlay {
-                display: none;
-                position: fixed;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                background: rgba(0,0,0,0.4);
-                z-index: 998;
-            }
-            
-            .overlay.active {
-                display: block;
-            }
-        }
-        
-        /* Скроллбар для сайдбара */
-        #sidebar::-webkit-scrollbar {
-            width: 4px;
-        }
-        #sidebar::-webkit-scrollbar-track {
-            background: rgba(255,255,255,0.05);
-        }
-        #sidebar::-webkit-scrollbar-thumb {
-            background: rgba(255,255,255,0.3);
-            border-radius: 2px;
-        }
-    </style>
+    }
+    
+    /* Скроллбар для сайдбара */
+    #sidebar::-webkit-scrollbar {
+        width: 4px;
+    }
+    #sidebar::-webkit-scrollbar-track {
+        background: rgba(255,255,255,0.05);
+    }
+    #sidebar::-webkit-scrollbar-thumb {
+        background: rgba(255,255,255,0.3);
+        border-radius: 2px;
+    }
+    
+    /* Стиль для текста, который может быть длинным */
+    .nav-link .nav-text {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        flex: 1;
+        min-width: 0; /* Важно для корректного обрезания */
+    }
+    
+    /* Убираем лишние отступы в коллапсированном состоянии */
+    #sidebar.collapsed .nav-link .nav-text {
+        display: none !important;
+    }
+    
+    /* Для иконок в коллапсированном состоянии - делаем их больше */
+    #sidebar.collapsed .nav-link i {
+        font-size: 1.4rem;
+        margin: 0 auto;
+    }
+</style>
     
     {% block extra_head %}{% endblock %}
 </head>
@@ -256,16 +321,18 @@
     </div>
     
     <div class="p-3">
+        {% comment %}
         <!-- Дашборд -->
         <a href="{% url 'forms_app:dashboard' %}" class="nav-link active mb-3" 
            style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
             <i class="bi bi-speedometer2"></i>
             <span class="nav-text">Дашборд</span>
         </a>
+        {% endcomment %}
         
         <!-- Список форм (плоский, без групп) -->
         <a href="{% url 'forms_app:form1' %}" class="nav-link form-color-1">
-            <i class="bi bi-calculator"></i><span class="nav-text">Форма 1</span>
+            <i class="bi bi-calculator"></i><span class="nav-text">Ф1 (Общая)</span>
         </a>
         
         {% comment %}
@@ -275,11 +342,11 @@
         {% endcomment %}
         
         <a href="{% url 'forms_app:form3' %}" class="nav-link form-color-3">
-            <i class="bi bi-geo-alt"></i><span class="nav-text">Форма 3</span>
+            <i class="bi bi-geo-alt"></i><span class="nav-text">Ф3 (Регионы)</span>
         </a>
         
         <a href="{% url 'forms_app:form4_upload' %}" class="nav-link form-color-4">
-            <i class="bi bi-upload"></i><span class="nav-text">Форма 4</span>
+            <i class="bi bi-upload"></i><span class="nav-text">Ф4 (Неделя)</span>
         </a>
         
         {% comment %}
@@ -289,7 +356,7 @@
         {% endcomment %}
         
         <a href="{% url 'forms_app:form6' %}" class="nav-link form-color-6">
-            <i class="bi bi-boxes"></i><span class="nav-text">Форма 6</span>
+            <i class="bi bi-boxes"></i><span class="nav-text">Ф6 (Склад)</span>
         </a>
         
         {% comment %}
@@ -302,7 +369,7 @@
         {% endcomment %}
         
         <a href="{% url 'forms_app:form8_upload' %}" class="nav-link form-color-8">
-            <i class="bi bi-pie-chart"></i><span class="nav-text">Форма 8</span>
+            <i class="bi bi-pie-chart"></i><span class="nav-text">Ф8 (Графики)</span>
         </a>
         
         {% comment %}
@@ -312,7 +379,7 @@
         {% endcomment %}
         
         <a href="{% url 'forms_app:form10_view' %}" class="nav-link form-color-10">
-            <i class="bi bi-lightning"></i><span class="nav-text">Форма 10</span>
+            <i class="bi bi-lightning"></i><span class="nav-text">Ф10 (Заказы)</span>
         </a>
         
         {% comment %}
@@ -322,7 +389,7 @@
         {% endcomment %}
         
         <a href="{% url 'forms_app:form12_upload' %}" class="nav-link form-color-12">
-            <i class="bi bi-bar-chart-line"></i><span class="nav-text">Форма 12</span>
+            <i class="bi bi-bar-chart-line"></i><span class="nav-text">Ф12 (День)</span>
         </a>
         
         {% comment %}
@@ -332,7 +399,7 @@
         {% endcomment %}
         
         <a href="{% url 'forms_app:form14_list' %}" class="nav-link form-color-14">
-            <i class="bi bi-graph-up-arrow"></i><span class="nav-text">Форма 14</span>
+            <i class="bi bi-graph-up-arrow"></i><span class="nav-text">Ф14 (Общая)</span>
         </a>
         
         {% comment %}
@@ -340,10 +407,13 @@
             <i class="bi bi-scissors"></i><span class="nav-text">Форма 15</span>
         </a>
         {% endcomment %}
-        
+
+
+        {% comment %}
         <a href="{% url 'forms_app:form16_main' %}" class="nav-link form-color-16">
             <i class="bi bi-table"></i><span class="nav-text">Форма 16</span>
         </a>
+        {% endcomment %}
         
         {% comment %}
         <a href="{% url 'forms_app:form17_view' %}" class="nav-link form-color-17">
@@ -352,9 +422,9 @@
         {% endcomment %}
         
         <a href="{% url 'forms_app:form18_list' %}" class="nav-link form-color-2">
-            <i class="bi bi-tags"></i><span class="nav-text">Форма 18</span>
+            <i class="bi bi-tags"></i><span class="nav-text">Ф2-18 (Отчет)</span>
         </a>
-        
+        {% comment %}
         <a href="{% url 'forms_app:form19_view' %}" class="nav-link form-color-6">
             <i class="bi bi-traffic-light"></i><span class="nav-text">Форма 19</span>
         </a>
@@ -363,9 +433,14 @@
         <a href="{% url 'forms_app:form20_upload' %}" class="nav-link form-color-6">
             <i class="bi bi-calendar-day"></i><span class="nav-text">Форма 20</span>
         </a>
+        {% endcomment %}
 
         <a href="{% url 'forms_app:form21' %}" class="nav-link" style="background: #17a2b8; color: white;">
-            <i class="bi bi-bar-chart"></i><span class="nav-text">Форма 21 (Озон)</span>
+            <i class="bi bi-bar-chart"></i><span class="nav-text">Ф21 (Озон)</span>
+        </a>
+
+        <a href="{% url 'forms_app:form22' %}" class="nav-link" style="background: #6c63ff; color: white;">
+            <i class="bi bi-graph-up"></i><span class="nav-text">Ф22 (Сумма)</span>
         </a>
         
         
@@ -429,43 +504,68 @@
     <!-- Скрипты -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Управление сайдбаром
-        document.addEventListener('DOMContentLoaded', function() {
-            const sidebar = document.getElementById('sidebar');
-            const toggleBtn = document.getElementById('sidebarToggle');
-            const closeBtn = document.getElementById('sidebarClose');
-            const overlay = document.getElementById('overlay');
-            
-            // Переключение на десктопе (сворачивание)
-            toggleBtn.addEventListener('click', function() {
-                if (window.innerWidth > 768) {
-                    sidebar.classList.toggle('collapsed');
-                } else {
-                    sidebar.classList.add('mobile-open');
-                    overlay.classList.add('active');
-                }
-            });
-            
-            // Закрытие на мобильных
-            closeBtn?.addEventListener('click', function() {
-                sidebar.classList.remove('mobile-open');
-                overlay.classList.remove('active');
-            });
-            
-            overlay.addEventListener('click', function() {
-                sidebar.classList.remove('mobile-open');
-                overlay.classList.remove('active');
-            });
-            
-            // Активная ссылка
-            const currentPath = window.location.pathname;
-            document.querySelectorAll('#sidebar .nav-link').forEach(link => {
-                if (link.getAttribute('href') === currentPath) {
-                    link.classList.add('active');
-                }
-            });
+    // Управление сайдбаром
+    document.addEventListener('DOMContentLoaded', function() {
+        const sidebar = document.getElementById('sidebar');
+        const toggleBtn = document.getElementById('sidebarToggle');
+        const closeBtn = document.getElementById('sidebarClose');
+        const overlay = document.getElementById('overlay');
+        
+        // Переключение на десктопе (сворачивание)
+        toggleBtn.addEventListener('click', function() {
+            if (window.innerWidth > 768) {
+                sidebar.classList.toggle('collapsed');
+                // Сохраняем состояние в localStorage
+                const isCollapsed = sidebar.classList.contains('collapsed');
+                localStorage.setItem('sidebarCollapsed', isCollapsed);
+            } else {
+                sidebar.classList.add('mobile-open');
+                overlay.classList.add('active');
+            }
         });
-    </script>
+        
+        // Восстанавливаем состояние сайдбара при загрузке
+        const savedState = localStorage.getItem('sidebarCollapsed');
+        if (savedState === 'true' && window.innerWidth > 768) {
+            sidebar.classList.add('collapsed');
+        }
+        
+        // Закрытие на мобильных
+        closeBtn?.addEventListener('click', function() {
+            sidebar.classList.remove('mobile-open');
+            overlay.classList.remove('active');
+        });
+        
+        overlay.addEventListener('click', function() {
+            sidebar.classList.remove('mobile-open');
+            overlay.classList.remove('active');
+        });
+        
+        // Активная ссылка
+        const currentPath = window.location.pathname;
+        document.querySelectorAll('#sidebar .nav-link').forEach(link => {
+            if (link.getAttribute('href') === currentPath) {
+                link.classList.add('active');
+            }
+        });
+        
+        // Обработка изменения размера окна
+        window.addEventListener('resize', function() {
+            if (window.innerWidth <= 768) {
+                sidebar.classList.remove('collapsed');
+            } else {
+                const savedState = localStorage.getItem('sidebarCollapsed');
+                if (savedState === 'true') {
+                    sidebar.classList.add('collapsed');
+                } else {
+                    sidebar.classList.remove('collapsed');
+                }
+                sidebar.classList.remove('mobile-open');
+                overlay.classList.remove('active');
+            }
+        });
+    });
+</script>
     
     {% block extra_js %}{% endblock %}
 </body>
