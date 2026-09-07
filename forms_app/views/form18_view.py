@@ -273,7 +273,7 @@ def form18_list(request):
 
                 # === ОБРАБОТКА ЛОГИСТИКИ И СЕБЕСТОИМОСТИ ===
                 log_col = next(
-                    (col for col in df.columns if "Виды логистики" in col), None
+                    (col for col in df.columns if "Виды доставок" in col), None
                 )
                 if log_col:
                     df_exploded = df.explode(log_col)
