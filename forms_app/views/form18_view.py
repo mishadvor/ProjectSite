@@ -603,6 +603,24 @@ def form18_list(request):
                 third_merged = third_merged[third_merged["Прибыль"] != 0].copy()
 
                 # =============== ИТОГОВАЯ СВОДКА ===============
+                # Рассчитываем общую рентабельность
+                total_payment = third_merged["Чистое Перечисление без Логистики"].sum()
+                total_profit = third_merged["Прибыль"].sum()
+                total_sales = third_merged["Чистые продажи, шт"].sum()
+                total_orders = third_merged["Заказы"].sum()
+
+                # Избегаем деления на ноль
+                if total_payment != 0:
+                    avg_rentability = round((total_profit / total_payment) * 100, 1)
+                else:
+                    avg_rentability = 0.0
+
+                # Процент выкупа
+                if total_orders != 0:
+                    avg_buyout_rate = round((total_sales / total_orders) * 100, 1)
+                else:
+                    avg_buyout_rate = 0.0
+
                 totall_summary = pd.DataFrame(
                     {
                         "Колонка": [
@@ -620,6 +638,8 @@ def form18_list(request):
                             "Удержания",
                             "Операции на приемке",
                             "Прибыль (с учетом доп. удержаний)",
+                            "Рентабельность средняя, %",
+                            "Средний процент выкупа, %",
                         ],
                         "Общая сумма": [
                             third_merged["Логистика"].sum(),
@@ -636,6 +656,8 @@ def form18_list(request):
                             all_add_log["Удержания"].sum(),
                             all_add_log["Операции на приемке"].sum(),
                             third_merged["Прибыль"].sum(),
+                            avg_rentability,
+                            avg_buyout_rate,
                         ],
                     }
                 )
