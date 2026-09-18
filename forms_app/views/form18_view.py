@@ -142,16 +142,18 @@ def form18_list(request):
                     )
                 ).round(1)
 
-                sums1_per_category["% Лог/Реализация ВБ"] = (
+                sums1_per_category["% Лог/Реализация ВБ"] = np.where(
+                    sums1_per_category["Вайлдберриз реализовал Товар (Пр)"] > 0,
+                    (
+                        sums1_per_category["Услуги по доставке товара покупателю"]
+                        / sums1_per_category["Вайлдберриз реализовал Товар (Пр)"]
+                    ) * 100,
+                    # Если реализации нет, но логистика есть → 100%
                     np.where(
-                        sums1_per_category["Вайлдберриз реализовал Товар (Пр)"] == 0,
-                        0,
-                        (
-                            sums1_per_category["Услуги по доставке товара покупателю"]
-                            / sums1_per_category["Вайлдберриз реализовал Товар (Пр)"]
-                        )
-                        * 100,
-                    )
+                        sums1_per_category["Услуги по доставке товара покупателю"] > 0,
+                        100.0,
+                        0.0,
+                    ),
                 ).round(1)
 
                 # Возвраты
@@ -252,16 +254,17 @@ def form18_list(request):
                     )
                 ).round(1)
 
-                cost_per_category["% Лог/Реализация ВБ Средний"] = (
+                cost_per_category["% Лог/Реализация ВБ Средний"] = np.where(
+                    cost_per_category["Вайлдберриз реализовал Товар (Пр)"] > 0,
+                    (
+                        cost_per_category["Услуги по доставке товара покупателю"]
+                        / cost_per_category["Вайлдберриз реализовал Товар (Пр)"]
+                    ) * 100,
                     np.where(
-                        cost_per_category["Вайлдберриз реализовал Товар (Пр)"] == 0,
-                        0,
-                        (
-                            cost_per_category["Услуги по доставке товара покупателю"]
-                            / cost_per_category["Вайлдберриз реализовал Товар (Пр)"]
-                        )
-                        * 100,
-                    )
+                        cost_per_category["Услуги по доставке товара покупателю"] > 0,
+                        100.0,
+                        0.0,
+                    ),
                 ).round(1)
 
                 second_merged = first_merged.merge(
@@ -493,8 +496,8 @@ def form18_list(request):
                 ).round(1)
 
                 # Доп. колонки
-                third_merged["План на неделю"] = ""
-                third_merged["План по доходу"] = ""
+               # third_merged["План на неделю"] = ""
+               # third_merged["План по доходу"] = ""
 
                 # нагрузка логистики на Одну проданную юбку
                 third_merged["Логистика/1 Продажа"] = np.where(
@@ -531,41 +534,39 @@ def form18_list(request):
                 desired_columns_order = [
                     "Код номенклатуры",
                     "Артикул поставщика",
-                    "Чистые продажи Наши",
                     "Чистая реализация ВБ",
+                    "Прибыль",
+                    "%Выкупа",
+                    "Реализация ВБ Средняя",
+                    "% Лог/Реализация ВБ",
+                    "% Лог/рс",
+                    "Логистика/1 Продажа",
+                    "Прибыль на 1 Юбку",
+                    "% Рентабельности(Приб/ЧП_без_Л)",
+                    "% Лог/Реализация ВБ Средний",
+                    "Заказы",
+                    "Чистые продажи, шт",
+                    "Чистые продажи Наши",
                     "Чистое Перечисление",
                     "Чистое Перечисление без Логистики",
                     "Себестоимость за 1 шт",
-                    "Себес Продаж",
-                    "Прибыль",
+                    "Себес Продаж",      
                     "Наша цена Средняя",
-                    "Реализация ВБ Средняя",
                     "К перечислению Среднее",
-                    "Прибыль на 1 Юбку",
-                    "Заказы",
-                    "Чистые продажи, шт",
-                    "%Выкупа",
                     "СПП Средняя",
                     "% СПП",
-                    "Логистика/1 Продажа",
-                    "% Рентабельности(Приб/ЧП_без_Л)",
-                    "План на неделю",
-                    "План по доходу",
                     "Сумма Продаж Наша Цена",
                     "Сумма Продаж по цене ВБ",
                     "Сумма Продаж Перечисление С Лог",
                     "Логистика",
                     "К Перечислению без Логистики",
                     "Сумма СПП",
-                    "% Лог/рс",
-                    "% Лог/Реализация ВБ",
                     "Возвраты Наша цена",
                     "Возвраты реализация ВБ",
                     "Возвраты к перечислению",
                     "Логистика Средняя",
                     "К Перечислению без Логистики Средняя",
                     "% Лог/Перечисление с Лог Средний",
-                    "% Лог/Реализация ВБ Средний",
                     "Возвраты, шт",
                     "Отмена",
                     "Маржа",
@@ -599,8 +600,21 @@ def form18_list(request):
                     conditions, categories_profit, default="Не попал"
                 )
 
-                # Удаляем строки с нулевой прибылью
-                third_merged = third_merged[third_merged["Прибыль"] != 0].copy()
+                # Удаляем строки с нулевой прибылью 1 Вариан
+                # third_merged = third_merged[third_merged["Прибыль"] != 0].copy()
+
+                # =============== ОТКЛАДЫВАЕМ СТРОКИ БЕЗ АКТИВНОСТИ ===============
+                # Определяем маску "мусорных" строк: нет ни заказов, ни продаж
+                mask_inactive = (
+                    (third_merged["Заказы"] == 0)
+                    & (third_merged["Чистые продажи, шт"] == 0)
+                )
+
+                # Откладываем их в отдельный DataFrame
+                inactive_articles = third_merged[mask_inactive].copy()
+
+                # А из основного отчёта убираем
+                third_merged = third_merged[~mask_inactive].copy()
 
                 # =============== ИТОГОВАЯ СВОДКА ===============
                 # Рассчитываем общую рентабельность
@@ -620,6 +634,24 @@ def form18_list(request):
                     avg_buyout_rate = round((total_sales / total_orders) * 100, 1)
                 else:
                     avg_buyout_rate = 0.0
+                
+                # === Среднее значение колонки "% Лог/Реализация ВБ" по всем артикулам ===
+                if "% Лог/Реализация ВБ" in third_merged.columns:
+                    avg_log_realization = round(third_merged["% Лог/Реализация ВБ"].mean(), 1)
+                else:
+                    avg_log_realization = 0.0
+
+                # === Среднее "% Лог/Реализация ВБ" только по артикулам с продажами ===
+                if "% Лог/Реализация ВБ" in third_merged.columns:
+                    mask_with_sales = third_merged["Чистая реализация ВБ"] > 0
+                    if mask_with_sales.any():
+                        avg_log_realization_sales = round(
+                            third_merged.loc[mask_with_sales, "% Лог/Реализация ВБ"].mean(), 1
+                        )
+                    else:
+                        avg_log_realization_sales = 0.0
+                else:
+                    avg_log_realization_sales = 0.0
 
                 totall_summary = pd.DataFrame(
                     {
@@ -640,6 +672,8 @@ def form18_list(request):
                             "Прибыль (с учетом доп. удержаний)",
                             "Рентабельность средняя, %",
                             "Средний процент выкупа, %",
+                            "% Лог/Реализация ВБ",
+                            "% Лог/Реализация ВБ - Продажи",
                         ],
                         "Общая сумма": [
                             third_merged["Логистика"].sum(),
@@ -658,6 +692,8 @@ def form18_list(request):
                             third_merged["Прибыль"].sum(),
                             avg_rentability,
                             avg_buyout_rate,
+                            avg_log_realization,
+                            avg_log_realization_sales,
                         ],
                     }
                 )
@@ -723,6 +759,8 @@ def form18_list(request):
                         writer, sheet_name="Итоговая сводка", index=False
                     )
 
+                     
+
                     # Листы с категориями артикулов
                     for category, prefixes in categories.items():
                         filtered = third_merged[
@@ -786,6 +824,17 @@ def form18_list(request):
                         safe_sheet_name = category[:31]
                         filtered.to_excel(
                             writer, sheet_name=safe_sheet_name, index=False
+                        )
+
+                    # Лист с артикулами без активности
+                    if not inactive_articles.empty:
+                        # Берём те же колонки, что и в основном листе, плюс "Группа по прибыли" (если нужна)
+                        inactive_cols = [c for c in existing_columns if c in inactive_articles.columns]
+                        inactive_articles_to_export = inactive_articles[inactive_cols].copy()
+                        inactive_articles_to_export.to_excel(
+                            writer,
+                            sheet_name="Без активности",
+                            index=False,
                         )
 
                     # Форматирование заголовков

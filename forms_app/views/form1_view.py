@@ -5,6 +5,7 @@ from io import BytesIO
 import matplotlib.pyplot as plt
 from openpyxl.drawing.image import Image as OpenpyxlImage
 from openpyxl.utils.dataframe import dataframe_to_rows
+from openpyxl.styles import PatternFill
 
 
 def form1(request):
@@ -99,6 +100,12 @@ def form1(request):
             sums_per_date["Итого к оплате"] / sums_per_date["Продажа"] * 100
         ).round(1)
 
+        # --- Столбец "% Лог" ---
+        sums_per_date["% Лог"] = (
+            sums_per_date["Стоимость доставки"] / sums_per_date["Продажа"] * 100
+        ).round(1)
+        
+
         # Построение графика для основных финансовых показателей
         buf_main = BytesIO()
         plt.figure(figsize=(15, 8))
@@ -148,6 +155,27 @@ def form1(request):
         plt.savefig(buf_nash_percent, format="png")
         plt.close()
 
+        # --- Построение отдельного графика для "% Лог" ---
+        buf_log_percent = BytesIO()
+        plt.figure(figsize=(15, 4))
+        plt.plot(
+            sums_per_date["Дата конца"],
+            sums_per_date["% Лог"],
+            label="% Лог",
+            color="blue",
+            marker="o",
+            markersize=4,
+        )
+        plt.title(f'Процент логистики (с {start_date.strftime("%d-%m-%Y")})')
+        plt.xlabel("Дата")
+        plt.ylabel("% Лог")
+        plt.xticks(rotation=90)
+        plt.legend()
+        plt.grid(True)
+        plt.tight_layout()
+        plt.savefig(buf_log_percent, format="png")
+        plt.close()
+
         # Создание Excel-файла
         output = BytesIO()
         with pd.ExcelWriter(output, engine="openpyxl") as writer:
@@ -158,15 +186,49 @@ def form1(request):
             for row in dataframe_to_rows(sums_per_date, index=False, header=True):
                 worksheet.append(row)
 
+            # --- Подкрашиваем ячейки колонки "% Лог" ---
+            # Определяем цвета
+            fill_green = PatternFill(start_color="C6EFCE", end_color="C6EFCE", fill_type="solid")  # бледно-зелёный
+            fill_yellow = PatternFill(start_color="FFEB9C", end_color="FFEB9C", fill_type="solid")  # бледно-жёлтый
+            fill_red = PatternFill(start_color="FFC7CE", end_color="FFC7CE", fill_type="solid")  # бледно-красный
+
+            # Находим индекс колонки "% Лог" (1-based, как в openpyxl)
+            header = [cell.value for cell in worksheet[1]]
+            log_col_idx = header.index("% Лог") + 1
+
+            # Проходим по всем строкам, начиная со второй (первая — заголовок)
+            for row_idx in range(2, worksheet.max_row + 1):
+                cell = worksheet.cell(row=row_idx, column=log_col_idx)
+                value = cell.value
+                if value is None:
+                    continue
+                try:
+                    v = float(value)
+                except (TypeError, ValueError):
+                    continue
+
+                if 0 <= v < 30:
+                    cell.fill = fill_green
+                elif 30 <= v < 50:
+                    cell.fill = fill_yellow
+                elif 50 <= v <= 100:
+                    cell.fill = fill_red
+            # --- КОНЕЦ ---
+
             # Добавляем график для основных финансовых показателей
             img_main = OpenpyxlImage(buf_main)
-            worksheet.add_image(img_main, "K10")
+            worksheet.add_image(img_main, "M10")
 
             # Добавляем отдельный график для "Наш%"
             img_nash_percent = OpenpyxlImage(buf_nash_percent)
             worksheet.add_image(
-                img_nash_percent, "K50"
+                img_nash_percent, "M52"
             )  # Вы можете изменить позицию как удобно
+
+            # --- Добавляем график "% Лог" ---
+            img_log_percent = OpenpyxlImage(buf_log_percent)
+            worksheet.add_image(img_log_percent, "M74")
+            
 
         output.seek(0)
 
