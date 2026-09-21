@@ -7,8 +7,8 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import HttpResponse
 from io import BytesIO
-from openpyxl.styles import Alignment, Font, NamedStyle
-from openpyxl.utils import get_column_letter
+from openpyxl.styles import Alignment, Font, NamedStyle, PatternFill
+
 
 from forms_app.models import ArticleCost
 from forms_app.forms import ArticleCostForm
@@ -771,50 +771,7 @@ def form18_list(request):
                             writer, sheet_name=safe_sheet_name, index=False
                         )
 
-                        # Специальная обработка для "Джерси Короткая..."
-                        if category == "Джерси Короткая Черная (40,50)":
-                            ws = writer.sheets[safe_sheet_name]
-                            col_names = {
-                                col: idx for idx, col in enumerate(filtered.columns, 1)
-                            }
-                            try:
-                                qty_col = col_names["Чистые продажи, шт"]
-                                cost_col = col_names["Себес Продаж"]
-                                margin_col = col_names["Маржа"]
-                                tax_col = col_names["Налоги"]
-                                extra_col = col_names[
-                                    "Доп удержание на кол-во заказов 1 Артикула"
-                                ]
-                                profit_col = col_names["Прибыль"]
-
-                                cost_letter = get_column_letter(cost_col)
-                                ws[f"{cost_letter}1"] = "Себес Продаж (400р)"
-
-                                for row_idx in range(2, len(filtered) + 2):
-                                    qty_cell = f"{get_column_letter(qty_col)}{row_idx}"
-                                    cost_cell = (
-                                        f"{get_column_letter(cost_col)}{row_idx}"
-                                    )
-                                    margin_cell = (
-                                        f"{get_column_letter(margin_col)}{row_idx}"
-                                    )
-                                    tax_cell = f"{get_column_letter(tax_col)}{row_idx}"
-                                    extra_cell = (
-                                        f"{get_column_letter(extra_col)}{row_idx}"
-                                    )
-                                    profit_cell = (
-                                        f"{get_column_letter(profit_col)}{row_idx}"
-                                    )
-
-                                    ws[cost_cell] = f"={qty_cell}*400"
-                                    ws[margin_cell] = (
-                                        f"={get_column_letter(col_names['Чистое Перечисление без Логистики'])}{row_idx}-{cost_cell}"
-                                    )
-                                    ws[profit_cell] = (
-                                        f"={margin_cell}-{tax_cell}-{extra_cell}"
-                                    )
-                            except KeyError:
-                                pass
+                       
 
                     # Листы с группами по прибыли
                     for category in categories_profit:
@@ -859,6 +816,42 @@ def form18_list(request):
                             sheet.column_dimensions[column[0].column_letter].width = (
                                 min(max_length + 10, 65)
                             )
+                    # =============== ПОДКРАШИВАНИЕ СТРОК ПО ПРИБЫЛИ ===============
+                   
+                    fill_green = PatternFill(start_color="E2EFDA", end_color="E2EFDA", fill_type="solid")   # бледно-зелёный
+                    fill_red   = PatternFill(start_color="FCE4E4", end_color="FCE4E4", fill_type="solid")   # бледно-красный
+
+                    # Цвета:
+                    #   E2EFDA — стандартный «светло-зелёный» Excel (Good)
+                    #   FCE4E4 — мягкий красный, не режет глаз
+                    # Если хотите канонические Excel-цвета:
+                    #   зелёный: C6EFCE
+                    #   красный: FFC7CE
+
+                    for sheet_name, df_for_sheet in [
+                        ("Основные данные", third_merged),
+                    ]:
+                        if sheet_name not in writer.sheets:
+                            continue
+                        ws = writer.sheets[sheet_name]
+
+                        # Находим индекс колонки "Прибыль"
+                        if "Прибыль" not in df_for_sheet.columns:
+                            continue
+                        profit_idx = list(df_for_sheet.columns).index("Прибыль") + 1  # +1 т.к. Excel 1-based
+
+                        # Строка 1 — заголовок, данные начинаются со 2-й
+                        for row_idx, profit_value in enumerate(df_for_sheet["Прибыль"], start=2):
+                            try:
+                                pv = float(profit_value)
+                            except (TypeError, ValueError):
+                                continue
+
+                            fill = fill_green if pv > 0 else fill_red
+
+                            # Красим всю строку до последней колонки листа
+                            for col_idx in range(1, ws.max_column + 1):
+                                ws.cell(row=row_idx, column=col_idx).fill = fill
 
                 output.seek(0)
                 response = HttpResponse(
