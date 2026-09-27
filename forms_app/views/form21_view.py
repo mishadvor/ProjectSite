@@ -4,6 +4,7 @@ import numpy as np
 from django.http import HttpResponse
 from django.shortcuts import render
 from io import BytesIO
+import re
 
 
 def extract_prefix(article):
@@ -21,6 +22,16 @@ def calculate_purchase_percentage(revenue_count, logistics_count):
     if logistics_count == 0:
         return 0.0
     return round((revenue_count / logistics_count) * 100, 1)
+
+def extract_date_range(filename):
+    """Извлекает диапазон дат из имени файла вида '..._02.02.2026-08.02.2026.xlsx'."""
+    if not filename:
+        return None
+    # Ищем шаблон ДД.ММ.ГГГГ-ДД.ММ.ГГГГ
+    match = re.search(r"(\d{2}\.\d{2}\.\d{4}-\d{2}\.\d{2}\.\d{4})", filename)
+    if match:
+        return match.group(1)
+    return None
 
 
 def form21(request):
@@ -258,14 +269,19 @@ def form21(request):
 
             output.seek(0)
 
+            # Формируем имя итогового файла с диапазоном дат из исходного имени
+            date_range = extract_date_range(excel_file.name)
+            if date_range:
+                result_filename = f"ozon_analysis_result_{date_range}.xlsx"
+            else:
+                result_filename = "ozon_analysis_result.xlsx"
+            
             # Возвращаем файл
             response = HttpResponse(
                 output.getvalue(),
                 content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             )
-            response["Content-Disposition"] = (
-                "attachment; filename=ozon_analysis_result.xlsx"
-            )
+            response["Content-Disposition"] = f"attachment; filename={result_filename}"
             return response
 
         except Exception as e:
