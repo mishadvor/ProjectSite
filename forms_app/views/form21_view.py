@@ -6,6 +6,10 @@ from django.shortcuts import render
 from io import BytesIO
 import re
 
+# Константа себестоимости (руб. за 1 выкуп)
+UNIT_COST = 900
+TAX_RATE = 0.08
+
 
 def extract_prefix(article):
     """Извлекает префикс артикула (первые 3 знака до _)"""
@@ -23,11 +27,11 @@ def calculate_purchase_percentage(revenue_count, logistics_count):
         return 0.0
     return round((revenue_count / logistics_count) * 100, 1)
 
+
 def extract_date_range(filename):
     """Извлекает диапазон дат из имени файла вида '..._02.02.2026-08.02.2026.xlsx'."""
     if not filename:
         return None
-    # Ищем шаблон ДД.ММ.ГГГГ-ДД.ММ.ГГГГ
     match = re.search(r"(\d{2}\.\d{2}\.\d{4}-\d{2}\.\d{2}\.\d{4})", filename)
     if match:
         return match.group(1)
@@ -169,11 +173,81 @@ def form21(request):
                 merged_df["Рекламные расходы, руб"] = 0
                 merged_df["Чистая прибыль, руб"] = merged_df["Общая сумма, руб"]
 
-            merged_df = merged_df.sort_values("Общая сумма, руб", ascending=False)
+            # ============= НОВЫЕ КОЛОНКИ (пункт 2) =============
+            # Себестоимость — константа
+            merged_df["Себестоимость"] = UNIT_COST
+            # Кол-во*себес = Количество выкупов * 900
+            merged_df["Кол-во*себес"] = (
+                merged_df["Количество выкупов"] * UNIT_COST
+            ).round(2)
+            # Чистая прибыль - себес = Чистая прибыль, руб - Кол-во*себес
+            merged_df["Чистая прибыль - себес"] = (
+                merged_df["Чистая прибыль, руб"] - merged_df["Кол-во*себес"]
+            ).round(2)
+            # Налог 8% = Выручка, руб * 0,08
+            merged_df["Налог 8%"] = (
+                merged_df["Выручка, руб"] * TAX_RATE
+            ).round(2)
+            # Маржа = Чистая прибыль - себес - Налог 8%
+            merged_df["Маржа"] = (
+                merged_df["Чистая прибыль - себес"] - merged_df["Налог 8%"]
+            ).round(2)
+
+            # ============= КОЛОНКА: % Лог/Выручка =============
+            # Если Выручка = 0, значит есть только логистика => % = 100
+            # Логистика в отчёте со знаком "-", берём модуль.
+            merged_df["% Лог/Выручка"] = merged_df.apply(
+                lambda row: round(abs(row["Логистика, руб"]) / row["Выручка, руб"] * 100, 1)
+                if row["Выручка, руб"] > 0
+                else 100.0,
+                axis=1,
+            )
+
+            # ============= КОЛОНКА: Средняя цена выкупа =============
+            # Выручка, руб / Количество выкупов
+            # Если выкупов нет — оставляем 0, чтобы не делить на ноль
+            merged_df["Средняя цена выкупа"] = merged_df.apply(
+                lambda row: round(row["Выручка, руб"] / row["Количество выкупов"], 2)
+                if row["Количество выкупов"] > 0
+                else 0.0,
+                axis=1,
+            )
+
+            # ============= ПОРЯДОК КОЛОНОК НА ЛИСТЕ "1_Группы_объединенная" =============
+            # После "Выручка, руб" идут: Чистая прибыль, руб, Себестоимость,
+            # Кол-во*себес, Чистая прибыль - себес, Налог 8%, Маржа
+            base_columns = [
+                "Префикс_группы",
+                "Общая сумма, руб",
+                "Выручка, руб",
+                "Чистая прибыль, руб",
+                "Себестоимость",
+                "Кол-во*себес",
+                "Чистая прибыль - себес",
+                "Налог 8%",
+                "Маржа",
+                "Логистика, руб",
+                "% Лог/Выручка",
+                "Количество выкупов",
+                "Количество заказов",
+                "Процент выкупа, %",
+                "Средняя цена выкупа",
+                "Количество артикулов в группе",
+                "Рекламные расходы, руб",
+            ]
+            # Добавляем оставшиеся колонки из сводки по типам (кроме префикса)
+            other_columns = [
+                col
+                for col in merged_df.columns
+                if col not in base_columns and col != "Префикс_группы"
+            ]
+            final_columns = [c for c in base_columns if c in merged_df.columns] + other_columns
+            merged_df = merged_df[final_columns]
+
+            merged_df = merged_df.sort_values("Маржа", ascending=False)
 
             # ============= ФИНАНСОВАЯ СВОДКА С ПОЯСНЕНИЯМИ =============
 
-            # Словарь с описанием формул расчета для каждого показателя
             formulas = {
                 "Общая сумма, руб": "Сумма всех операций (Выручка + Логистика + Прочие начисления)",
                 "Выручка, руб": "Сумма операций с типом 'Выручка'",
@@ -183,12 +257,16 @@ def form21(request):
                 "Количество артикулов в группе": "Количество уникальных артикулов в группе",
                 "Рекламные расходы, руб": "Расходы на рекламу (тип 'Оплата за клик'), распределенные пропорционально выручке",
                 "Чистая прибыль, руб": "Общая сумма + Рекламные расходы",
+                "Себестоимость": "Фиксированная себестоимость за 1 выкуп (900 руб.)",
+                "Кол-во*себес": "Количество выкупов * 900",
+                "Чистая прибыль - себес": "Чистая прибыль, руб - Кол-во*себес",
+                "Налог 8%": "Выручка, руб * 0,08",
+                "Маржа": "Чистая прибыль - себес - Налог 8%",
             }
 
             # Собираем итоги по всем числовым колонкам из merged_df
             summary_data = []
 
-            # Список колонок для агрегации (все числовые колонки)
             numeric_columns = [
                 "Общая сумма, руб",
                 "Выручка, руб",
@@ -198,6 +276,11 @@ def form21(request):
                 "Количество артикулов в группе",
                 "Рекламные расходы, руб",
                 "Чистая прибыль, руб",
+                "Себестоимость",
+                "Кол-во*себес",
+                "Чистая прибыль - себес",
+                "Налог 8%",
+                "Маржа",
             ]
 
             # Добавляем колонки из сводки по типам (кроме префикса)
@@ -206,7 +289,6 @@ def form21(request):
                     numeric_columns.append(col)
                     formulas[col] = f"Сумма операций с типом '{col}'"
 
-            # Рассчитываем итоги по каждой колонке
             for col in numeric_columns:
                 if col in merged_df.columns:
                     total_value = merged_df[col].sum()
@@ -222,7 +304,7 @@ def form21(request):
 
             financial_summary = pd.DataFrame(summary_data)
 
-            # Добавляем строку с количеством групп
+            # Количество групп
             groups_count_row = pd.DataFrame(
                 {
                     "Показатель": ["Количество групп"],
@@ -236,16 +318,28 @@ def form21(request):
                 [financial_summary, groups_count_row], ignore_index=True
             )
 
-            # Добавляем строку с процентом выкупа (средний)
-            avg_purchase_percentage = (
-                merged_df["Процент выкупа, %"].mean() if len(merged_df) > 0 else 0
+            # ============= ПРОЦЕНТ ВЫКУПА (пункт 1) =============
+            # Берем готовые итоги из financial_summary
+            total_purchases = 0
+            total_orders = 0
+            for _, row in financial_summary.iterrows():
+                if row["Показатель"] == "Количество выкупов":
+                    total_purchases = row["Итог"]
+                elif row["Показатель"] == "Количество заказов":
+                    total_orders = row["Итог"]
+
+            purchase_percentage_total = (
+                round((total_purchases / total_orders) * 100, 1)
+                if total_orders > 0
+                else 0.0
             )
+
             purchase_row = pd.DataFrame(
                 {
-                    "Показатель": ["Средний процент выкупа, %"],
-                    "Итог": [round(avg_purchase_percentage, 1)],
+                    "Показатель": ["Процент Выкупа"],
+                    "Итог": [purchase_percentage_total],
                     "Тип начисления в расчете": [
-                        "(Количество выкупов / Количество заказов) * 100, усредненный по группам"
+                        "Количество выкупов / Количество заказов * 100"
                     ],
                 }
             )
@@ -253,7 +347,73 @@ def form21(request):
                 [financial_summary, purchase_row], ignore_index=True
             )
 
-            # Создание Excel файла (3 страницы, без форматирования)
+            # ============= % Лог/Выручка: взвешенный и медианный =============
+            total_logistics = merged_df["Логистика, руб"].sum()
+            total_revenue_for_log = merged_df["Выручка, руб"].sum()
+
+            # ============= % Лог/Выручка: взвешенный и медианный =============
+            # Логистика со знаком "-", поэтому берём модуль
+            total_logistics = abs(merged_df["Логистика, руб"].sum())
+            total_revenue_for_log = merged_df["Выручка, руб"].sum()
+
+            weighted_log_revenue = (
+                round(total_logistics / total_revenue_for_log * 100, 1)
+                if total_revenue_for_log != 0
+                else 100.0
+            )
+            weighted_row = pd.DataFrame(
+                {
+                    "Показатель": ["% Лог/Выручка (взвешенный)"],
+                    "Итог": [weighted_log_revenue],
+                    "Тип начисления в расчете": [
+                        "Сумма(Логистика) / Сумма(Выручка) * 100"
+                    ],
+                }
+            )
+            financial_summary = pd.concat(
+                [financial_summary, weighted_row], ignore_index=True
+            )
+
+            median_log_revenue = (
+                round(merged_df["% Лог/Выручка"].median(), 1)
+                if len(merged_df) > 0
+                else 0.0
+            )
+            median_row = pd.DataFrame(
+                {
+                    "Показатель": ["% Лог/Выручка (медиана по группам)"],
+                    "Итог": [median_log_revenue],
+                    "Тип начисления в расчете": [
+                        "Медиана значений % Лог/Выручка по группам"
+                    ],
+                }
+            )
+            financial_summary = pd.concat(
+                [financial_summary, median_row], ignore_index=True
+            )
+
+            zero_revenue_groups = int((merged_df["Выручка, руб"] == 0).sum())
+            zero_rev_row = pd.DataFrame(
+                {
+                    "Показатель": ["Групп с Выручка = 0"],
+                    "Итог": [zero_revenue_groups],
+                    "Тип начисления в расчете": [
+                        "Количество групп, у которых Выручка, руб = 0 (только логистика)"
+                    ],
+                }
+            )
+            financial_summary = pd.concat(
+                [financial_summary, zero_rev_row], ignore_index=True
+            )
+
+
+            # ============= МАРЖА В СВОДКЕ (пункт 3) =============
+            # Показатель "Маржа" уже добавлен в numeric_columns выше,
+            # поэтому его сумма уже присутствует в financial_summary.
+            # Ничего дополнительно добавлять не нужно — колонка "Маржа"
+            # в merged_df агрегируется в цикле по numeric_columns.
+
+            # Создание Excel файла
             output = BytesIO()
 
             with pd.ExcelWriter(output, engine="openpyxl") as writer:
@@ -269,14 +429,12 @@ def form21(request):
 
             output.seek(0)
 
-            # Формируем имя итогового файла с диапазоном дат из исходного имени
             date_range = extract_date_range(excel_file.name)
             if date_range:
                 result_filename = f"ozon_analysis_result_{date_range}.xlsx"
             else:
                 result_filename = "ozon_analysis_result.xlsx"
-            
-            # Возвращаем файл
+
             response = HttpResponse(
                 output.getvalue(),
                 content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
