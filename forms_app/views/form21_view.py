@@ -447,6 +447,21 @@ def form21(request):
                         cell.fill = fill_yellow
                     else:
                         cell.fill = fill_green
+            
+            def paint_margin(worksheet, df):
+                """Красит колонку 'Маржа': >0 — бледно-зелёный, <=0 — бледно-красный."""
+                if "Маржа" not in df.columns:
+                    return
+                col_idx = df.columns.get_loc("Маржа") + 1
+                for row_idx in range(2, len(df) + 2):
+                    cell = worksheet.cell(row=row_idx, column=col_idx)
+                    value = cell.value
+                    if value is None:
+                        continue
+                    if value > 0:
+                        cell.fill = fill_green
+                    else:
+                        cell.fill = fill_red
 
             def autofit_columns(worksheet, df, min_width=8, max_width=60):
                 """Ширина колонок по максимуму из длины заголовка и данных."""
@@ -478,6 +493,9 @@ def form21(request):
                 )
                 paint_purchase_percentage(
                     writer.sheets["3_Детально_по_артикулам"], detailed_df
+                )
+                paint_margin(
+                    writer.sheets["1_Группы_объединенная"], merged_df
                 )
 
                 autofit_columns(
