@@ -416,6 +416,52 @@ def form21(request):
             # Создание Excel файла
             output = BytesIO()
 
+            from openpyxl.styles import PatternFill
+            from openpyxl.utils import get_column_letter
+
+            fill_red = PatternFill(
+                start_color="FFC7CE", end_color="FFC7CE", fill_type="solid"
+            )
+            fill_yellow = PatternFill(
+                start_color="FFEB9C", end_color="FFEB9C", fill_type="solid"
+            )
+            fill_green = PatternFill(
+                start_color="C6EFCE", end_color="C6EFCE", fill_type="solid"
+            )
+
+            def paint_purchase_percentage(worksheet, df):
+                """Красит колонку 'Процент выкупа, %' по диапазонам:
+                0-20 — бледно-красный, 20-30 — бледно-жёлтый, 30-100 — бледно-зелёный.
+                """
+                if "Процент выкупа, %" not in df.columns:
+                    return
+                col_idx = df.columns.get_loc("Процент выкупа, %") + 1
+                for row_idx in range(2, len(df) + 2):
+                    cell = worksheet.cell(row=row_idx, column=col_idx)
+                    value = cell.value
+                    if value is None:
+                        continue
+                    if value < 20:
+                        cell.fill = fill_red
+                    elif value < 30:
+                        cell.fill = fill_yellow
+                    else:
+                        cell.fill = fill_green
+
+            def autofit_columns(worksheet, df, min_width=8, max_width=60):
+                """Ширина колонок по максимуму из длины заголовка и данных."""
+                for idx, col_name in enumerate(df.columns, start=1):
+                    header_len = len(str(col_name))
+                    try:
+                        data_len = df[col_name].astype(str).map(len).max()
+                    except Exception:
+                        data_len = 0
+                    if pd.isna(data_len):
+                        data_len = 0
+                    width = max(header_len, int(data_len), min_width)
+                    width = min(width, max_width)
+                    worksheet.column_dimensions[get_column_letter(idx)].width = width + 2
+
             with pd.ExcelWriter(output, engine="openpyxl") as writer:
                 financial_summary.to_excel(
                     writer, sheet_name="0_Финансовая_сводка", index=False
@@ -425,6 +471,23 @@ def form21(request):
                 )
                 detailed_df.to_excel(
                     writer, sheet_name="3_Детально_по_артикулам", index=False
+                )
+
+                paint_purchase_percentage(
+                    writer.sheets["1_Группы_объединенная"], merged_df
+                )
+                paint_purchase_percentage(
+                    writer.sheets["3_Детально_по_артикулам"], detailed_df
+                )
+
+                autofit_columns(
+                    writer.sheets["0_Финансовая_сводка"], financial_summary
+                )
+                autofit_columns(
+                    writer.sheets["1_Группы_объединенная"], merged_df
+                )
+                autofit_columns(
+                    writer.sheets["3_Детально_по_артикулам"], detailed_df
                 )
 
             output.seek(0)
