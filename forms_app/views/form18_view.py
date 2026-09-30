@@ -282,117 +282,164 @@ def form18_list(request):
                     df_exploded = df.explode(log_col)
                     df_exploded[log_col] = df_exploded[log_col].fillna("Не указано")
 
-                    status_log = (
-                        df_exploded.groupby("Код номенклатуры")
-                        .agg(
-                            {
-                                log_col: lambda x: x.value_counts().to_dict(),
-                                "Артикул поставщика": "first",
-                            }
+                    # =============== БЛОК: подсчёт Заказов, Продаж, Отмен, Возвратов ===============
+
+                    log_col = next((col for col in df.columns if "Виды доставок" in col), None)
+
+                    if log_col:
+                        # --- 1. Взрываем колонку "Виды доставок" (там может быть список через запятую) ---
+                        df_exploded = df.explode(log_col)
+                        df_exploded[log_col] = df_exploded[log_col].fillna("Не указано")
+
+                        # --- 2. Считаем Заказы и Отмены по значениям в "Виды доставок" ---
+                        #     Заказ  = "К клиенту при продаже" или "К клиенту при отмене"
+                        #     Отмена = "К клиенту при отмене"
+                        status_orders = (
+                            df_exploded
+                            .assign(
+                                is_order=df_exploded[log_col].isin([
+                                    "К клиенту при продаже",
+                                    "К клиенту при отмене",
+                                ]).astype(int),
+                                is_cancel=(
+                                    df_exploded[log_col] == "К клиенту при отмене"
+                                ).astype(int),
+                            )
+                            .groupby("Код номенклатуры")
+                            .agg(
+                                Заказы=("is_order", "sum"),
+                                Отмена=("is_cancel", "sum"),
+                                Артикул_поставщика=("Артикул поставщика", "first"),
+                            )
+                            .reset_index()
                         )
-                        .reset_index()
-                    )
 
-                    status_log = pd.concat(
-                        [
-                            status_log.drop(log_col, axis=1),
-                            status_log[log_col].apply(pd.Series).fillna(0),
-                        ],
-                        axis=1,
-                    )
+                        # --- 3. Считаем Продажи и Возвраты по "Тип документа" ---
+                        #     Продажа = Тип документа == "Продажа"
+                        #     Возврат = Тип документа == "Возврат"
+                        status_sales = (
+                            df
+                            .assign(
+                                is_sale=(df["Тип документа"] == "Продажа").astype(int),
+                                is_return=(df["Тип документа"] == "Возврат").astype(int),
+                            )
+                            .groupby("Код номенклатуры")
+                            .agg(
+                                Чистые_продажи_шт=("is_sale", "sum"),
+                                Возвраты_шт=("is_return", "sum"),
+                            )
+                            .reset_index()
+                        )
 
-                    required_events = [
-                        "К клиенту при продаже",
-                        "От клиента при возврате",
-                        "От клиента при отмене",
-                    ]
-                    for event in required_events:
-                        if event not in status_log.columns:
-                            status_log[event] = 0
-                        status_log[event] = (
-                            pd.to_numeric(status_log[event], errors="coerce")
-                            .fillna(0)
+                        # --- 4. Объединяем всё в один status_log ---
+                        status_log = status_orders.merge(
+                            status_sales, on="Код номенклатуры", how="outer"
+                        ).fillna(0)
+
+                        # Приводим счётчики к int (после fillna они стали float)
+                        for col in ["Заказы", "Отмена", "Чистые_продажи_шт", "Возвраты_шт"]:
+                            status_log[col] = status_log[col].astype(int)
+
+                        # Переименовываем в привычные названия
+                        status_log = status_log.rename(columns={
+                            "Чистые_продажи_шт": "Чистые продажи, шт",
+                            "Возвраты_шт":       "Возвраты, шт",
+                        })
+
+                        # --- 5. Процент выкупа = Продажи / Заказы × 100 ---
+                        status_log["%Выкупа"] = np.where(
+                            status_log["Заказы"] == 0,
+                            0.0,
+                            (status_log["Чистые продажи, шт"] / status_log["Заказы"]) * 100,
+                        )
+                        status_log["%Выкупа"] = status_log["%Выкупа"].round(1)
+
+                        # --- 6. Индивидуальная себестоимость из базы ArticleCost ---
+                        cost_map = {
+                            str(ac.wb_article): float(ac.cost)
+                            for ac in ArticleCost.objects.filter(user=request.user)
+                        }
+
+                        status_log["Себестоимость за 1 шт"] = (
+                            status_log["Код номенклатуры"]
+                            .astype(str)
+                            .map(cost_map)
+                            .fillna(sebestoimost)
                             .astype(float)
-                        )
-
-                    numerator = status_log["К клиенту при продаже"]
-                    denominator = (
-                        status_log["К клиенту при продаже"]
-                        + status_log["От клиента при возврате"]
-                        + status_log["От клиента при отмене"]
                     )
 
-                    with np.errstate(divide="ignore", invalid="ignore"):
-                        buyout_rate = np.where(
-                            denominator == 0, 0.0, (numerator / denominator) * 100
+                        # --- 7. Себестоимость продаж = Продажи × Себестоимость за 1 шт ---
+                        status_log["Себес Продаж"] = (
+                            status_log["Чистые продажи, шт"] * status_log["Себестоимость за 1 шт"]
+                        ).round(0)
+                        
+
+                        # --- 8. Финальный merge с основным отчётом ---
+                        # --- Мержим основной отчёт со status_log ---
+                        third_merged = second_merged.merge(
+                            status_log[
+                                [
+                                    "Код номенклатуры",
+                                    "Заказы",
+                                    "Отмена",
+                                    "Возвраты, шт",
+                                    "Чистые продажи, шт",
+                                    "%Выкупа",
+                                    "Себестоимость за 1 шт",
+                                    "Себес Продаж",
+                                ]
+                            ],
+                            on="Код номенклатуры",
+                            how="left",
                         )
-                    status_log["%Выкупа"] = np.round(buyout_rate.astype(float), 1)
 
-                    # === ИНДИВИДУАЛЬНАЯ СЕБЕСТОИМОСТЬ ИЗ БАЗЫ ===
-                    cost_map = {
-                        str(ac.wb_article): float(ac.cost)
-                        for ac in ArticleCost.objects.filter(user=request.user)
-                    }
+                        # --- Заполняем только числовые колонки нулями / значением по умолчанию ---
+                        third_merged = third_merged.fillna({
+                            "Заказы": 0,
+                            "Отмена": 0,
+                            "Возвраты, шт": 0,
+                            "Чистые продажи, шт": 0,
+                            "%Выкупа": 0.0,
+                            "Себестоимость за 1 шт": sebestoimost,
+                            "Себес Продаж": 0,
+                        })
 
-                    # Себестоимость за 1 шт
-                    status_log["Себестоимость за 1 шт"] = (
-                        status_log["Код номенклатуры"]
-                        .map(cost_map)
-                        .fillna(sebestoimost)
-                        .astype(float)
+                        # --- Логистика Средняя = вся логистика / число отправок ---
+                        third_merged["Логистика Средняя"] = np.where(
+                            third_merged["Заказы"] == 0,
+                            0.0,
+                            (third_merged["Услуги по доставке товара покупателю"]
+                            / third_merged["Заказы"]).round(1),
+                        )
+
+                    else:
+                        # --- Нет колонки "Виды доставок" — не можем считать заказы/логистику ---
+                        third_merged = second_merged.copy()
+                        third_merged["Заказы"] = 0
+                        third_merged["Отмена"] = 0
+                        third_merged["Возвраты, шт"] = 0
+                        third_merged["Чистые продажи, шт"] = 0
+                        third_merged["%Выкупа"] = 0.0
+                        third_merged["Себестоимость за 1 шт"] = sebestoimost
+                        third_merged["Себес Продаж"] = 0
+                        third_merged["Логистика Средняя"] = 0.0
+
+
+                    # =============== ПЕРЕИМЕНОВАНИЕ СТОЛБЦОВ ===============
+                    third_merged = third_merged.rename(
+                        columns={
+                            "Цена розничная": "Сумма Продаж Наша Цена",
+                            "Вайлдберриз реализовал Товар (Пр)": "Сумма Продаж по цене ВБ",
+                            "К перечислению Продавцу за реализованный Товар":
+                                "Сумма Продаж Перечисление С Лог",
+                            "Услуги по доставке товара покупателю": "Логистика",
+
+                            "Цена розничная_Среднее": "Наша цена Средняя",
+                            "Вайлдберриз реализовал Товар (Пр)_Среднее": "Реализация ВБ Средняя",
+                            "К перечислению Продавцу за реализованный Товар_Среднее":
+                                "К перечислению Среднее",
+                        }
                     )
-
-                    # Себестоимость продаж
-                    status_log["Себес Продаж"] = (
-                        status_log["К клиенту при продаже"]
-                        * status_log["Себестоимость за 1 шт"]
-                    ).round(0)
-
-                    status_log["Чистые продажи, шт"] = numerator
-                    status_log["Заказы"] = denominator
-
-                    third_merged = second_merged.merge(
-                        status_log[
-                            [
-                                "Код номенклатуры",
-                                "%Выкупа",
-                                "Себес Продаж",
-                                "Себестоимость за 1 шт",
-                                "Чистые продажи, шт",
-                                "Заказы",
-                                "От клиента при возврате",
-                                "От клиента при отмене",
-                            ]
-                        ],
-                        on="Код номенклатуры",
-                        how="left",
-                    ).fillna(0)
-                else:
-                    # Если нет колонки логистики — нельзя определить продажи
-                    third_merged = second_merged.copy()
-                    third_merged["Себес Продаж"] = 0
-                    third_merged["Себестоимость за 1 шт"] = sebestoimost
-                    third_merged["Чистые продажи, шт"] = 0
-                    third_merged["Заказы"] = 0
-                    third_merged["%Выкупа"] = 0.0
-                    third_merged["От клиента при возврате"] = 0
-                    third_merged["От клиента при отмене"] = 0
-
-                # Переименование столбцов
-                third_merged = third_merged.rename(
-                    columns={
-                        "Цена розничная": "Сумма Продаж Наша Цена",
-                        "Вайлдберриз реализовал Товар (Пр)": "Сумма Продаж по цене ВБ",
-                        "К перечислению Продавцу за реализованный Товар": "Сумма Продаж Перечисление С Лог",
-                        "Услуги по доставке товара покупателю": "Логистика",
-                        "От клиента при возврате": "Возвраты, шт",
-                        "От клиента при отмене": "Отмена",
-                        "Цена розничная_Среднее": "Наша цена Средняя",
-                        "Вайлдберриз реализовал Товар (Пр)_Среднее": "Реализация ВБ Средняя",
-                        "К перечислению Продавцу за реализованный Товар_Среднее": "К перечислению Среднее",
-                        "Услуги по доставке товара покупателю_Среднее": "Логистика Средняя",
-                    }
-                )
 
                 # =============== ВЫЧИСЛЕНИЕ МАРЖИ И НАЛОГОВ ===============
                 third_merged["Маржа"] = (
