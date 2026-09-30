@@ -13,6 +13,8 @@ from openpyxl.styles import Alignment, Font, NamedStyle, PatternFill
 from forms_app.models import ArticleCost
 from forms_app.forms import ArticleCostForm
 
+import sys
+
 
 def safe_convert_to_int(value):
     try:
@@ -69,6 +71,8 @@ def form18_list(request):
                     nalog_procent = 0.07
 
                 df = pd.read_excel(file)
+                
+                                
 
                 # =============== ИСПРАВЛЕНИЕ: Приведение названий колонок ===============
                 # Приводим названия колонок к стандартному виду
@@ -77,6 +81,8 @@ def form18_list(request):
                     and "Операции на приемке" not in df.columns
                 ):
                     df = df.rename(columns={"Платная приемка": "Операции на приемке"})
+                
+                
 
                 # Приводим Код номенклатуры к строке сразу
                 df["Код номенклатуры"] = df["Код номенклатуры"].astype(str).str.strip()
@@ -93,6 +99,21 @@ def form18_list(request):
                     if col in df.columns:
                         df[col] = df[col].apply(safe_convert_to_float)
 
+                # 2. Только теперь — фильтры (когда "Код номенклатуры" уже строка)
+                mask_real_sale = (
+                    (df["Тип документа"] == "Продажа")
+                    & (df["Кол-во"] > 0)
+                    & (df["Код номенклатуры"] != "0")   # ← именно "0" как строка!
+                )
+                df_sales_only = df[mask_real_sale].copy()
+
+                mask_real_return = (
+                    (df["Тип документа"] == "Возврат")
+                    & (df["Кол-во"] > 0)
+                    & (df["Код номенклатуры"] != "0")
+                )
+                df_returns_only = df[mask_real_return].copy()
+             
                 # Агрегация по коду номенклатуры
                 sums1_per_category = (
                     df.groupby("Код номенклатуры")
@@ -285,6 +306,7 @@ def form18_list(request):
                     # =============== БЛОК: подсчёт Заказов, Продаж, Отмен, Возвратов ===============
 
                     log_col = next((col for col in df.columns if "Виды доставок" in col), None)
+                    
 
                     if log_col:
                         # --- 1. Взрываем колонку "Виды доставок" (там может быть список через запятую) ---
@@ -314,22 +336,29 @@ def form18_list(request):
                             .reset_index()
                         )
 
-                        # --- 3. Считаем Продажи и Возвраты по "Тип документа" ---
-                        #     Продажа = Тип документа == "Продажа"
-                        #     Возврат = Тип документа == "Возврат"
+                        # --- 3. Считаем Продажи и Возвраты по отфильтрованным строкам ---
                         status_sales = (
-                            df
-                            .assign(
-                                is_sale=(df["Тип документа"] == "Продажа").astype(int),
-                                is_return=(df["Тип документа"] == "Возврат").astype(int),
-                            )
+                            df_sales_only
                             .groupby("Код номенклатуры")
-                            .agg(
-                                Чистые_продажи_шт=("is_sale", "sum"),
-                                Возвраты_шт=("is_return", "sum"),
-                            )
+                            .agg(Чистые_продажи_шт=("Кол-во", "sum"))
                             .reset_index()
                         )
+
+                        status_returns = (
+                            df_returns_only
+                            .groupby("Код номенклатуры")
+                            .agg(Возвраты_шт=("Кол-во", "sum"))
+                            .reset_index()
+                        )
+
+                        # Объединяем продажи и возвраты по артикулам
+                        status_sales = (
+                            status_sales
+                            .merge(status_returns, on="Код номенклатуры", how="outer")
+                            .fillna(0)
+                        )
+                        for col in ["Чистые_продажи_шт", "Возвраты_шт"]:
+                            status_sales[col] = status_sales[col].astype(int)
 
                         # --- 4. Объединяем всё в один status_log ---
                         status_log = status_orders.merge(
@@ -366,14 +395,14 @@ def form18_list(request):
                             .map(cost_map)
                             .fillna(sebestoimost)
                             .astype(float)
-                    )
+                        )
 
                         # --- 7. Себестоимость продаж = Продажи × Себестоимость за 1 шт ---
                         status_log["Себес Продаж"] = (
                             status_log["Чистые продажи, шт"] * status_log["Себестоимость за 1 шт"]
                         ).round(0)
                         
-
+                        
                         # --- 8. Финальный merge с основным отчётом ---
                         # --- Мержим основной отчёт со status_log ---
                         third_merged = second_merged.merge(
