@@ -323,6 +323,55 @@ def form21(request):
                     })
             financial_summary = pd.DataFrame(summary_data)
 
+            # ============= ПОЛОЖИТЕЛЬНАЯ / ОТРИЦАТЕЛЬНАЯ МАРЖА =============
+            if "Маржа" in merged_df.columns:
+                margin_col = pd.to_numeric(merged_df["Маржа"], errors="coerce").fillna(0)
+
+                positive_margin = round(margin_col[margin_col > 0].sum(), 2)
+                negative_margin = round(margin_col[margin_col < 0].sum(), 2)
+
+                # Положительная маржа — сумма групп с Маржа > 0
+                # Отрицательная маржа — сумма групп с Маржа < 0 (со знаком минус)
+                positive_row = pd.DataFrame({
+                    "Показатель": ["Положительная маржа"],
+                    "Итог": [positive_margin],
+                    "Тип начисления в расчете": [
+                        "Сумма значений Маржа > 0 (прибыльные группы)"
+                    ],
+                })
+                negative_row = pd.DataFrame({
+                    "Показатель": ["Отрицательная маржа"],
+                    "Итог": [negative_margin],
+                    "Тип начисления в расчете": [
+                        "Сумма значений Маржа < 0 (убыточные группы)"
+                    ],
+                })
+
+                # Перестраиваем порядок: вставляем эти строки сразу после "Маржа"
+                before_margin = financial_summary[
+                    financial_summary["Показатель"] != "Маржа"
+                ]
+                # Определяем позицию строки "Маржа" в текущей сводке
+                # Проще: разделим на "до Маржа" и "после Маржа"
+                idx_margin = financial_summary.index[
+                    financial_summary["Показатель"] == "Маржа"
+                ].tolist()
+
+                if idx_margin:
+                    pos = idx_margin[0]  # индекс строки "Маржа"
+                    head = financial_summary.iloc[: pos + 1]      # ... включая Маржа
+                    tail = financial_summary.iloc[pos + 1 :]      # всё, что после
+                    financial_summary = pd.concat(
+                        [head, positive_row, negative_row, tail],
+                        ignore_index=True,
+                    )
+                else:
+                    # если "Маржа" вдруг нет — просто добавляем в конец
+                    financial_summary = pd.concat(
+                        [financial_summary, positive_row, negative_row],
+                        ignore_index=True,
+                    )
+
             financial_summary = pd.concat([financial_summary, pd.DataFrame({
                 "Показатель": ["Количество групп"],
                 "Итог": [len(merged_df)],
