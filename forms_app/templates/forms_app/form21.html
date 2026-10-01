@@ -19,62 +19,121 @@
                             <i class="bi bi-exclamation-triangle"></i> {{ error }}
                         </div>
                     {% endif %}
-                    
+
                     <div class="alert alert-info">
                         <i class="bi bi-info-circle"></i>
                         <strong>Инструкция:</strong>
                         <ul class="mb-0 mt-2">
                             <li>Скачайте файл с вкладки: "Финансы" - "Экономика магазина" - Кнопка "Скачать отчет" - "По начислениям".</li>
                             <li>Загрузите Excel-файл с отчётом.</li>
-                            <li>Расчет будет за тот период, который вы выберете при формировании файла.</li>
-                                                        
+                            <li>Опционально: загрузите <code>Sebes.xlsx</code> с листом <code>Sebes</code> (колонки <code>Префикс_группы</code>, <code>Себестоимость</code>).</li>
+                            <li>Опционально: укажите себестоимость по умолчанию и ставку налога вручную.</li>
                         </ul>
                     </div>
-                    
+
                     <div class="alert alert-secondary">
                         <i class="bi bi-file-spreadsheet"></i>
                         <strong>Что вы получите в результате:</strong>
                         <ul class="mb-0 mt-2">
-                            <li>Финансовую сводку (выручка, логистика, реклама и т.д.)</li>
-                            <li>Статистику по группам артикулов (по префиксам).</li>
-                            <li>Детальный разбор по каждому артикулу (по размерам)</li>
-                            <li>Процент выкупа группы и кадого размера</li>
-                            <li>Распределение рекламных расходов</li>
+                            <li>Финансовую сводку с указанием применённой ставки налога и источника себестоимости</li>
+                            <li>Статистику по группам артикулов с индивидуальной себестоимостью</li>
+                            <li>Детальный разбор по каждому артикулу</li>
+                            <li>Процент выкупа, распределение рекламных расходов, маржа</li>
                         </ul>
                     </div>
-                    
-                    <!-- ФОРМА ДЛЯ ЗАГРУЗКИ ФАЙЛА -->
+
                     <form method="post" enctype="multipart/form-data" class="mt-4">
                         {% csrf_token %}
-                        
+
+                        <!-- 1. Файл продаж -->
                         <div class="mb-4">
                             <label for="excel_file" class="form-label fw-bold">
-                                <i class="bi bi-cloud-upload"></i> Выберите Excel файл
+                                <i class="bi bi-cloud-upload"></i> Файл отчёта продаж (обязательно)
                             </label>
-                            <input type="file" 
-                                   name="excel_file" 
-                                   id="excel_file" 
-                                   class="form-control" 
+                            <input type="file"
+                                   name="excel_file"
+                                   id="excel_file"
+                                   class="form-control"
                                    accept=".xlsx,.xls"
                                    required>
                             <div class="form-text">Поддерживаются форматы: .xlsx, .xls</div>
                         </div>
-                        
+
+                        <!-- 2. Файл себестоимости -->
+                        <div class="mb-4">
+                            <label for="sebes_file" class="form-label fw-bold">
+                                <i class="bi bi-cash-coin"></i> Файл себестоимости
+                                <span class="text-muted">(опционально)</span>
+                            </label>
+                            <input type="file"
+                                   name="sebes_file"
+                                   id="sebes_file"
+                                   class="form-control"
+                                   accept=".xlsx,.xls">
+                            <div class="form-text">
+                                Если загружен — для каждой группы берётся её собственная себестоимость.
+                                Если не загружен — используется значение по умолчанию из поля ниже.
+                            </div>
+                        </div>
+
+                        <!-- 3. Ручные параметры -->
+                        <div class="card bg-light mb-4">
+                            <div class="card-body">
+                                <h6 class="card-title mb-3">
+                                    <i class="bi bi-sliders"></i> Ручные параметры расчёта
+                                </h6>
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label for="unit_cost" class="form-label">
+                                            Себестоимость по умолчанию, руб.
+                                        </label>
+                                        <input type="number"
+                                               step="0.01"
+                                               min="0"
+                                               class="form-control"
+                                               id="unit_cost"
+                                               name="unit_cost"
+                                               value="{{ unit_cost_default|default:900 }}">
+                                        <div class="form-text">
+                                            Применяется к группам, которых нет в файле себестоимости.
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="tax_rate" class="form-label">
+                                            Налоговая ставка, %
+                                        </label>
+                                        <input type="number"
+                                               step="0.01"
+                                               min="0"
+                                               max="100"
+                                               class="form-control"
+                                               id="tax_rate"
+                                               name="tax_rate"
+                                               value="{{ tax_rate_percent|default:8 }}">
+                                        <div class="form-text">
+                                            Подставляется в колонку «Налог». По умолчанию — 8 %.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 4. Кнопка -->
                         <div class="d-grid gap-2">
                             <button type="submit" class="btn btn-primary btn-lg">
                                 <i class="bi bi-gear"></i> Анализировать и скачать результат
                             </button>
                         </div>
                     </form>
-                    
+
                     <hr class="my-4">
-                    
+
                     <div class="alert alert-success">
                         <i class="bi bi-check-circle"></i>
-                        <strong>Требования к файлу:</strong>
+                        <strong>Требования к файлам:</strong>
                         <ul class="mb-0 mt-2">
-                            <li>Файл должен содержать колонки: <code>Артикул</code>, <code>Тип начисления</code>, <code>Сумма итого, руб.</code></li>
-                            <li>Первая строка (период) будет автоматически пропущена</li>
+                            <li><strong>Отчёт продаж:</strong> колонки <code>Артикул</code>, <code>Тип начисления</code>, <code>Сумма итого, руб.</code>; первая строка (период) пропускается автоматически.</li>
+                            <li><strong>Файл себестоимости:</strong> лист <code>Sebes</code>, колонки <code>Префикс_группы</code> и <code>Себестоимость</code>.</li>
                             <li>Поддерживаются форматы: .xlsx, .xls</li>
                         </ul>
                     </div>
@@ -86,15 +145,33 @@
 
 {% block extra_js %}
 <script>
-    // Отображение имени выбранного файла
+    // Имя файла продаж
     document.getElementById('excel_file').addEventListener('change', function(e) {
         const fileName = e.target.files[0]?.name;
         const label = document.querySelector('label[for="excel_file"]');
         if (fileName) {
             label.innerHTML = `<i class="bi bi-check-circle"></i> Выбран файл: ${fileName}`;
         } else {
-            label.innerHTML = `<i class="bi bi-cloud-upload"></i> Выберите Excel файл`;
+            label.innerHTML = `<i class="bi bi-cloud-upload"></i> Файл отчёта продаж (обязательно)`;
         }
+    });
+
+    // Имя файла себестоимости
+    document.getElementById('sebes_file').addEventListener('change', function(e) {
+        const fileName = e.target.files[0]?.name;
+        const label = document.querySelector('label[for="sebes_file"]');
+        if (fileName) {
+            label.innerHTML = `<i class="bi bi-check-circle"></i> Выбран файл: ${fileName}`;
+        } else {
+            label.innerHTML = `<i class="bi bi-cash-coin"></i> Файл себестоимости <span class="text-muted">(опционально)</span>`;
+        }
+    });
+
+    // Валидация налога на клиенте
+    document.getElementById('tax_rate').addEventListener('input', function() {
+        let v = parseFloat(this.value);
+        if (isNaN(v) || v < 0) this.value = 0;
+        if (v > 100) this.value = 100;
     });
 </script>
 {% endblock %}
