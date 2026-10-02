@@ -741,7 +741,7 @@ def form21(request):
                 "Тип начисления в расчете": ["Количество выкупов / Количество заказов * 100"],
             })], ignore_index=True)
 
-            # СТАЛО: расширенная логистика уже посчитана выше
+            # расширенная логистика уже посчитана выше
             # Берём её значение из financial_summary
             logistics_total = 0.0
             logistics_row = financial_summary[
@@ -762,43 +762,7 @@ def form21(request):
                 "Тип начисления в расчете": ["Сумма(все логистические расходы) / Сумма(Выручка+Баллы) * 100"],
             })], ignore_index=True)
 
-            # Теперь добавляем "% Озон + Лог" после "% Лог/(Выручка + Баллы) (взвешенный)"
-            # (эта строка уже есть в financial_summary, т.к. добавлена выше)
-            procent_log_vyruchka = 0.0
-            procent_log_row = financial_summary[
-                financial_summary["Показатель"] == "% Лог/(Выручка + Баллы) (взвешенный)"
-            ]
-            if not procent_log_row.empty:
-                procent_log_vyruchka = float(procent_log_row["Итог"].values[0])
-
-            procent_ozon_log = round(procent_ozon + procent_log_vyruchka, 1)
-
-            procent_ozon_log_row = pd.DataFrame({
-                "Показатель": ["% Озон + Лог"],
-                "Итог": [procent_ozon_log],
-                "Тип начисления в расчете": [
-                    "% Озон + % Лог/(Выручка + Баллы) (взвешенный)"
-                ],
-            })
-
-            idx_log = financial_summary.index[
-                financial_summary["Показатель"] == "% Лог/(Выручка + Баллы) (взвешенный)"
-            ].tolist()
-
-            if idx_log:
-                pos = idx_log[0]
-                head = financial_summary.iloc[: pos + 1]
-                tail = financial_summary.iloc[pos + 1 :]
-                financial_summary = pd.concat(
-                    [head, procent_ozon_log_row, tail],
-                    ignore_index=True,
-                )
-            else:
-                financial_summary = pd.concat(
-                    [financial_summary, procent_ozon_log_row],
-                    ignore_index=True,
-                )
-
+            
             median_log_revenue = (
                 round(merged_df["% Лог/(Выручка+Баллы)"].median(), 1)
                 if len(merged_df) > 0 else 0.0
@@ -808,6 +772,17 @@ def form21(request):
                 "Итог": [median_log_revenue],
                 "Тип начисления в расчете": [
                     "Медиана значений % Лог/(Выручка+Баллы+Прог.партнёров) по группам"
+                ],
+            })], ignore_index=True)
+
+                        # Считаем % Озон + Лог
+            procent_ozon_log = round(procent_ozon + weighted_log_revenue, 1)
+
+            financial_summary = pd.concat([financial_summary, pd.DataFrame({
+                "Показатель": ["% Озон + Лог"],
+                "Итог": [procent_ozon_log],
+                "Тип начисления в расчете": [
+                    "% Озон + % Лог/(Выручка + Баллы + Прог) (взвешенный)"
                 ],
             })], ignore_index=True)
 
