@@ -256,11 +256,16 @@ def form21(request):
                 revenue_count = len(g[g["Тип начисления"] == "Выручка"])
                 return_count = len(g[g["Тип начисления"] == "Возврат выручки"])
                 logistics_count = len(g[g["Тип начисления"] == "Логистика"])
+                
+                # Считаем расширенную логистику для группы
+                log_mask = g["Тип начисления"].isin(LOGISTICS_TYPES)
+                logistics_sum = round(g.loc[log_mask, "Сумма итого, руб."].sum(), 2) if log_mask.any() else 0.0
+
                 group_stats.append({
                     "Префикс_группы": prefix,
                     "Общая сумма, руб": g["Сумма итого, руб."].sum(),
                     "Выручка, руб": g[g["Тип начисления"] == "Выручка"]["Сумма итого, руб."].sum(),
-                    "Логистика, руб": g[g["Тип начисления"] == "Логистика"]["Сумма итого, руб."].sum(),
+                    "Логистика, руб": logistics_sum,  # ← расширенная логистика
                     "Количество выкупов": revenue_count,
                     "Возвраты": return_count,
                     "Чистые выкупы": revenue_count - return_count,
@@ -424,6 +429,22 @@ def form21(request):
                     "Обработка отправления Drop-off партнёрами (ПВЗ) + Упаковка товара партнёрами + "
                     "Обеспечение материалами для упаковки товара + Дополнительная упаковка товара на складе"
                 ),
+                "Страхование товара от массовых повреждений": (
+                    "Ежедневная плата за страхование товара от массовых повреждений. "
+                    "Входит в 'Общие расходы Ozon'."
+                ),
+                "Подписка Premium": (
+                    "Ежемесячная плата за подписку Premium. "
+                    "Входит в 'Общие расходы Ozon'."
+                ),
+                "Ускоренный сбор отзывов": (
+                    "Плата за услугу ускоренного сбора отзывов. "
+                    "Входит в 'Общие расходы Ozon'."
+                ),
+                "Отгрузка в нерекомендованный слот": (
+                    "Штраф за отгрузку товара в нерекомендованный слот. "
+                    "Входит в 'Общие расходы Ozon'."
+                ),
                 "Количество выкупов": "Количество операций с типом 'Выручка'",
                 "Возвраты": "Количество операций с типом 'Возврат выручки' (возвраты после выкупа)",
                 "Чистые выкупы": "Количество выкупов - Возвраты (реальное число проданных единиц)",
@@ -486,32 +507,52 @@ def form21(request):
                     continue
                 
                 # Пропускаем типы, которые уже учтены в "Общескладских расходах Ozon"
-                if col in SERVICE_TYPES:
-                    continue
+                #if col in SERVICE_TYPES:
+                #    continue
                 
                 numeric_columns.append(col)
                 formulas[col] = f"Сумма операций с типом '{col}'"
 
-            # 4. ПОТОМ: ОТДЕЛЬНЫМ циклом обрабатываем все numeric_columns 
-            # (они добавятся в список ПОСЛЕ "Начислено" и "Удержано")
+            # 4. ПОТОМ: ОТДЕЛЬНЫМ циклом обрабатываем все numeric_columns
             for col in numeric_columns:
                 if col == "Логистика, руб":
                     # Расширенная логистика: сумма всех логистических типов из исходного файла
                     log_mask = df_non_ad["Тип начисления"].isin(LOGISTICS_TYPES)
                     col_sum = round(df_non_ad.loc[log_mask, "Сумма итого, руб."].sum(), 2)
+                
+                elif col in SERVICE_TYPES:
+                    # Общескладские расходы (Страхование, Premium и т.д.)
+                    # Берём напрямую из df_non_ad, т.к. они в группе "unknown",
+                    # которая удалена из merged_df
+                    service_mask = df_non_ad["Тип начисления"] == col
+                    if service_mask.any():
+                        col_sum = round(df_non_ad.loc[service_mask, "Сумма итого, руб."].sum(), 2)
+                    else:
+                        col_sum = 0.0
+                
                 elif col == "Общая сумма, руб":
                     # Берем сумму по всем операциям без рекламы (включая "unknown")
                     col_sum = round(df_non_ad["Сумма итого, руб."].sum(), 2)
+                
                 elif col == "Чистая прибыль, руб":
                     # Прибавляем общескладские расходы к прибыли по группам
                     col_sum = round(merged_df[col].sum() + service_total, 2)
+                
                 elif col in merged_df.columns:
-                    # Для остальных показателей (выручка, маржа и т.д.) 
-                    # сумма по группам и так корректна
+                    # Для остальных показателей (выручка, маржа и т.д.)
                     col_sum = round(merged_df[col].sum(), 2)
+                
                 else:
-                    # Если колонки нет в merged_df (например, доп. типы из pivot)
+                    # Если колонки нет в merged_df
                     col_sum = 0.0
+
+                summary_data.append({
+                    "Показатель": col,
+                    "Итог": col_sum,
+                    "Тип начисления в расчете": formulas.get(
+                        col, "Сумма всех операций по данному типу"
+                    ),
+                })
 
                 summary_data.append({
                     "Показатель": col,
@@ -804,7 +845,7 @@ def form21(request):
             financial_summary = pd.concat([financial_summary, pd.DataFrame({
                 "Показатель": ["% Лог/(Выручка + Баллы + Прог) (взвешенный)"],
                 "Итог": [weighted_log_revenue],
-                "Тип начисления в расчете": ["Сумма(все логистические расходы) / Сумма(Выручка+Баллы) * 100"],
+                "Тип начисления в расчете": ["Сумма(все логистические расходы) / Сумма(Выручка+Баллы+Прог.партнеров) * 100"],
             })], ignore_index=True)
 
             
@@ -840,6 +881,9 @@ def form21(request):
                 ],
             })], ignore_index=True)
 
+            # УДАЛЯЕМ ДУБЛИКАТЫ перед пересборкой
+            financial_summary = financial_summary.drop_duplicates(subset=["Показатель"], keep='first')
+
             # Задаём нужный порядок показателей
             desired_order = [
                 "Начислено",
@@ -848,8 +892,8 @@ def form21(request):
                 "Общая сумма, руб",
                 "Чистая прибыль, руб",
                 "Логистика, руб",
-                "% Лог/(Выручка + Баллы) (взвешенный)",
-                "% Лог/(Выручка + Баллы) (медиана по группам)",
+                "% Лог/(Выручка + Баллы + Прог) (взвешенный)",
+                "% Лог/(Выручка+Баллы+Прог) (медиана по группам)",
                 "Баллы за скидки",
                 "Вознаграждение Озон",
                 "% Озон",
@@ -869,6 +913,10 @@ def form21(request):
                 "Маржа",
                 "Маржа (по группам артикулов)",
                 "Общие расходы Ozon (вне групп артикулов)",
+                "Страхование товара от массовых повреждений",  # ← НОВОЕ
+                "Подписка Premium",                              # ← НОВОЕ
+                "Ускоренный сбор отзывов",                       # ← НОВОЕ
+                "Отгрузка в нерекомендованный слот",             # ← НОВОЕ
                 "Маржа (за минусом общих)",
                 "Положительная маржа (по группам)",
                 "Отрицательная маржа (по группам)",
@@ -900,6 +948,26 @@ def form21(request):
             fill_yellow = PatternFill(start_color="FFEB9C", end_color="FFEB9C", fill_type="solid")
             fill_green = PatternFill(start_color="C6EFCE", end_color="C6EFCE", fill_type="solid")
 
+            def paint_log_percentage(ws, df):
+                """Красит колонку % Лог/(Выручка+Баллы) по диапазонам."""
+                if "% Лог/(Выручка+Баллы)" not in df.columns:
+                    return
+                col_idx = df.columns.get_loc("% Лог/(Выручка+Баллы)") + 1
+                for r in range(2, len(df) + 2):
+                    cell = ws.cell(row=r, column=col_idx)
+                    v = cell.value
+                    if v is None:
+                        continue
+                    try:
+                        v = float(v)
+                    except (TypeError, ValueError):
+                        continue
+                    if v <= 15:
+                        cell.fill = fill_green
+                    elif v <= 25:
+                        cell.fill = fill_yellow
+                    else:
+                        cell.fill = fill_red
             def paint_purchase_percentage(ws, df):
                 if "Процент выкупа, %" not in df.columns:
                     return
@@ -979,6 +1047,7 @@ def form21(request):
                 paint_purchase_percentage(writer.sheets["3_Детально_по_артикулам"], detailed_df)
                 paint_margin(writer.sheets["1_Группы_объединенная"], merged_df)
                 paint_margin_detailed(writer.sheets["3_Детально_по_артикулам"], detailed_df)
+                paint_log_percentage(writer.sheets["1_Группы_объединенная"], merged_df)
 
                 paint_summary_margin_rows(writer.sheets["0_Финансовая_сводка"], financial_summary)
 
