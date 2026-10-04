@@ -54,10 +54,11 @@ def extract_prefix(article):
     return str(article)[:3]
 
 
-def calculate_purchase_percentage(revenue_count, logistics_count):
+def calculate_purchase_percentage(net_purchases, logistics_count):
+    """Считает процент выкупа от ЧИСТЫХ выкупов (без возвратов)."""
     if logistics_count == 0:
         return 0.0
-    return round((revenue_count / logistics_count) * 100, 1)
+    return round((net_purchases / logistics_count) * 100, 1)
 
 
 def extract_date_range(filename):
@@ -194,31 +195,66 @@ def form21(request):
             for article in df_non_ad["Артикул"].unique():
                 a = df_non_ad[df_non_ad["Артикул"] == article]
                 revenue_count = len(a[a["Тип начисления"] == "Выручка"])
+                return_count = len(a[a["Тип начисления"] == "Возврат выручки"])
                 logistics_count = len(a[a["Тип начисления"] == "Логистика"])
+                
+                # Выручка нужна для расчёта налога, но не выводится в Excel
+                revenue_sum = a[a["Тип начисления"] == "Выручка"]["Сумма итого, руб."].sum()
+                
                 detailed_stats.append({
                     "Артикул": article,
                     "Префикс": extract_prefix(article),
                     "Общая сумма, руб": a["Сумма итого, руб."].sum(),
-                    "Выручка, руб": a[a["Тип начисления"] == "Выручка"]["Сумма итого, руб."].sum(),
-                    "Логистика, руб": a[a["Тип начисления"] == "Логистика"]["Сумма итого, руб."].sum(),
                     "Количество выкупов": revenue_count,
+                    "Возвраты": return_count,
+                    "Чистые выкупы": revenue_count - return_count,
                     "Количество заказов": logistics_count,
-                    "Процент выкупа, %": calculate_purchase_percentage(revenue_count, logistics_count),
+                    "Процент выкупа, %": calculate_purchase_percentage(revenue_count - return_count, logistics_count),
+                    "_Выручка_скрытая": revenue_sum,  # для расчёта налога
                 })
             detailed_df = pd.DataFrame(detailed_stats).sort_values("Общая сумма, руб", ascending=False)
 
-            # Убираем из детального отчёта служебные строки без артикула / с unknown
+            # Убираем служебные строки
             detailed_df = detailed_df[
                 detailed_df["Артикул"].astype(str).str.strip().ne("") &
                 detailed_df["Артикул"].astype(str).str.strip().str.lower().ne("nan") &
                 detailed_df["Артикул"].astype(str).str.strip().ne("unknown")
             ].copy()
 
+            # ====== СЕБЕСТОИМОСТЬ ДЛЯ АРТИКУЛОВ ======
+            detailed_df["Себес"] = (
+                detailed_df["Префикс"].astype(str).str.strip()
+                .map(cost_map)
+                .fillna(unit_cost_default)
+                .astype(float)
+            )
+
+            # Себес выкупов
+            detailed_df["Себес выкупов"] = (detailed_df["Себес"] * detailed_df["Чистые выкупы"]).round(2)
+
+            # Налог (от выручки)
+            detailed_df["Налог"] = (detailed_df["_Выручка_скрытая"] * tax_rate).round(2)
+
+            # Чистая прибыль артикула = Общая сумма (реклама распределяется только по группам)
+            detailed_df["Чистая прибыль, руб"] = detailed_df["Общая сумма, руб"]
+
+            # Маржа
+            detailed_df["Маржа"] = (
+                detailed_df["Чистая прибыль, руб"] - detailed_df["Себес выкупов"] - detailed_df["Налог"]
+            ).round(2)
+
+            # Сортировка по марже
+            detailed_df = detailed_df.sort_values("Маржа", ascending=False)
+
+            # Удаляем скрытую колонку перед выводом
+            detailed_df = detailed_df.drop(columns=["_Выручка_скрытая"], errors="ignore")
+
             # ---------- Группировка по префиксам ----------
             group_stats = []
             for prefix in df_non_ad["Префикс_артикула"].unique():
                 g = df_non_ad[df_non_ad["Префикс_артикула"] == prefix]
                 revenue_count = len(g[g["Тип начисления"] == "Выручка"])
+                return_count = len(g[g["Тип начисления"] == "Возврат выручки"])
                 logistics_count = len(g[g["Тип начисления"] == "Логистика"])
                 group_stats.append({
                     "Префикс_группы": prefix,
@@ -226,8 +262,10 @@ def form21(request):
                     "Выручка, руб": g[g["Тип начисления"] == "Выручка"]["Сумма итого, руб."].sum(),
                     "Логистика, руб": g[g["Тип начисления"] == "Логистика"]["Сумма итого, руб."].sum(),
                     "Количество выкупов": revenue_count,
+                    "Возвраты": return_count,
+                    "Чистые выкупы": revenue_count - return_count,
                     "Количество заказов": logistics_count,
-                    "Процент выкупа, %": calculate_purchase_percentage(revenue_count, logistics_count),
+                    "Процент выкупа, %": calculate_purchase_percentage(revenue_count - return_count, logistics_count),
                     "Количество артикулов в группе": g["Артикул"].nunique(),
                 })
             group_df_result = pd.DataFrame(group_stats).sort_values("Общая сумма, руб", ascending=False)
@@ -280,7 +318,7 @@ def form21(request):
             fallback_groups = merged_df.loc[used_fallback, "Префикс_группы"].tolist()
 
             merged_df["Кол-во*себес"] = (
-                merged_df["Количество выкупов"] * merged_df["Себестоимость"]
+                merged_df["Чистые выкупы"] * merged_df["Себестоимость"]
             ).round(2)
             merged_df["Чистая прибыль - себес"] = (
                 merged_df["Чистая прибыль, руб"] - merged_df["Кол-во*себес"]
@@ -340,6 +378,8 @@ def form21(request):
                 "Логистика, руб",
                 "% Лог/(Выручка+Баллы)",
                 "Количество выкупов",
+                "Возвраты",
+                "Чистые выкупы",
                 "Количество заказов",
                 "Процент выкупа, %",
                 "Средняя цена выкупа",
@@ -385,7 +425,10 @@ def form21(request):
                     "Обеспечение материалами для упаковки товара + Дополнительная упаковка товара на складе"
                 ),
                 "Количество выкупов": "Количество операций с типом 'Выручка'",
+                "Возвраты": "Количество операций с типом 'Возврат выручки' (возвраты после выкупа)",
+                "Чистые выкупы": "Количество выкупов - Возвраты (реальное число проданных единиц)",
                 "Количество заказов": "Количество операций с типом 'Логистика'",
+                "Процент Выкупа": "Чистые выкупы / Количество заказов * 100 (без учёта возвратов)",
                 "Количество артикулов в группе": "Количество уникальных артикулов в группе",
                 "Рекламные расходы, руб": "Расходы на рекламу (тип 'Оплата за клик'), распределённые пропорционально выручке",
                 "Чистая прибыль, руб": "Общая сумма - Общие расходы - Рекламные расходы",
@@ -417,6 +460,8 @@ def form21(request):
                 "Общая сумма, руб",
                 "Логистика, руб",
                 "Количество выкупов",
+                "Возвраты",
+                "Чистые выкупы",
                 "Количество заказов",
                 "Количество артикулов в группе",
                 "Рекламные расходы, руб",
@@ -675,7 +720,7 @@ def form21(request):
             })], ignore_index=True)
 
             # Средневзвешенная себестоимость
-            total_purchases_for_cost = merged_df["Количество выкупов"].sum()
+            total_purchases_for_cost = merged_df["Чистые выкупы"].sum()
             weighted_unit_cost = (
                 round(merged_df["Кол-во*себес"].sum() / total_purchases_for_cost, 2)
                 if total_purchases_for_cost > 0 else 0.0
@@ -723,22 +768,22 @@ def form21(request):
                 "Тип начисления в расчете": ["Ставка налога, применённая к Выручке"],
             })], ignore_index=True)
 
-            # Процент выкупа
-            total_purchases = 0
+            # Процент выкупа (от чистых выкупов)
+            total_net_purchases = 0
             total_orders = 0
             for _, row in financial_summary.iterrows():
-                if row["Показатель"] == "Количество выкупов":
-                    total_purchases = row["Итог"]
+                if row["Показатель"] == "Чистые выкупы":
+                    total_net_purchases = row["Итог"]
                 elif row["Показатель"] == "Количество заказов":
                     total_orders = row["Итог"]
             purchase_percentage_total = (
-                round((total_purchases / total_orders) * 100, 1)
+                round((total_net_purchases / total_orders) * 100, 1)
                 if total_orders > 0 else 0.0
             )
             financial_summary = pd.concat([financial_summary, pd.DataFrame({
                 "Показатель": ["Процент Выкупа"],
                 "Итог": [purchase_percentage_total],
-                "Тип начисления в расчете": ["Количество выкупов / Количество заказов * 100"],
+                "Тип начисления в расчете": ["Чистые выкупы / Количество заказов * 100"],
             })], ignore_index=True)
 
             # расширенная логистика уже посчитана выше
@@ -810,6 +855,8 @@ def form21(request):
                 "% Озон",
                 "% Озон + Лог",
                 "Количество выкупов",
+                "Возвраты",
+                "Чистые выкупы",
                 "Количество заказов",
                 "Процент Выкупа",
                 "Количество артикулов в группе",
@@ -874,6 +921,17 @@ def form21(request):
                     if v is None:
                         continue
                     cell.fill = fill_green if v > 0 else fill_red
+            def paint_margin_detailed(ws, df):
+                """Красит маржу на листе 3_Детально_по_артикулам."""
+                if "Маржа" not in df.columns:
+                    return
+                col_idx = df.columns.get_loc("Маржа") + 1
+                for r in range(2, len(df) + 2):
+                    cell = ws.cell(row=r, column=col_idx)
+                    v = cell.value
+                    if v is None:
+                        continue
+                    cell.fill = fill_green if v > 0 else fill_red
 
             def paint_summary_margin_rows(ws, df):
                 """Красит итоговые строки маржи и общескладских расходов в сводке."""
@@ -920,6 +978,8 @@ def form21(request):
                 paint_purchase_percentage(writer.sheets["1_Группы_объединенная"], merged_df)
                 paint_purchase_percentage(writer.sheets["3_Детально_по_артикулам"], detailed_df)
                 paint_margin(writer.sheets["1_Группы_объединенная"], merged_df)
+                paint_margin_detailed(writer.sheets["3_Детально_по_артикулам"], detailed_df)
+
                 paint_summary_margin_rows(writer.sheets["0_Финансовая_сводка"], financial_summary)
 
                 autofit_columns(writer.sheets["0_Финансовая_сводка"], financial_summary)
