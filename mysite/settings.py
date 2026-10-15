@@ -9,8 +9,9 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
-
+import os
 from pathlib import Path
+from dotenv import load_dotenv
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -49,6 +50,8 @@ INSTALLED_APPS = [
     "accounts",
     "django_extensions",
     "access_codes",
+    "aichat",
+    'photogen',
 ]
 
 MIDDLEWARE = [
@@ -143,13 +146,12 @@ STATICFILES_DIRS = [
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# settings.py
-
-import os  # ✅ Добавлено!
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
-MEDIA_URL = "/media/"
+MEDIA_URL = "/media/"   
+# Явно загружаем .env из папки с manage.py
+load_dotenv(os.path.join(BASE_DIR, '.env'))   
 
 CKEDITOR_UPLOAD_PATH = "uploads/"
 CKEDITOR_CONFIGS = {
@@ -165,3 +167,5 @@ CKEDITOR_CONFIGS = {
 
 LOGIN_URL = "/accounts/login/"
 LOGIN_REDIRECT_URL = "/"  # или '/success/'
+AITUNNEL_API_KEY = os.getenv("AITUNNEL_API_KEY")
+

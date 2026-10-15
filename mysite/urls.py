@@ -6,6 +6,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from forms_app.views.success_view import success_page
 from django.contrib.auth.views import LoginView
+from django.urls import path, include
 
 
 urlpatterns = [
@@ -23,6 +24,8 @@ urlpatterns = [
     path("theory/", include("theory.urls", namespace="theory")),
     path("", include("home.urls")),
     path("ckeditor/", include("ckeditor_uploader.urls")),
+    path("aichat/", include("aichat.urls")),
+    path('photogen/', include('photogen.urls')),
 ]
 
 if settings.DEBUG:

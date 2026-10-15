@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Генератор карточек товаров{% endblock %}
+
+{% block content %}
+<h1>Генератор карточек товаров</h1>
+
+{% if messages %}
+    {% for m in messages %}
+        <div style="padding:8px;margin:8px 0;border-radius:4px;
+                    background:{% if m.tags == 'error' %}#fdd{% else %}#dfd{% endif %};">
+            {{ m }}
+        </div>
+    {% endfor %}
+{% endif %}
+
+<p>
+    <a href="{% url 'photogen:library' %}">📚 Библиотека референсов</a>
+    |
+    <a href="{% url 'photogen:library' %}">➕ Загрузить фото</a>
+</p>
+
+<!-- Информация о библиотеке -->
+<h3>Библиотека референсов</h3>
+<ul>
+    {% for label, n in counts %}
+        <li>{{ label }}: <b>{{ n }}</b></li>
+    {% endfor %}
+</ul>
+
+<!-- Выбор режима -->
+<form method="post" id="gen-form">
+    {% csrf_token %}
+
+    <div style="margin:16px 0;">
+        <button type="button" onclick="setMode('outfit')" id="tab-outfit"
+                style="padding:8px 16px;background:#007bff;color:#fff;border:none;cursor:pointer;">
+            Сборка образа (Flux 3)
+        </button>
+        <button type="button" onclick="setMode('pose')" id="tab-pose"
+                style="padding:8px 16px;background:#eee;border:none;cursor:pointer;">
+            Мастер-модель + локация (Muse)
+        </button>
+    </div>
+
+    <input type="hidden" name="mode" id="mode-input" value="outfit">
+
+    <!-- Выбор референсов для Flux -->
+    <details id="refs-outfit-block" style="margin:16px 0;">
+        <summary style="cursor:pointer;font-weight:bold;">
+            🎯 Выбрать конкретные референсы (если не отмечать — случайные)
+        </summary>
+        <div style="margin-top:12px;padding:12px;border:1px solid #ddd;border-radius:6px;">
+            {% for cat_key, cat_label, assets in refs_outfit %}
+                <div style="margin-bottom:12px;">
+                    <b>{{ cat_label }}</b>
+                    {% if assets %}
+                        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;">
+                            {% for a in assets %}
+                                <label style="cursor:pointer;text-align:center;">
+                                    <input type="checkbox" name="{{ cat_key }}_ids" value="{{ a.id }}">
+                                    <br>
+                                    <img src="{{ a.image.url }}" alt="{{ cat_label }}"
+                                         style="width:70px;height:70px;object-fit:cover;border-radius:6px;border:1px solid #ddd;">
+                                </label>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div style="color:#999;font-size:13px;">Нет фото — загрузите в библиотеку.</div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    </details>
+
+    <!-- Выбор референсов для Muse -->
+    <details id="refs-pose-block" style="margin:16px 0;display:none;">
+        <summary style="cursor:pointer;font-weight:bold;">
+            🎯 Выбрать конкретные референсы (если не отмечать — случайные)
+        </summary>
+        <div style="margin-top:12px;padding:12px;border:1px solid #ddd;border-radius:6px;">
+            {% for cat_key, cat_label, assets in refs_pose %}
+                <div style="margin-bottom:12px;">
+                    <b>{{ cat_label }}</b>
+                    {% if assets %}
+                        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;">
+                            {% for a in assets %}
+                                <label style="cursor:pointer;text-align:center;">
+                                    <input type="checkbox" name="{{ cat_key }}_ids" value="{{ a.id }}">
+                                    <br>
+                                    <img src="{{ a.image.url }}" alt="{{ cat_label }}"
+                                         style="width:70px;height:70px;object-fit:cover;border-radius:6px;border:1px solid #ddd;">
+                                </label>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div style="color:#999;font-size:13px;">Нет фото — загрузите в библиотеку.</div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    </details>
+
+    <div id="size-block" style="margin:16px 0;">
+        <label>Разрешение:
+            <select name="size" id="size-select"></select>
+        </label>
+        <span id="size-hint" style="color:#666;font-size:13px;"></span>
+    </div>
+
+    <!-- Позы -->
+    <div id="poses-block" style="display:none;margin:16px 0;padding:12px;border:1px solid #ccc;">
+        <h3>Позы (выберите одну или несколько)</h3>
+        <label><input type="checkbox" name="poses" value="sitting"> Сидя на скамейке</label><br>
+        <label><input type="checkbox" name="poses" value="profile"> Профиль у колонны</label><br>
+        <label><input type="checkbox" name="poses" value="walking"> Шаг</label><br>
+        <label><input type="checkbox" name="poses" value="back"> Спиной через плечо</label><br>
+        <label><input type="checkbox" name="poses" value="standing"> Стоя в полный рост</label><br>
+        <label><input type="checkbox" name="poses" value="leaning_wall"> Прислонившись к стене</label><br>
+        <label><input type="checkbox" name="poses" value="hands_pockets"> Руки в карманах</label><br>
+        <label><input type="checkbox" name="poses" value="holding_bag"> С сумкой на плече</label><br>
+        <label><input type="checkbox" name="poses" value="twist"> Лёгкий разворот</label><br>
+        <label><input type="checkbox" name="poses" value="sitting_chair"> Сидя на стуле</label>
+    </div>
+
+    <p style="color:#666;">
+        Если не выбрать деталь, то референсы будут выбраны <b>случайно</b> из вашей библиотеки.<br>
+        Ориентировочная стоимость: <b>3.69 ₽</b> за образ (Flux 3)
+        или <b>1.80 ₽</b> за каждую позу (Muse).
+    </p>
+
+    <button type="submit"
+            style="padding:12px 24px;background:#28a745;color:#fff;border:none;
+                   cursor:pointer;font-size:16px;border-radius:4px;">
+        🎨 Сгенерировать
+    </button>
+</form>
+
+<script>
+const SIZES = {
+    outfit: [
+        {v: "1K", t: "1K (~4 ₽)"},
+        {v: "2K", t: "2K (~18 ₽)", selected: true},
+        {v: "4K", t: "4K (~60 ₽)"},
+    ],
+    pose: [
+        {v: "1024x1024", t: "1024×1024 (~1.80 ₽)", selected: true},
+    ],
+};
+
+function setMode(mode) {
+    document.getElementById('mode-input').value = mode;
+    const tabOutfit = document.getElementById('tab-outfit');
+    const tabPose = document.getElementById('tab-pose');
+    const posesBlock = document.getElementById('poses-block');
+    const sizeSelect = document.getElementById('size-select');
+
+    // подсветка вкладок
+    const isOutfit = mode === 'outfit';
+    tabOutfit.style.background = isOutfit ? '#007bff' : '#eee';
+    tabOutfit.style.color = isOutfit ? '#fff' : '#000';
+    tabPose.style.background = isOutfit ? '#eee' : '#007bff';
+    tabPose.style.color = isOutfit ? '#000' : '#fff';
+
+    // показ поз
+    posesBlock.style.display = isOutfit ? 'none' : 'block';
+
+    // показ нужного блока с референсами
+    const refsOutfit = document.getElementById('refs-outfit-block');
+    const refsPose = document.getElementById('refs-pose-block');
+    if (refsOutfit) refsOutfit.style.display = isOutfit ? 'block' : 'none';
+    if (refsPose) refsPose.style.display = isOutfit ? 'none' : 'block';
+
+    // обновление размеров
+    sizeSelect.innerHTML = '';
+    SIZES[mode].forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.v;
+        opt.textContent = s.t;
+        if (s.selected) opt.selected = true;
+        sizeSelect.appendChild(opt);
+    });
+}
+
+// инициализация при загрузке страницы
+setMode('outfit');
+</script>
+{% endblock %}

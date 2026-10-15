@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}История генераций{% endblock %}
+
+{% block content %}
+<h1>История генераций</h1>
+
+<div style="max-height:70vh;overflow-y:auto;border:1px solid #eee;border-radius:8px;">
+    <table style="width:100%;border-collapse:collapse;">
+        <thead style="position:sticky;top:0;background:#f5f5f5;z-index:1;">
+            <tr>
+                <th style="padding:8px;text-align:left;">Превью</th>
+                <th style="padding:8px;text-align:left;">#</th>
+                <th style="padding:8px;text-align:left;">Режим</th>
+                <th style="padding:8px;text-align:left;">Размер</th>
+                <th style="padding:8px;text-align:left;">Статус</th>
+                <th style="padding:8px;text-align:left;">Фото</th>
+                <th style="padding:8px;text-align:left;">Стоимость</th>
+                <th style="padding:8px;text-align:left;">Дата</th>
+                <th style="padding:8px;text-align:left;">Действия</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for t in tasks %}
+            <tr style="border-bottom:1px solid #eee;">
+                <td style="padding:6px;">
+                    {% with first=t.results.first %}
+                        {% if first %}
+                            <a href="{% url 'photogen:result' t.id %}">
+                                <img src="{{ first.image.url }}" alt="Превью"
+                                     style="width:60px;height:60px;object-fit:cover;border-radius:6px;display:block;">
+                            </a>
+                        {% else %}
+                            <div style="width:60px;height:60px;background:#f0f0f0;border-radius:6px;
+                                        display:flex;align-items:center;justify-content:center;
+                                        color:#aaa;font-size:11px;">—</div>
+                        {% endif %}
+                    {% endwith %}
+                </td>
+                <td style="padding:8px;">{{ t.id }}</td>
+                <td style="padding:8px;">{{ t.get_mode_display }}</td>
+                <td style="padding:8px;">{{ t.size }}</td>
+                <td style="padding:8px;">
+                    {% if t.status == "done" %}
+                        <span style="color:#28a745;">✔ {{ t.get_status_display }}</span>
+                    {% elif t.status == "failed" %}
+                        <span style="color:#dc3545;">✘ {{ t.get_status_display }}</span>
+                    {% else %}
+                        <span style="color:#fd7e14;">⏳ {{ t.get_status_display }}</span>
+                    {% endif %}
+                </td>
+                <td style="padding:8px;">{{ t.results.count }}</td>
+                <td style="padding:8px;">{{ t.cost_rub }} ₽</td>
+                <td style="padding:8px;white-space:nowrap;">{{ t.created_at|date:"d.m.Y H:i" }}</td>
+                <td style="padding:8px;white-space:nowrap;">
+                    {% if t.status == "done" %}
+                        <a href="{% url 'photogen:task_detail' t.id %}"
+                            style="padding:4px 10px;background:#007bff;color:#fff;
+                                    border-radius:4px;text-decoration:none;font-size:13px;">
+                            Детали
+                        </a>
+                    {% endif %}
+                    <form method="post" action="{% url 'photogen:delete_task' t.id %}"
+                          style="display:inline-block;"
+                          onsubmit="return confirm('Удалить задачу #{{ t.id }} и все её результаты?');">
+                        {% csrf_token %}
+                        <button type="submit"
+                                style="padding:4px 10px;background:#dc3545;color:#fff;
+                                       border:none;border-radius:4px;cursor:pointer;font-size:13px;">
+                            🗑
+                        </button>
+                    </form>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="9" style="padding:20px;text-align:center;color:#888;">
+                Пока нет задач.
+            </td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<p style="margin-top:24px;">
+    <a href="{% url 'photogen:generator' %}">← К генератору</a>
+</p>
+{% endblock %}
