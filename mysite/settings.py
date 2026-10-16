@@ -67,7 +67,7 @@ MIDDLEWARE = [
 
 TWO_FACTOR_AUTH = {
     "SESSION_KEY": "2fa_verified",
-    "CODE_EXPIRY_MINUTES": 30,
+    "CODE_EXPIRY_MINUTES": 180,
 }
 
 ROOT_URLCONF = "mysite.urls"

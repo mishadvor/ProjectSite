@@ -78,7 +78,22 @@ def _pick_asset(category: str, selected: dict = None):
     return open(asset.image.path, "rb"), asset
 
 
-# photogen/tasks.py — заменить _save_first_result на _save_results
+
+def _save_one_result(task, order_idx: int, pose_key: str, item):
+    """Сохраняет один GenerationResult сразу — чтобы UI видел прогресс."""
+    if getattr(item, "b64_json", None):
+        image_data = base64.b64decode(item.b64_json)
+    elif getattr(item, "url", None):
+        import requests
+        resp = requests.get(item.url, timeout=60)
+        resp.raise_for_status()
+        image_data = resp.content
+    else:
+        return  # битый результат
+
+    filename = f"result_{task.id}_{order_idx+1}_{datetime.now():%Y%m%d_%H%M%S}.png"
+    result = GenerationResult(task=task, order=order_idx, pose=pose_key)
+    result.image.save(filename, ContentFile(image_data), save=True)
 
 def _save_results(task, results):
     """Сохраняет ВСЕ результаты в GenerationResult."""
@@ -124,7 +139,7 @@ def generate_outfit(task: GenerationTask):
 
         prompt = _get_prompt("outfit", "outfit", default=PROMPT_OUTFIT)
         response = client.images.edit(
-            model="flux-3-image-klein",
+            model="flux-3-image",
             image=files,
             prompt=prompt,
             size=task.size,
@@ -138,12 +153,14 @@ def generate_outfit(task: GenerationTask):
 
 
 def generate_pose(task: GenerationTask, poses_selected):
-    """Режим «Мастер-модель + локация» (muse-image). По одному запросу на позу."""
+    """Режим «Мастер-модель + локация» (muse-image). По одному запросу на позу.
+    Сохраняет каждый результат сразу после получения — чтобы UI видел прогресс.
+    """
     master_file, master_asset = _pick_asset("master", task.selected_assets)
     location_file, location_asset = _pick_asset("location", task.selected_assets)
 
-    results_with_pose = []  
     total_cost = 0
+    order_idx = 0
     try:
         wrapper = _get_prompt("pose_wrapper", "main", default=PROMPT_POSE)
         for pose_key in poses_selected:
@@ -159,21 +176,21 @@ def generate_pose(task: GenerationTask, poses_selected):
                 size="1024x1024",
                 extra_body={"sequential_image_generation": "disabled"},
             )
-        # каждую картинку помечаем её позой
-        for item in response.data:
-            results_with_pose.append((pose_key, item))
-        total_cost += 1.8
 
-        # Сброс указателя для повторного чтения
-        master_file.seek(0)
-        location_file.seek(0)
+            # Сохраняем результаты этой позы сразу
+            for item in response.data:
+                _save_one_result(task, order_idx, pose_key, item)
+                order_idx += 1
+            total_cost += 1.8
+
+            master_file.seek(0)
+            location_file.seek(0)
 
         task.assets.set([master_asset, location_asset])
-        return results_with_pose, total_cost
+        return total_cost
     finally:
         master_file.close()
         location_file.close()
-
 
 # ============================================================
 # Главная точка входа для воркера
@@ -188,10 +205,10 @@ def run_task(task_id: int):
     try:
         if task.mode == "outfit":
             results, cost = generate_outfit(task)
+            _save_results(task, results)
         else:
-            results, cost = generate_pose(task, task.poses or [])
+            cost = generate_pose(task, task.poses or [])
 
-        _save_results(task, results)
         task.cost_rub = cost
         task.status = "done"
         task.finished_at = timezone.now()

@@ -32,7 +32,7 @@ def generator(request):
             task = GenerationTask.objects.create(
                 user=request.user,
                 mode="outfit",
-                model_name="flux-3-image-klein",
+                model_name="flux-3-image",
                 size=size,
                 selected_assets=selected,
             )
@@ -104,11 +104,39 @@ def task_status(request, task_id):
         {"url": r.image.url, "pose": r.pose}
         for r in task.results.all()
     ]
+
+    # Для pose-режима — прогресс по позам
+    selected_poses = task.poses or []
+    done_poses = [r.pose for r in task.results.all()]
+    # Текущая поза — первая из выбранных, которая ещё не готова
+    current_pose = None
+    if task.mode == "pose" and task.status in ("pending", "running"):
+        for code in selected_poses:
+            if code not in done_poses:
+                current_pose = code
+                break
+
+    # Названия поз (для красивого отображения на клиенте)
+    pose_titles = {
+        p.code: p.title
+        for p in PromptPreset.objects.filter(kind="pose")
+    }
+
     return JsonResponse({
         "status": task.status,
         "error": task.error_message,
         "results": results,
         "cost_rub": str(task.cost_rub),
+        "mode": task.mode,
+        "total": len(selected_poses),
+        "done": len(done_poses),
+        "current_pose": current_pose,
+        "current_pose_title": pose_titles.get(current_pose, "") if current_pose else "",
+        "poses": [
+            {"code": c, "title": pose_titles.get(c, c),
+             "done": c in done_poses}
+            for c in selected_poses
+        ],
     })
 
 

@@ -72,15 +72,80 @@
     <p><a href="{% url 'photogen:generator' %}">← Назад к генератору</a></p>
 {% else %}
     <div id="spinner" style="border:4px solid #f3f3f3;border-top:4px solid #3498db;border-radius:50%;width:40px;height:40px;animation:spin 1s linear infinite;"></div>
-    <p>Генерация выполняется...</p>
+    <p id="progress-text">Генерация выполняется...</p>
+
+    {% if task.mode == "pose" %}
+    <div id="poses-progress" style="max-width:520px;margin:20px 0;padding:12px;
+                                    border:1px solid #eee;border-radius:8px;display:none;">
+        <div style="font-weight:bold;margin-bottom:8px;">Прогресс по позам</div>
+        <div id="poses-list"></div>
+    </div>
+    {% endif %}
+
     <style>@keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}</style>
     <script>
     (function(){
         const url = "{% url 'photogen:status' task_id=task.id %}";
-        const iv = setInterval(async () => {
-            const r = await fetch(url); const d = await r.json();
-            if (d.status === "done" || d.status === "failed") { clearInterval(iv); location.reload(); }
-        }, 3000);
+        const mode = "{{ task.mode }}";
+        const posesBlock = document.getElementById('poses-progress');
+        const posesList  = document.getElementById('poses-list');
+        const progressText = document.getElementById('progress-text');
+
+        function renderPoses(data) {
+            if (mode !== "pose" || !data.poses) return;
+            posesBlock.style.display = 'block';
+            posesList.innerHTML = '';
+            data.poses.forEach(p => {
+                const row = document.createElement('div');
+                row.style.padding = '4px 0';
+                let icon, color, extra = '';
+                if (p.done) {
+                    icon = '✔'; color = '#28a745';
+                } else if (p.code === data.current_pose) {
+                    icon = '⏳'; color = '#0d6efd'; extra = ' <span style="color:#666;">— генерируется</span>';
+                } else {
+                    icon = '○'; color = '#aaa';
+                }
+                row.innerHTML = '<span style="color:' + color + ';">' + icon + '</span> ' +
+                                '<span>' + p.title + '</span>' + extra;
+                posesList.appendChild(row);
+            });
+
+            // Текст над спиннером
+            if (data.total > 0) {
+                progressText.textContent =
+                    'Готово ' + data.done + ' из ' + data.total +
+                    (data.current_pose_title ? ' • сейчас: ' + data.current_pose_title : '');
+            }
+        }
+
+        async function tick() {
+            try {
+                const r = await fetch(url, { credentials: 'same-origin' });
+                const ct = r.headers.get('content-type') || '';
+                if (!ct.includes('application/json')) {
+                    clearInterval(iv);
+                    document.getElementById('spinner')?.remove();
+                    document.body.insertAdjacentHTML('afterbegin',
+                        '<p style="padding:20px;color:#c00;">' +
+                        'Сессия истекла или вы не авторизованы. ' +
+                        '<a href="/accounts/login/?next=' +
+                        encodeURIComponent(location.pathname) + '">Войти заново</a>.</p>');
+                    return;
+                }
+                const d = await r.json();
+                renderPoses(d);
+                if (d.status === "done" || d.status === "failed") {
+                    clearInterval(iv);
+                    location.reload();
+                }
+            } catch (e) {
+                console.error("Polling error:", e);
+            }
+        }
+
+        const iv = setInterval(tick, 3000);
+        tick();  // не ждём первых 3 секунд
     })();
     </script>
 {% endif %}

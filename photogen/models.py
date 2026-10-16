@@ -60,7 +60,7 @@ class GenerationTask(models.Model):
     """Одна задача генерации."""
 
     MODE_CHOICES = [
-        ("outfit", "Сборка образа (Flux 3 Klein)"),
+        ("outfit", "Сборка образа (Flux 3)"),
         ("pose", "Мастер-модель + локация (Muse)"),
     ]
 
@@ -139,7 +139,7 @@ class PromptPreset(models.Model):
     """Редактируемый промт: текст позы, обёртка Muse, промт Flux и т.п."""
 
     KIND_CHOICES = [
-        ("outfit", "Сборка образа (Flux 3 Klein)"),
+        ("outfit", "Сборка образа (Flux 3)"),
         ("pose_wrapper", "Обёртка промта Muse"),
         ("pose", "Поза (Muse)"),
         ("location", "Локация (Muse)"),
