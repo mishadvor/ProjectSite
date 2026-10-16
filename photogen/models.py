@@ -1,5 +1,8 @@
 from django.db import models
 from django.conf import settings
+from django.core.cache import cache
+from django.db.models.signals import post_save, post_delete
+from django.dispatch import receiver
 from io import BytesIO
 from PIL import Image as PilImage
 from django.core.files.base import ContentFile
@@ -18,8 +21,6 @@ class ImageAsset(models.Model):
         ("location", "Локация"),
     ]
     MAX_SIZE = (1500, 1500)
-
-    
 
     category = models.CharField("Категория", max_length=20, choices=CATEGORY_CHOICES)
     image = models.ImageField("Изображение", upload_to="assets/%Y/%m/")
@@ -52,14 +53,14 @@ class ImageAsset(models.Model):
                     self.image.save(self.image.name, ContentFile(output.read()), save=False)
             except Exception:
                 pass
-        super().save(*args, **kwargs)    
+        super().save(*args, **kwargs)
 
 
 class GenerationTask(models.Model):
     """Одна задача генерации."""
 
     MODE_CHOICES = [
-        ("outfit", "Сборка образа (Flux 3)"),
+        ("outfit", "Сборка образа (Flux 3 Klein)"),
         ("pose", "Мастер-модель + локация (Muse)"),
     ]
 
@@ -68,19 +69,6 @@ class GenerationTask(models.Model):
         ("running", "Выполняется"),
         ("done", "Готово"),
         ("failed", "Ошибка"),
-    ]
-
-    POSE_CHOICES = [
-        ("sitting", "Сидя на скамейке"),
-        ("profile", "Профиль у колонны"),
-        ("walking", "Быстрый шаг"),
-        ("back", "Спиной через плечо"),
-        ("standing", "Стоя в полный рост"),
-        ("leaning_wall", "Прислонившись к стене"),
-        ("hands_pockets", "Руки в карманах"),
-        ("holding_bag", "С сумкой на плече"),
-        ("twist", "Лёгкий разворот"),
-        ("sitting_chair", "Сидя на стуле"),
     ]
 
     user = models.ForeignKey(
@@ -97,7 +85,7 @@ class GenerationTask(models.Model):
     status = models.CharField(
         "Статус", max_length=10, choices=STATUS_CHOICES, default="pending"
     )
-    
+
     error_message = models.TextField("Ошибка", blank=True)
     cost_rub = models.DecimalField(
         "Стоимость, ₽", max_digits=6, decimal_places=2, default=0
@@ -117,7 +105,6 @@ class GenerationTask(models.Model):
     def __str__(self):
         return f"#{self.pk} {self.get_mode_display()} — {self.get_status_display()}"
 
-# photogen/models.py — добавить после GenerationTask
 
 class GenerationResult(models.Model):
     """Одно сгенерированное изображение внутри задачи."""
@@ -139,10 +126,49 @@ class GenerationResult(models.Model):
 
     def __str__(self):
         return f"Результат #{self.pk} задачи #{self.task_id}"
-        
+
     def pose_display(self):
-        """Человекочитаемое название позы из GenerationTask.POSE_CHOICES."""
+        """Человекочитаемое название позы из PromptPreset."""
         if not self.pose:
             return "—"
-        mapping = dict(GenerationTask.POSE_CHOICES)
-        return mapping.get(self.pose, self.pose)
+        obj = PromptPreset.objects.filter(kind="pose", code=self.pose).first()
+        return obj.title if obj else self.pose
+
+
+class PromptPreset(models.Model):
+    """Редактируемый промт: текст позы, обёртка Muse, промт Flux и т.п."""
+
+    KIND_CHOICES = [
+        ("outfit", "Сборка образа (Flux 3 Klein)"),
+        ("pose_wrapper", "Обёртка промта Muse"),
+        ("pose", "Поза (Muse)"),
+        ("location", "Локация (Muse)"),
+    ]
+
+    kind = models.CharField("Тип", max_length=20, choices=KIND_CHOICES)
+    code = models.SlugField("Код", max_length=50)
+    title = models.CharField("Название", max_length=150)
+    template = models.TextField(
+        "Текст промта",
+        help_text="Для kind=pose_wrapper доступен плейсхолдер {pose}",
+    )
+    order = models.PositiveSmallIntegerField("Порядок", default=0)
+    is_active = models.BooleanField("Активен", default=True)
+    created_at = models.DateTimeField("Создано", auto_now_add=True)
+    updated_at = models.DateTimeField("Обновлено", auto_now=True)
+
+    class Meta:
+        verbose_name = "Промт"
+        verbose_name_plural = "Промты"
+        ordering = ["kind", "order", "title"]
+        unique_together = [("kind", "code")]
+        indexes = [models.Index(fields=["kind", "is_active"])]
+
+    def __str__(self):
+        return f"[{self.get_kind_display()}] {self.title}"
+
+
+@receiver([post_save, post_delete], sender=PromptPreset)
+def _clear_prompt_cache(sender, instance, **kwargs):
+    cache.delete(f"photogen_prompt_{instance.kind}_{instance.code}")
+    cache.delete(f"photogen_prompt_{instance.kind}_")

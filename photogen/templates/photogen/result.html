@@ -50,7 +50,9 @@
 <h1>Результат задачи #{{ task.id }}</h1>
 
 {% if task.status == "done" %}
-    <p>Стоимость: <b>{{ task.cost_rub }} ₽</b></p>
+    {% if user.is_staff %}
+        <p>Стоимость: <b>{{ task.cost_rub }} ₽</b></p>
+    {% endif %}
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;">
         {% for r in task.results.all %}
             <div>

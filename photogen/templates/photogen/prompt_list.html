@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Промты{% endblock %}
+{% block content %}
+<h1>Промты</h1>
+
+<p>
+    <a href="{% url 'photogen:prompt_create' %}"
+       style="padding:8px 16px;background:#28a745;color:#fff;text-decoration:none;border-radius:4px;">
+        ➕ Новый промт
+    </a>
+</p>
+
+<p>
+    Фильтр:
+    <a href="{% url 'photogen:prompt_list' %}">Все</a>
+    {% for k, label in kinds %}
+        | <a href="?kind={{ k }}">{{ label }}</a>
+    {% endfor %}
+</p>
+
+<table style="width:100%;border-collapse:collapse;">
+    <thead>
+        <tr style="background:#f0f0f0;">
+            <th style="padding:8px;text-align:left;">Тип</th>
+            <th style="padding:8px;text-align:left;">Код</th>
+            <th style="padding:8px;text-align:left;">Название</th>
+            <th style="padding:8px;">Порядок</th>
+            <th style="padding:8px;">Активен</th>
+            <th style="padding:8px;">Обновлён</th>
+            <th style="padding:8px;"></th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for p in prompts %}
+        <tr style="border-bottom:1px solid #eee;">
+            <td style="padding:8px;">{{ p.get_kind_display }}</td>
+            <td style="padding:8px;"><code>{{ p.code }}</code></td>
+            <td style="padding:8px;">{{ p.title }}</td>
+            <td style="padding:8px;text-align:center;">{{ p.order }}</td>
+            <td style="padding:8px;text-align:center;">
+                {% if p.is_active %}✅{% else %}—{% endif %}
+            </td>
+            <td style="padding:8px;">{{ p.updated_at|date:"d.m.Y H:i" }}</td>
+            <td style="padding:8px;">
+                <a href="{% url 'photogen:prompt_edit' p.pk %}">✏️ Редактировать</a>
+                <form method="post" action="{% url 'photogen:prompt_delete' p.pk %}"
+                      style="display:inline;" onsubmit="return confirm('Удалить промт?');">
+                    {% csrf_token %}
+                    <button type="submit"
+                            style="background:none;border:none;color:#c00;cursor:pointer;">
+                        🗑 Удалить
+                    </button>
+                </form>
+            </td>
+        </tr>
+    {% empty %}
+        <tr><td colspan="7" style="padding:16px;">Промтов нет.</td></tr>
+    {% endfor %}
+    </tbody>
+</table>
+
+<p style="margin-top:20px;">
+    <a href="{% url 'photogen:generator' %}">← К генератору</a>
+</p>
+{% endblock %}

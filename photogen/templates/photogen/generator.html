@@ -19,6 +19,10 @@
     <a href="{% url 'photogen:library' %}">📚 Библиотека референсов</a>
     |
     <a href="{% url 'photogen:library' %}">➕ Загрузить фото</a>
+    {% if user.is_staff %}
+        |
+        <a href="{% url 'photogen:prompt_list' %}">⚙️ Промты</a>
+    {% endif %}
 </p>
 
 <!-- Информация о библиотеке -->
@@ -36,7 +40,7 @@
     <div style="margin:16px 0;">
         <button type="button" onclick="setMode('outfit')" id="tab-outfit"
                 style="padding:8px 16px;background:#007bff;color:#fff;border:none;cursor:pointer;">
-            Сборка образа (Flux 3)
+            Сборка образа (Flux 3 Klein)
         </button>
         <button type="button" onclick="setMode('pose')" id="tab-pose"
                 style="padding:8px 16px;background:#eee;border:none;cursor:pointer;">
@@ -109,25 +113,22 @@
         <span id="size-hint" style="color:#666;font-size:13px;"></span>
     </div>
 
-    <!-- Позы -->
-    <div id="poses-block" style="display:none;margin:16px 0;padding:12px;border:1px solid #ccc;">
-        <h3>Позы (выберите одну или несколько)</h3>
-        <label><input type="checkbox" name="poses" value="sitting"> Сидя на скамейке</label><br>
-        <label><input type="checkbox" name="poses" value="profile"> Профиль у колонны</label><br>
-        <label><input type="checkbox" name="poses" value="walking"> Шаг</label><br>
-        <label><input type="checkbox" name="poses" value="back"> Спиной через плечо</label><br>
-        <label><input type="checkbox" name="poses" value="standing"> Стоя в полный рост</label><br>
-        <label><input type="checkbox" name="poses" value="leaning_wall"> Прислонившись к стене</label><br>
-        <label><input type="checkbox" name="poses" value="hands_pockets"> Руки в карманах</label><br>
-        <label><input type="checkbox" name="poses" value="holding_bag"> С сумкой на плече</label><br>
-        <label><input type="checkbox" name="poses" value="twist"> Лёгкий разворот</label><br>
-        <label><input type="checkbox" name="poses" value="sitting_chair"> Сидя на стуле</label>
-    </div>
+        <!-- Позы (из PromptPreset, kind=pose) -->
+        <div id="poses-block" style="display:none;margin:16px 0;padding:12px;border:1px solid #ccc;">
+            <h3>Позы (выберите одну или несколько)</h3>
+            {% for p in poses %}
+                <label>
+                    <input type="checkbox" name="poses" value="{{ p.code }}"> {{ p.title }}
+                </label><br>
+            {% empty %}
+                <p style="color:#999;">
+                    Промты поз не заведены. Добавьте их в разделе «Промты».
+                </p>
+            {% endfor %}
+        </div>
 
     <p style="color:#666;">
-        Если не выбрать деталь, то референсы будут выбраны <b>случайно</b> из вашей библиотеки.<br>
-        Ориентировочная стоимость: <b>3.69 ₽</b> за образ (Flux 3)
-        или <b>1.80 ₽</b> за каждую позу (Muse).
+        Если не выбрать деталь, то референсы будут выбраны <b>случайно</b> из вашей библиотеки.
     </p>
 
     <button type="submit"
@@ -140,9 +141,9 @@
 <script>
 const SIZES = {
     outfit: [
-        {v: "1K", t: "1K (~4 ₽)"},
-        {v: "2K", t: "2K (~18 ₽)", selected: true},
-        {v: "4K", t: "4K (~60 ₽)"},
+        {v: "1K", t: "1K", selected: true},
+        {v: "2K", t: "2K"},
+        {v: "4K", t: "4K"},
     ],
     pose: [
         {v: "1024x1024", t: "1024×1024 (~1.80 ₽)", selected: true},

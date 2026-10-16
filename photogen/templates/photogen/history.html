@@ -14,7 +14,9 @@
                 <th style="padding:8px;text-align:left;">Размер</th>
                 <th style="padding:8px;text-align:left;">Статус</th>
                 <th style="padding:8px;text-align:left;">Фото</th>
+                {% if user.is_staff %}
                 <th style="padding:8px;text-align:left;">Стоимость</th>
+                {% endif %}
                 <th style="padding:8px;text-align:left;">Дата</th>
                 <th style="padding:8px;text-align:left;">Действия</th>
             </tr>
@@ -49,7 +51,9 @@
                     {% endif %}
                 </td>
                 <td style="padding:8px;">{{ t.results.count }}</td>
+                {% if user.is_staff %}
                 <td style="padding:8px;">{{ t.cost_rub }} ₽</td>
+                 {% endif %}
                 <td style="padding:8px;white-space:nowrap;">{{ t.created_at|date:"d.m.Y H:i" }}</td>
                 <td style="padding:8px;white-space:nowrap;">
                     {% if t.status == "done" %}
@@ -72,7 +76,8 @@
                 </td>
             </tr>
             {% empty %}
-            <tr><td colspan="9" style="padding:20px;text-align:center;color:#888;">
+             <tr><td colspan="{% if user.is_staff %}9{% else %}8{% endif %}"
+                    style="padding:20px;text-align:center;color:#888;">
                 Пока нет задач.
             </td></tr>
             {% endfor %}

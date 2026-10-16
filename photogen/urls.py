@@ -13,4 +13,9 @@ urlpatterns = [
     path("history/", views.history, name="history"),
     path("task/<int:task_id>/", views.task_detail, name="task_detail"),
     path("task/delete/<int:task_id>/", views.delete_task, name="delete_task"),
+    # Промты (staff only)
+    path("prompts/", views.prompt_list, name="prompt_list"),
+    path("prompts/new/", views.prompt_edit, name="prompt_create"),
+    path("prompts/<int:pk>/edit/", views.prompt_edit, name="prompt_edit"),
+    path("prompts/<int:pk>/delete/", views.prompt_delete, name="prompt_delete"),
 ]

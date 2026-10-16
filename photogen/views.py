@@ -1,11 +1,13 @@
 import threading
 
 from django.contrib import messages
+from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 
-from .models import GenerationTask, ImageAsset, GenerationResult
+from .models import GenerationTask, ImageAsset, GenerationResult, PromptPreset
+from .forms import PromptPresetForm
 from .tasks import run_task
 
 
@@ -30,7 +32,7 @@ def generator(request):
             task = GenerationTask.objects.create(
                 user=request.user,
                 mode="outfit",
-                model_name="flux-3-image",
+                model_name="flux-3-image-klein",
                 size=size,
                 selected_assets=selected,
             )
@@ -75,10 +77,15 @@ def generator(request):
         assets = ImageAsset.objects.filter(category=cat, uploaded_by=request.user)
         refs_pose.append((cat, label, assets))
 
+    poses = PromptPreset.objects.filter(
+        kind="pose", is_active=True
+    ).order_by("order", "title")
+
     return render(request, "photogen/generator.html", {
         "counts": counts,
         "refs_outfit": refs_outfit,
         "refs_pose": refs_pose,
+        "poses": poses,
     })
 
 
@@ -168,27 +175,6 @@ def task_detail(request, task_id):
 
 @login_required
 def delete_task(request, task_id):
-    """Удаление задачи генерации (вместе со всеми её результатами)."""
-    task = get_object_or_404(GenerationTask, pk=task_id, user=request.user)
-    if request.method == "POST":
-        # Удаляем физические файлы результатов (по желанию)
-        for r in task.results.all():
-            if r.image:
-                r.image.delete(save=False)
-        # Удаляем саму задачу — связанные GenerationResult удалятся каскадом (on_delete=CASCADE)
-        task.delete()
-        messages.success(request, f"Задача #{task_id} удалена")
-    return redirect("photogen:history")
-
-@login_required
-def task_detail(request, task_id):
-    """Детали одной задачи: параметры, использованные референсы, все результаты."""
-    task = get_object_or_404(GenerationTask, pk=task_id, user=request.user)
-    return render(request, "photogen/task_detail.html", {"task": task})
-
-
-@login_required
-def delete_task(request, task_id):
     """Удаление задачи вместе с её результатами и физическими файлами."""
     task = get_object_or_404(GenerationTask, pk=task_id, user=request.user)
     if request.method == "POST":
@@ -198,3 +184,45 @@ def delete_task(request, task_id):
         task.delete()
         messages.success(request, f"Задача #{task_id} удалена")
     return redirect("photogen:history")
+
+
+# ============================================================
+# Управление промтами (только для staff)
+# ============================================================
+
+@staff_member_required
+def prompt_list(request):
+    kind = request.GET.get("kind")
+    qs = PromptPreset.objects.all()
+    if kind:
+        qs = qs.filter(kind=kind)
+    return render(request, "photogen/prompt_list.html", {
+        "prompts": qs,
+        "kinds": PromptPreset.KIND_CHOICES,
+        "active_kind": kind,
+    })
+
+
+@staff_member_required
+def prompt_edit(request, pk=None):
+    obj = get_object_or_404(PromptPreset, pk=pk) if pk else None
+    if request.method == "POST":
+        form = PromptPresetForm(request.POST, instance=obj)
+        if form.is_valid():
+            saved = form.save()
+            messages.success(request, f"Промт «{saved.title}» сохранён")
+            return redirect("photogen:prompt_list")
+    else:
+        form = PromptPresetForm(instance=obj)
+    return render(request, "photogen/prompt_edit.html", {"form": form, "obj": obj})
+
+
+@staff_member_required
+def prompt_delete(request, pk):
+    obj = get_object_or_404(PromptPreset, pk=pk)
+    if request.method == "POST":
+        obj.delete()
+        messages.success(request, "Промт удалён")
+    return redirect("photogen:prompt_list")
+
+
