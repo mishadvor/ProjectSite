@@ -10,13 +10,27 @@
     </a>
 </p>
 
-<p>
-    Фильтр:
-    <a href="{% url 'photogen:prompt_list' %}">Все</a>
-    {% for k, label in kinds %}
-        | <a href="?kind={{ k }}">{{ label }}</a>
-    {% endfor %}
-</p>
+<div style="margin:16px 0;padding:12px;border:1px solid #eee;border-radius:8px;background:#fafafa;">
+    <b>Фильтр по типу:</b>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">
+        <a href="{% url 'photogen:prompt_list' %}"
+           style="padding:6px 12px;border-radius:16px;text-decoration:none;
+                  border:1px solid #ccc;
+                  {% if not active_kind %}background:#007bff;color:#fff;border-color:#007bff;
+                  {% else %}background:#fff;color:#333;{% endif %}">
+            Все
+        </a>
+        {% for k, label in kinds %}
+            <a href="?kind={{ k }}"
+               style="padding:6px 12px;border-radius:16px;text-decoration:none;
+                      border:1px solid #ccc;
+                      {% if active_kind == k %}background:#007bff;color:#fff;border-color:#007bff;
+                      {% else %}background:#fff;color:#333;{% endif %}">
+                {{ label }}
+            </a>
+        {% endfor %}
+    </div>
+</div>
 
 <table style="width:100%;border-collapse:collapse;">
     <thead>
@@ -41,13 +55,21 @@
                 {% if p.is_active %}✅{% else %}—{% endif %}
             </td>
             <td style="padding:8px;">{{ p.updated_at|date:"d.m.Y H:i" }}</td>
-            <td style="padding:8px;">
-                <a href="{% url 'photogen:prompt_edit' p.pk %}">✏️ Редактировать</a>
+            <td style="padding:8px;white-space:nowrap;">
+                <a href="{% url 'photogen:prompt_edit' p.pk %}"
+                   style="display:inline-block;padding:6px 12px;border-radius:6px;
+                          text-decoration:none;color:#007bff;background:#fff;
+                          font-weight:500;border:1px solid #007bff;font-size:13px;">
+                    ✏️ Редактировать
+                </a>
                 <form method="post" action="{% url 'photogen:prompt_delete' p.pk %}"
-                      style="display:inline;" onsubmit="return confirm('Удалить промт?');">
+                      style="display:inline;margin-left:6px;"
+                      onsubmit="return confirm('Удалить промт?');">
                     {% csrf_token %}
                     <button type="submit"
-                            style="background:none;border:none;color:#c00;cursor:pointer;">
+                            style="display:inline-block;padding:6px 12px;border-radius:6px;
+                                   color:#dc3545;background:#fff;font-weight:500;
+                                   border:1px solid #dc3545;font-size:13px;cursor:pointer;">
                         🗑 Удалить
                     </button>
                 </form>
@@ -59,7 +81,18 @@
     </tbody>
 </table>
 
-<p style="margin-top:20px;">
-    <a href="{% url 'photogen:generator' %}">← К генератору</a>
+<p style="margin-top:20px;display:flex;flex-wrap:wrap;gap:8px;">
+    <a href="{% url 'photogen:generator' %}"
+       style="display:inline-block;padding:8px 16px;border-radius:6px;
+              text-decoration:none;color:#fff;background:#007bff;
+              font-weight:500;border:1px solid #007bff;">
+        ← К генератору
+    </a>
+    <a href="{% url 'photogen:library' %}"
+       style="display:inline-block;padding:8px 16px;border-radius:6px;
+              text-decoration:none;color:#007bff;background:#fff;
+              font-weight:500;border:1px solid #007bff;">
+        📚 Библиотека
+    </a>
 </p>
 {% endblock %}

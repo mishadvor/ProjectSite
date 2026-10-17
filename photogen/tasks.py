@@ -173,10 +173,10 @@ def generate_pose(task: GenerationTask, poses_selected):
                 model="muse-image",
                 image=[master_file, location_file],
                 prompt=prompt,
-                #size="900x1200",
+                size="1024x1024",
                 extra_body={
-                    "sequential_image_generation": "disabled",
-                    "aspect_ratio": "3:4",
+                    "sequential_image_generation": "disabled"
+                    #"aspect_ratio": "3:4",
                 },
             )
 
