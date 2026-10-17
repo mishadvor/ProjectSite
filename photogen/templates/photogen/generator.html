@@ -6,6 +6,50 @@
 {% block content %}
 <h1>Генератор карточек товаров</h1>
 
+<style>
+    details.refs-toggle {
+        margin: 16px 0;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        background: #fafafa;
+        overflow: hidden;
+    }
+    details.refs-toggle > summary {
+        cursor: pointer;
+        padding: 12px 16px;
+        font-weight: 600;
+        color: #fff;
+        background: #6c757d;
+        list-style: none;                 /* убираем дефолтный треугольник */
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        transition: background 0.15s;
+        user-select: none;
+    }
+    details.refs-toggle > summary::-webkit-details-marker {
+        display: none;                    /* Safari/Chrome */
+    }
+    details.refs-toggle > summary::after {
+        content: "▾";                     /* наш треугольник */
+        font-size: 16px;
+        transition: transform 0.15s;
+    }
+    details.refs-toggle[open] > summary::after {
+        transform: rotate(180deg);        /* при раскрытии — вверх */
+    }
+    details.refs-toggle > summary:hover {
+        background: #5a6268;
+    }
+    details.refs-toggle[open] > summary {
+        border-bottom: 1px solid #ddd;
+    }
+    details.refs-toggle .refs-body {
+        padding: 12px;
+        background: #fff;
+    }
+</style>
+
 {% if messages %}
     {% for m in messages %}
         <div style="padding:8px;margin:8px 0;border-radius:4px;
@@ -15,13 +59,26 @@
     {% endfor %}
 {% endif %}
 
-<p>
-    <a href="{% url 'photogen:library' %}">📚 Библиотека референсов</a>
-    |
-    <a href="{% url 'photogen:library' %}">➕ Загрузить фото</a>
+<p style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 20px;">
+    <a href="{% url 'photogen:library' %}"
+       style="display:inline-block;padding:8px 16px;border-radius:6px;
+              text-decoration:none;color:#fff;background:#007bff;
+              font-weight:500;border:1px solid #007bff;">
+        📚 Библиотека референсов
+    </a>
+    <a href="{% url 'photogen:library' %}"
+       style="display:inline-block;padding:8px 16px;border-radius:6px;
+              text-decoration:none;color:#007bff;background:#fff;
+              font-weight:500;border:1px solid #007bff;">
+        ➕ Загрузить фото
+    </a>
     {% if user.is_staff %}
-        |
-        <a href="{% url 'photogen:prompt_list' %}">⚙️ Промты</a>
+        <a href="{% url 'photogen:prompt_list' %}"
+           style="display:inline-block;padding:8px 16px;border-radius:6px;
+                  text-decoration:none;color:#6c757d;background:#fff;
+                  font-weight:500;border:1px solid #6c757d;">
+            ⚙️ Промты
+        </a>
     {% endif %}
 </p>
 
@@ -51,11 +108,11 @@
     <input type="hidden" name="mode" id="mode-input" value="outfit">
 
     <!-- Выбор референсов для Flux -->
-    <details id="refs-outfit-block" style="margin:16px 0;">
-        <summary style="cursor:pointer;font-weight:bold;">
+    <details id="refs-outfit-block" class="refs-toggle">
+        <summary>
             🎯 Выбрать конкретные референсы (если не отмечать — случайные)
         </summary>
-        <div style="margin-top:12px;padding:12px;border:1px solid #ddd;border-radius:6px;">
+        <div class="refs-body" style="max-height:520px;overflow-y:auto;">
             {% for cat_key, cat_label, assets in refs_outfit %}
                 <div style="margin-bottom:12px;">
                     <b>{{ cat_label }}</b>
@@ -66,7 +123,7 @@
                                     <input type="checkbox" name="{{ cat_key }}_ids" value="{{ a.id }}">
                                     <br>
                                     <img src="{{ a.image.url }}" alt="{{ cat_label }}"
-                                         style="width:70px;height:70px;object-fit:cover;border-radius:6px;border:1px solid #ddd;">
+                                        style="width:160px;height:160px;object-fit:contain;border-radius:6px;border:1px solid #ddd;background:#f5f5f5;">
                                 </label>
                             {% endfor %}
                         </div>
@@ -79,22 +136,24 @@
     </details>
 
     <!-- Выбор референсов для Muse -->
-    <details id="refs-pose-block" style="margin:16px 0;display:none;">
-        <summary style="cursor:pointer;font-weight:bold;">
+    <details id="refs-pose-block" class="refs-toggle" style="display:none;">
+        <summary>
             🎯 Выбрать конкретные референсы (если не отмечать — случайные)
         </summary>
-        <div style="margin-top:12px;padding:12px;border:1px solid #ddd;border-radius:6px;">
+        <div class="refs-body" style="max-height:520px;overflow-y:auto;">
             {% for cat_key, cat_label, assets in refs_pose %}
-                <div style="margin-bottom:12px;">
+                <div style="margin-bottom:16px;">
                     <b>{{ cat_label }}</b>
                     {% if assets %}
-                        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;">
+                        <div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:8px;">
                             {% for a in assets %}
                                 <label style="cursor:pointer;text-align:center;">
                                     <input type="checkbox" name="{{ cat_key }}_ids" value="{{ a.id }}">
                                     <br>
                                     <img src="{{ a.image.url }}" alt="{{ cat_label }}"
-                                         style="width:70px;height:70px;object-fit:cover;border-radius:6px;border:1px solid #ddd;">
+                                         style="width:160px;height:160px;object-fit:contain;
+                                                border-radius:6px;border:1px solid #ddd;background:#f5f5f5;">
+                                    <div style="font-size:11px;color:#666;">#{{ a.id }}</div>
                                 </label>
                             {% endfor %}
                         </div>
@@ -146,7 +205,7 @@ const SIZES = {
         {v: "4K", t: "4K"},
     ],
     pose: [
-        {v: "1024x1024", t: "1024×1024 (~1.80 ₽)", selected: true},
+        {v: "3x4", t: "1280×1920     ", selected: true},
     ],
 };
 

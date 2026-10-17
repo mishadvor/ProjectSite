@@ -169,15 +169,20 @@ def library(request):
     if category:
         qs = qs.filter(category=category)
 
-    counts = {
-        cat: ImageAsset.objects.filter(category=cat, uploaded_by=request.user).count()
-        for cat, _ in ImageAsset.CATEGORY_CHOICES
-    }
+    # Список (код, название, количество) — сразу с числами, готово для шаблона
+    categories_with_counts = []
+    for cat, label in ImageAsset.CATEGORY_CHOICES:
+        n = ImageAsset.objects.filter(category=cat, uploaded_by=request.user).count()
+        categories_with_counts.append((cat, label, n))
+
+    total_count = ImageAsset.objects.filter(uploaded_by=request.user).count()
+
     return render(request, "photogen/library.html", {
         "assets": qs,
         "active_category": category,
         "categories": ImageAsset.CATEGORY_CHOICES,
-        "counts": counts,
+        "categories_with_counts": categories_with_counts,
+        "total_count": total_count,
     })
 
 

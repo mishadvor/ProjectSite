@@ -5,6 +5,18 @@
 {% block content %}
 <h1>Библиотека референсов</h1>
 
+<p style="margin:8px 0 16px;">
+    <a href="{% url 'photogen:generator' %}"
+       style="display:inline-block;padding:8px 16px;border:1px solid #007bff;
+              border-radius:6px;text-decoration:none;color:#fff;background:#007bff;
+              font-weight:500;">
+        ← К генератору
+    </a>
+    <span style="margin-left:12px;color:#666;font-size:13px;">
+        Всего референсов: {{ total_count }}
+    </span>
+</p>
+
 {% if messages %}
     {% for m in messages %}
         <div style="padding:8px;margin:8px 0;background:#dfd;">{{ m }}</div>
@@ -35,13 +47,27 @@
 </form>
 
 <!-- Фильтр -->
-<p>
-    <b>Фильтр:</b>
-    <a href="{% url 'photogen:library' %}">Все ({{ assets|length }})</a>
-    {% for key, label in categories %}
-        | <a href="?category={{ key }}">{{ label }} ({{ counts|default_if_none:'' }})</a>
-    {% endfor %}
-</p>
+<div style="margin:16px 0;padding:12px;border:1px solid #eee;border-radius:8px;background:#fafafa;">
+    <b>Фильтр по категории:</b>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">
+        <a href="{% url 'photogen:library' %}"
+           style="padding:6px 12px;border-radius:16px;text-decoration:none;
+                  border:1px solid #ccc;
+                  {% if not active_category %}background:#007bff;color:#fff;border-color:#007bff;
+                  {% else %}background:#fff;color:#333;{% endif %}">
+            Все ({{ total_count }})
+        </a>
+        {% for key, label, n in categories_with_counts %}
+            <a href="?category={{ key }}"
+               style="padding:6px 12px;border-radius:16px;text-decoration:none;
+                      border:1px solid #ccc;
+                      {% if active_category == key %}background:#007bff;color:#fff;border-color:#007bff;
+                      {% else %}background:#fff;color:#333;{% endif %}">
+                {{ label }} ({{ n }})
+            </a>
+        {% endfor %}
+    </div>
+</div>
 
 <!-- Список -->
 <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;">
@@ -62,5 +88,13 @@
     {% endfor %}
 </div>
 
-<p style="margin-top:24px;"><a href="{% url 'photogen:generator' %}">← К генератору</a></p>
+<p style="margin-top:24px;">
+    <a href="{% url 'photogen:generator' %}"
+       style="display:inline-block;padding:8px 16px;border:1px solid #007bff;
+              border-radius:6px;text-decoration:none;color:#fff;background:#007bff;
+              font-weight:500;">
+        ← К генератору
+    </a>
+</p>
+
 {% endblock %}
