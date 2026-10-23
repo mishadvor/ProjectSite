@@ -218,6 +218,32 @@ def delete_task(request, task_id):
         messages.success(request, f"Задача #{task_id} удалена")
     return redirect("photogen:history")
 
+@login_required
+def delete_tasks_bulk(request):
+    """Массовое удаление выбранных задач."""
+    if request.method != "POST":
+        return redirect("photogen:history")
+
+    ids = request.POST.getlist("task_ids")
+    if not ids:
+        messages.warning(request, "Ничего не выбрано")
+        return redirect("photogen:history")
+
+    # Только задачи текущего пользователя
+    tasks = GenerationTask.objects.filter(id__in=ids, user=request.user)
+
+    # Удаляем физические файлы результатов
+    for t in tasks:
+        for r in t.results.all():
+            if r.image:
+                r.image.delete(save=False)
+
+    deleted_count, _ = tasks.delete()  # вернёт число удалённых объектов (включая результаты)
+    # deleted_count включает задачи + результаты, поэтому для сообщения:
+    n = len(ids)
+    messages.success(request, f"Удалено задач: {n}")
+    return redirect("photogen:history")
+
 
 # ============================================================
 # Управление промтами (только для staff)

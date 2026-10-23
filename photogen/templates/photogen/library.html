@@ -74,7 +74,7 @@
     {% for a in assets %}
         <div style="border:1px solid #ddd;padding:8px;border-radius:6px;">
             <img src="{{ a.image.url }}" alt="{{ a.category }}"
-                 style="width:100%;height:160px;object-fit:cover;border-radius:4px;">
+                 style="width:100%;height:250px;object-fit:cover;border-radius:4px;">
             <p style="margin:4px 0;font-size:12px;">{{ a.get_category_display }}</p>
             <form method="post" action="{% url 'photogen:delete_asset' a.id %}"
                   onsubmit="return confirm('Удалить этот референс?');">

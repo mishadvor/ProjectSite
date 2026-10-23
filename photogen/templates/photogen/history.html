@@ -4,10 +4,26 @@
 {% block content %}
 <h1>История генераций</h1>
 
+<form method="post" action="{% url 'photogen:delete_tasks_bulk' %}" id="bulk-form">
+{% csrf_token %}
+
+<div style="margin-bottom:12px;">
+    <button type="submit"
+            id="bulk-delete-btn"
+            disabled
+            style="padding:8px 16px;border-radius:6px;border:1px solid #dc3545;
+                   color:#dc3545;background:#fff;font-weight:500;cursor:pointer;">
+        🗑 Удалить выбранные (<span id="selected-count">0</span>)
+    </button>
+</div>
+
 <div style="max-height:70vh;overflow-y:auto;border:1px solid #eee;border-radius:8px;">
     <table style="width:100%;border-collapse:collapse;">
         <thead style="position:sticky;top:0;background:#f5f5f5;z-index:1;">
             <tr>
+                <th style="padding:8px;text-align:center;width:32px;">
+                    <input type="checkbox" id="select-all" title="Выбрать все">
+                </th>
                 <th style="padding:8px;text-align:left;">Превью</th>
                 <th style="padding:8px;text-align:left;">#</th>
                 <th style="padding:8px;text-align:left;">Режим</th>
@@ -24,6 +40,10 @@
         <tbody>
             {% for t in tasks %}
             <tr style="border-bottom:1px solid #eee;">
+                <td style="padding:8px;text-align:center;">
+                    <input type="checkbox" name="task_ids" value="{{ t.id }}"
+                           class="task-checkbox">
+                </td>
                 <td style="padding:6px;">
                     {% with first=t.results.first %}
                         {% if first %}
@@ -85,6 +105,8 @@
     </table>
 </div>
 
+</form>
+
 <p style="margin-top:24px;">
     <a href="{% url 'photogen:generator' %}"
        style="display:inline-block;padding:8px 16px;border-radius:6px;
@@ -93,4 +115,45 @@
         ← К генератору
     </a>
 </p>
+
+<script>
+(function(){
+    const selectAll = document.getElementById('select-all');
+    const checkboxes = document.querySelectorAll('.task-checkbox');
+    const btn = document.getElementById('bulk-delete-btn');
+    const countEl = document.getElementById('selected-count');
+
+    function updateState() {
+        const checked = document.querySelectorAll('.task-checkbox:checked').length;
+        countEl.textContent = checked;
+        btn.disabled = checked === 0;
+
+        // Обновить "выбрать все"
+        if (selectAll) {
+            selectAll.checked = (checked === checkboxes.length && checkboxes.length > 0);
+            selectAll.indeterminate = (checked > 0 && checked < checkboxes.length);
+        }
+    }
+
+    if (selectAll) {
+        selectAll.addEventListener('change', function() {
+            checkboxes.forEach(cb => cb.checked = this.checked);
+            updateState();
+        });
+    }
+
+    checkboxes.forEach(cb => cb.addEventListener('change', updateState));
+
+    // Кнопка «Удалить выбранные»
+    btn?.addEventListener('click', function(e) {
+        const checked = document.querySelectorAll('.task-checkbox:checked').length;
+        if (checked === 0) return;
+        if (!confirm('Удалить ' + checked + ' задач(и) и все их результаты? Действие необратимо.')) {
+            e.preventDefault();
+        }
+    });
+
+    updateState();
+})();
+</script>
 {% endblock %}
